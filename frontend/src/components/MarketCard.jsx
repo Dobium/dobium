@@ -71,9 +71,12 @@ function MiniChart({ market, outcomes, isBinary }) {
   const height = 70;
   const colorPalette = isBinary ? BINARY_COLORS : MULTI_COLORS;
   const priceHistory = market?.price_history || [];
-  const displayCount = isBinary ? 2 : Math.min(outcomes.length, 4);
 
-  const histories = outcomes.slice(0, displayCount).map(outcome => {
+  // Sort by probability desc, take top 4 (or 2 for binary)
+  const sortedOutcomes = [...outcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0));
+  const displayCount = isBinary ? 2 : Math.min(sortedOutcomes.length, 4);
+
+  const histories = sortedOutcomes.slice(0, displayCount).map(outcome => {
     let data;
     if (priceHistory.length >= 2) {
       // Use real price history — same source as the detail page chart
@@ -101,7 +104,7 @@ function MiniChart({ market, outcomes, isBinary }) {
     );
   });
 
-  const legends = outcomes.slice(0, displayCount).map((outcome, idx) => {
+  const legends = sortedOutcomes.slice(0, displayCount).map((outcome, idx) => {
     const color = colorPalette[idx % colorPalette.length];
     return (
       <div key={outcome.id} className="flex items-center gap-1">
@@ -131,7 +134,9 @@ function MiniChart({ market, outcomes, isBinary }) {
 export default function MarketCard({ market }) {
   const navigate = useNavigate();
   const marketType = market.market_type || 'binary';
-  const outcomes = market.outcomes || [];
+  const rawOutcomes = market.outcomes || [];
+  // Sort outcomes highest → lowest probability
+  const outcomes = [...rawOutcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0));
   const isBinary = marketType === 'binary';
   const isMultiMultiple = marketType === 'multi_multiple';
   const typeLabel = isBinary ? 'Binary' : isMultiMultiple ? 'Multi-Independent' : 'Multi';
@@ -143,12 +148,14 @@ export default function MarketCard({ market }) {
         {outcomes.slice(0, 2).map((outcome, idx) => (
           <button
             key={outcome.id}
-            className={`flex-1 relative overflow-hidden rounded-lg px-3 py-2 transition-all duration-200 border ${idx === 0
-              ? 'bg-green-500/10 border-green-500/50 hover:border-green-500 hover:bg-green-500/20'
-              : 'bg-red-500/10 border-red-500/50 hover:border-red-500 hover:bg-red-500/20'
-              } active:scale-95`}
+            className={`flex-1 relative overflow-hidden rounded-lg px-3 py-2 transition-all duration-200 border ${
+              idx === 0
+                ? 'bg-green-500/10 border-green-500/50 hover:border-green-500 hover:bg-green-500/20'
+                : 'bg-red-500/10 border-red-500/50 hover:border-red-500 hover:bg-red-500/20'
+            } active:scale-95`}
             onClick={(e) => {
               e.stopPropagation();
+              navigate(`/markets/${market.id}`);
             }}
           >
             <div className="flex flex-col gap-1">
@@ -174,6 +181,7 @@ export default function MarketCard({ market }) {
               className={`w-[calc(50%-4px)] relative overflow-hidden rounded-lg px-3 py-2 transition-all duration-200 border ${colors.bg} ${colors.border} ${colors.hover} active:scale-[0.98] flex flex-col items-center justify-center`}
               onClick={(e) => {
                 e.stopPropagation();
+                navigate(`/markets/${market.id}`);
               }}
             >
               <span className="text-white font-medium text-xs truncate text-center w-full">{normalizeOutcomeTitle(outcome.title)}</span>

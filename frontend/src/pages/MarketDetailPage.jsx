@@ -10,8 +10,13 @@ function PriceChart({ outcomes, priceHistory }) {
   const height = 200;
   const padding = 20;
 
+  // Only chart the top 4 highest-probability outcomes to keep the chart readable
+  const chartOutcomes = [...outcomes]
+    .sort((a, b) => (b.probability || 0) - (a.probability || 0))
+    .slice(0, 4);
+
   // Use real price history or generate initial flat line if no history exists
-  const histories = outcomes.map((o, idx) => {
+  const histories = chartOutcomes.map((o, idx) => {
     let data;
 
     if (priceHistory && priceHistory.length > 0) {
@@ -112,6 +117,11 @@ export default function MarketDetailPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
   const [selectedOutcome, setSelectedOutcome] = useState(null);
+
+  // Sort outcomes highest → lowest probability so top picks are always first
+  const sortedOutcomes = market?.outcomes
+    ? [...market.outcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0))
+    : [];
   const [stake, setStake] = useState('');
   const [tradeLoading, setTradeLoading] = useState(false);
   const [tradeMsg, setTradeMsg] = useState('');
@@ -156,7 +166,7 @@ export default function MarketDetailPage() {
   if (error || !market) return <div className="empty-state"><p>Market not found.</p></div>;
 
   const accentColor = CATEGORY_COLORS[market.category] || '#6366f1';
-  const outcomes = market.outcomes || [];
+  const outcomes = sortedOutcomes;   // sorted highest → lowest probability
   const marketType = market.market_type || 'binary';
   const isMultiMultiple = marketType === 'multi_multiple';
   const yesOutcome = outcomes.find(o => o.title?.toLowerCase() === 'yes') || outcomes[0];
