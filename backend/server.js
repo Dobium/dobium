@@ -399,6 +399,20 @@ app.post('/api/markets', async (req, res) => {
 // PREDICTIONS — Database backed
 // ============================================================================
 
+/**
+ * Normalize a Sequelize Prediction instance to always return snake_case timestamps.
+ * Sequelize with underscored:true still returns camelCase keys in .toJSON(),
+ * but the frontend expects snake_case (created_at, updated_at).
+ */
+function normalizePrediction(p) {
+  const json = p.toJSON ? p.toJSON() : p;
+  return {
+    ...json,
+    created_at: json.created_at || json.createdAt || null,
+    updated_at: json.updated_at || json.updatedAt || null,
+  };
+}
+
 app.get('/api/predictions', async (req, res) => {
   try {
     const { market_id } = req.query;
@@ -408,7 +422,7 @@ app.get('/api/predictions', async (req, res) => {
       where,
       order: [['created_at', 'DESC']]
     });
-    res.json(predictions.map(p => p.toJSON()));
+    res.json(predictions.map(normalizePrediction));
   } catch (error) {
     console.error('Get predictions error:', error);
     res.status(500).json({ error: 'Failed to fetch predictions' });
@@ -493,7 +507,7 @@ app.post('/api/predictions', async (req, res) => {
       return prediction;
     });
 
-    res.status(201).json(result.toJSON());
+    res.status(201).json(normalizePrediction(result));
   } catch (error) {
     if (error.status) return res.status(error.status).json({ error: error.message });
     console.error('Create prediction error:', error);

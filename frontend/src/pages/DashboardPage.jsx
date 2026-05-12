@@ -325,8 +325,12 @@ export default function DashboardPage() {
     if (!preds.length) return [];
 
     const sorted = preds
-      .filter(p => p.created_at)
+      .filter(p => p.created_at || p.createdAt)
+      .map(p => ({ ...p, created_at: p.created_at || p.createdAt }))
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+    // Guard: if no predictions have timestamps, bail out
+    if (!sorted.length) return [];
 
     // Helper: EV of a position using current market probability
     const getMtm = (p) => {
