@@ -9,7 +9,9 @@ function TrendingMiniChart({ market }) {
   const outcomes = market.outcomes || [];
   const priceHistory = market.price_history || [];
 
-  const trends = outcomes.slice(0, 3).map((o, idx) => {
+  const sortedOutcomes = [...outcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0));
+
+  const trends = sortedOutcomes.slice(0, 4).map((o, idx) => {
     let data;
 
     if (priceHistory.length > 0) {
@@ -27,7 +29,7 @@ function TrendingMiniChart({ market }) {
 
     return {
       data: data,
-      color: o.title?.toLowerCase() === 'yes' ? '#22c55e' : o.title?.toLowerCase() === 'no' ? '#ef4444' : ['#3b82f6', '#f59e0b', '#8b5cf6'][idx]
+      color: o.title?.toLowerCase() === 'yes' ? '#22c55e' : o.title?.toLowerCase() === 'no' ? '#ef4444' : ['#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4'][idx % 4]
     };
   });
 
@@ -205,7 +207,10 @@ export default function ExplorePage() {
                 <div className="flex flex-col justify-center">
                   <h4 className="text-sm font-semibold text-slate-400 mb-3">Trade Outcomes</h4>
                   <div className="space-y-2">
-                    {trending[trendingIndex].outcomes?.slice(0, 4).map((outcome, idx) => {
+                    {[...(trending[trendingIndex].outcomes || [])]
+                      .sort((a, b) => (b.probability || 0) - (a.probability || 0))
+                      .slice(0, 4)
+                      .map((outcome, idx) => {
                       const isYes = outcome.title?.toLowerCase() === 'yes';
                       const isNo = outcome.title?.toLowerCase() === 'no';
                       const colorClass = isYes ? 'bg-green-500/10 border-green-500/50 hover:border-green-500 text-green-400' : isNo ? 'bg-red-500/10 border-red-500/50 hover:border-red-500 text-red-400' : 'bg-blue-500/10 border-blue-500/50 hover:border-blue-500 text-blue-400';
@@ -216,8 +221,8 @@ export default function ExplorePage() {
                           onClick={() => navigate(`/markets/${trending[trendingIndex].id}`)}
                           className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${colorClass}`}
                         >
-                          <span className="text-white font-medium text-sm">{outcome.title}</span>
-                          <span className="text-lg font-bold">{Math.round(outcome.probability || 0)}¢</span>
+                          <span className="text-white font-medium text-sm truncate pr-2 w-full text-left">{outcome.title}</span>
+                          <span className="text-lg font-bold shrink-0">{Math.round(outcome.probability || 0)}¢</span>
                         </button>
                       );
                     })}
