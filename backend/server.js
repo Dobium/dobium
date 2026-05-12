@@ -429,6 +429,14 @@ app.post('/api/predictions', async (req, res) => {
       return res.status(400).json({ error: 'Invalid prediction payload' });
     }
 
+    // Ensure the user exists in the local DB (Supabase auth users may not be synced yet)
+    if (user_id) {
+      await User.findOrCreate({
+        where: { id: user_id },
+        defaults: { id: user_id, username: user_id.substring(0, 20), email: null }
+      });
+    }
+
     const result = await sequelize.transaction(async (t) => {
       // Validate market exists and is active
       const market = await Market.findByPk(market_id, {
