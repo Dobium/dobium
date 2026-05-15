@@ -497,9 +497,9 @@ async function calculateBalanceFromTransactions(userId) {
   // Filter transactions for this user
   const userTransactions = transactions.filter(t => t.user_id === userId);
 
-  // Sum deposits (completed only)
+  // Sum completed wallet credits
   const totalDeposits = userTransactions
-    .filter(t => t.type === 'deposit' && t.status === 'completed')
+    .filter(t => ['deposit', 'payout', 'refund'].includes(t.type) && t.status === 'completed')
     .reduce((sum, t) => sum + (t.amount || 0), 0);
 
   // Sum withdrawals (completed only)
@@ -512,11 +512,12 @@ async function calculateBalanceFromTransactions(userId) {
     .filter(p => p.user_id === userId && p.status === 'active')
     .reduce((sum, p) => sum + (p.stake_amount || 0), 0);
 
-  // Balance = deposits - withdrawals - active stakes
-  const balance = totalDeposits - totalWithdrawals - activePredictionStakes;
+  // Buying power = deposits - withdrawals - active stakes locked in trades
+  const rawBalance = totalDeposits - totalWithdrawals - activePredictionStakes;
 
   return {
-    balance: Math.max(0, balance), // Never negative
+    balance: Math.max(0, rawBalance), // Never negative in UI-facing responses
+    rawBalance,
     totalDeposits,
     totalWithdrawals,
     activePredictionStakes
@@ -545,6 +546,7 @@ app.get('/api/users/:id/balance', async (req, res) => {
 
   res.json({
     balance: balanceInfo.balance,
+    raw_balance: balanceInfo.rawBalance,
     total_deposited: balanceInfo.totalDeposits,
     total_withdrawn: balanceInfo.totalWithdrawals,
     active_stakes: balanceInfo.activePredictionStakes,
@@ -709,7 +711,7 @@ app.post('/api/users/:id/fix-balance', async (req, res) => {
   // Current financial snapshot
   const balanceBefore = await calculateBalanceFromTransactions(userId);
 
-  if (balanceBefore.balance >= 0) {
+  if (balanceBefore.rawBalance >= 0) {
     return res.json({
       ok: true,
       message: 'Balance is already non-negative — no fix needed.',
@@ -721,7 +723,7 @@ app.post('/api/users/:id/fix-balance', async (req, res) => {
   // The raw deficit before Math.max(0,...) hides it
   const totalDeposits = balanceBefore.totalDeposits;
   const totalWithdrawals = balanceBefore.totalWithdrawals;
-  const trueBalance = totalDeposits - totalWithdrawals - balanceBefore.activePredictionStakes;
+  const trueBalance = balanceBefore.rawBalance;
 
   let deficit = Math.abs(trueBalance); // amount we need to claw back
   const cancelledIds = [];
@@ -736,21 +738,39 @@ app.post('/api/users/:id/fix-balance', async (req, res) => {
     // Cancel this prediction — refund the stake to restore buying power
     const idx = predictions.findIndex((p) => p.id === pred.id);
     if (idx === -1) continue;
-    predictions[idx] = { ...predictions[idx], status: 'cancelled', cancelled_reason: 'balance_repair', cancelled_at: new Date().toISOString() };
     cancelledIds.push(pred.id);
     deficit -= pred.stake_amount;
   }
 
+  predictions = predictions.filter((p) => !cancelledIds.includes(p.id));
+
+  const markets = await readJson(MARKETS_PATH);
+  const affectedMarketIds = new Set(userActivePreds.filter((p) => cancelledIds.includes(p.id)).map((p) => p.market_id));
+  for (const market of markets) {
+    if (!affectedMarketIds.has(market.id)) continue;
+    for (const outcome of market.outcomes || []) {
+      outcome.total_stake = predictions
+        .filter((p) => p.market_id === market.id && p.outcome_id === outcome.id && p.status === 'active')
+        .reduce((sum, p) => sum + (p.stake_amount || 0), 0);
+    }
+    recomputeMarketStats(market);
+  }
+
   await writeJson(PREDICTIONS_PATH, predictions);
+  await writeJson(MARKETS_PATH, markets);
 
   const balanceAfter = await calculateBalanceFromTransactions(userId);
 
   res.json({
     ok: true,
-    message: `Cancelled ${cancelledIds.length} prediction(s) to restore a non-negative balance.`,
+    message: `Removed ${cancelledIds.length} prediction(s) to restore a non-negative balance.`,
     balance_before: balanceBefore.balance,
+    raw_balance_before: balanceBefore.rawBalance,
     balance_after: balanceAfter.balance,
+    raw_balance_after: balanceAfter.rawBalance,
     cancelled_predictions: cancelledIds.length,
+    removed_predictions: cancelledIds.length,
+    removed_prediction_ids: cancelledIds,
     cancelled_ids: cancelledIds
   });
 });

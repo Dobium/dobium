@@ -74,14 +74,20 @@ app.get('/config/stripe.js', (req, res) => {
 /**
  * Calculate user balance from transactions
  */
-async function calculateBalanceFromTransactions(userId) {
+async function calculateBalanceFromTransactions(userId, transaction = null) {
   const transactions = await Transaction.findAll({
-    where: { user_id: userId }
+    where: { user_id: userId },
+    ...(transaction ? { transaction } : {})
   });
 
-  // Sum deposits (completed only)
+  const activePredictions = await Prediction.findAll({
+    where: { user_id: userId, status: 'active' },
+    ...(transaction ? { transaction } : {})
+  });
+
+  // Sum completed wallet credits
   const totalDeposits = transactions
-    .filter(t => t.type === 'deposit' && t.status === 'completed')
+    .filter(t => ['deposit', 'payout', 'refund'].includes(t.type) && t.status === 'completed')
     .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
 
   // Sum withdrawals (completed only)
@@ -89,13 +95,94 @@ async function calculateBalanceFromTransactions(userId) {
     .filter(t => t.type === 'withdrawal' && t.status === 'completed')
     .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
 
-  // Balance = deposits - withdrawals
-  const balance = totalDeposits - totalWithdrawals;
+  const activePredictionStakes = activePredictions
+    .reduce((sum, p) => sum + parseFloat(p.stake_amount || 0), 0);
+
+  // Buying power = deposits - withdrawals - active stakes locked in trades
+  const rawBalance = totalDeposits - totalWithdrawals - activePredictionStakes;
 
   return {
-    balance: Math.max(0, balance),
+    balance: Math.max(0, rawBalance),
+    rawBalance,
     totalDeposits,
-    totalWithdrawals
+    totalWithdrawals,
+    activePredictionStakes
+  };
+}
+
+async function refreshMarketPricing(marketId, transaction) {
+  const market = await Market.findByPk(marketId, { transaction });
+  if (!market) return null;
+
+  const outcomes = await Outcome.findAll({ where: { market_id: marketId }, transaction });
+  const outcomesData = outcomes.map(o => o.toJSON());
+  const totalVolume = outcomesData.reduce((sum, o) => sum + parseFloat(o.total_stake || 0), 0);
+
+  await market.update({ total_volume: totalVolume }, { transaction });
+
+  const pricedOutcomes = recomputeProbabilities(outcomesData, totalVolume, market.market_type);
+  for (const po of pricedOutcomes) {
+    await Outcome.update({ probability: po.probability }, { where: { id: po.id }, transaction });
+  }
+
+  const prices = Object.fromEntries(pricedOutcomes.map(o => [o.id, o.probability]));
+  await PriceHistory.create({ market_id: marketId, timestamp: new Date(), prices }, { transaction });
+
+  return { marketId, totalVolume, prices };
+}
+
+async function removeTradesCausingNegativeBuyingPower(userId, transaction) {
+  const balanceBefore = await calculateBalanceFromTransactions(userId, transaction);
+  if (balanceBefore.rawBalance >= 0) {
+    return {
+      balance_before: balanceBefore.balance,
+      raw_balance_before: balanceBefore.rawBalance,
+      balance_after: balanceBefore.balance,
+      raw_balance_after: balanceBefore.rawBalance,
+      removed_predictions: 0,
+      removed_prediction_ids: []
+    };
+  }
+
+  let deficit = Math.abs(balanceBefore.rawBalance);
+  const affectedMarketIds = new Set();
+  const removedPredictionIds = [];
+
+  const activePredictions = await Prediction.findAll({
+    where: { user_id: userId, status: 'active' },
+    order: [['created_at', 'DESC']],
+    transaction
+  });
+
+  for (const prediction of activePredictions) {
+    if (deficit <= 0) break;
+
+    const stake = parseFloat(prediction.stake_amount || 0);
+    const outcome = await Outcome.findByPk(prediction.outcome_id, { transaction });
+    if (outcome) {
+      const nextStake = Math.max(0, parseFloat(outcome.total_stake || 0) - stake);
+      await outcome.update({ total_stake: nextStake }, { transaction });
+    }
+
+    affectedMarketIds.add(prediction.market_id);
+    removedPredictionIds.push(prediction.id);
+    await prediction.destroy({ transaction });
+    deficit -= stake;
+  }
+
+  for (const marketId of affectedMarketIds) {
+    await refreshMarketPricing(marketId, transaction);
+  }
+
+  const balanceAfter = await calculateBalanceFromTransactions(userId, transaction);
+
+  return {
+    balance_before: balanceBefore.balance,
+    raw_balance_before: balanceBefore.rawBalance,
+    balance_after: balanceAfter.balance,
+    raw_balance_after: balanceAfter.rawBalance,
+    removed_predictions: removedPredictionIds.length,
+    removed_prediction_ids: removedPredictionIds
   };
 }
 
@@ -449,6 +536,10 @@ app.post('/api/predictions', async (req, res) => {
       return res.status(400).json({ error: 'Invalid prediction payload' });
     }
 
+    if (stake_amount <= 0) {
+      return res.status(400).json({ error: 'Stake amount must be greater than zero' });
+    }
+
     // Ensure the user exists in the local DB (Supabase auth users may not be synced yet)
     if (user_id) {
       await User.findOrCreate({
@@ -468,6 +559,23 @@ app.post('/api/predictions', async (req, res) => {
 
       const outcome = market.outcomes.find(o => o.id === outcome_id);
       if (!outcome) throw Object.assign(new Error('Outcome not found'), { status: 400 });
+
+      if (user_id && user_id !== 'demo_user') {
+        const balanceInfo = await calculateBalanceFromTransactions(user_id, t);
+        if (stake_amount > balanceInfo.balance) {
+          throw Object.assign(
+            new Error(`Insufficient buying power. Available: $${balanceInfo.balance.toFixed(2)}, Required: $${stake_amount.toFixed(2)}`),
+            {
+              status: 402,
+              details: {
+                available_balance: balanceInfo.balance,
+                active_stakes: balanceInfo.activePredictionStakes,
+                required: stake_amount
+              }
+            }
+          );
+        }
+      }
 
       // Calculate potential return using S(1-p) formula
       const p = odds_at_prediction / 100;
@@ -510,12 +618,26 @@ app.post('/api/predictions', async (req, res) => {
         prices
       }, { transaction: t });
 
+      if (user_id && user_id !== 'demo_user') {
+        const balanceAfterTrade = await calculateBalanceFromTransactions(user_id, t);
+        if (balanceAfterTrade.rawBalance < 0) {
+          throw Object.assign(new Error('Trade would create negative buying power and was removed.'), {
+            status: 402,
+            details: {
+              available_balance: 0,
+              raw_balance: balanceAfterTrade.rawBalance,
+              removed_prediction_id: prediction.id
+            }
+          });
+        }
+      }
+
       return prediction;
     });
 
     res.status(201).json(normalizePrediction(result));
   } catch (error) {
-    if (error.status) return res.status(error.status).json({ error: error.message });
+    if (error.status) return res.status(error.status).json({ error: error.message, ...(error.details || {}) });
     console.error('Create prediction error:', error);
     res.status(500).json({ error: 'Failed to create prediction' });
   }
@@ -710,13 +832,102 @@ app.get('/api/users/:id/balance', async (req, res) => {
 
     res.json({
       balance: balanceInfo.balance,
+      raw_balance: balanceInfo.rawBalance,
       total_deposited: balanceInfo.totalDeposits,
       total_withdrawn: balanceInfo.totalWithdrawals,
+      active_stakes: balanceInfo.activePredictionStakes,
       user
     });
   } catch (error) {
     console.error('Get balance error:', error);
     res.status(500).json({ error: 'Failed to fetch balance' });
+  }
+});
+
+app.get('/api/users/negative-buying-power', async (req, res) => {
+  try {
+    const users = await User.findAll({ order: [['created_at', 'DESC']] });
+    const negativeUsers = [];
+
+    for (const user of users) {
+      const balanceInfo = await calculateBalanceFromTransactions(user.id);
+      if (balanceInfo.rawBalance < 0) {
+        negativeUsers.push({
+          user_id: user.id,
+          username: user.username,
+          balance: balanceInfo.balance,
+          raw_balance: balanceInfo.rawBalance,
+          total_deposited: balanceInfo.totalDeposits,
+          total_withdrawn: balanceInfo.totalWithdrawals,
+          active_stakes: balanceInfo.activePredictionStakes
+        });
+      }
+    }
+
+    res.json({
+      count: negativeUsers.length,
+      users: negativeUsers
+    });
+  } catch (error) {
+    console.error('Negative buying power scan error:', error);
+    res.status(500).json({ error: 'Failed to scan negative buying power users' });
+  }
+});
+
+app.post('/api/users/fix-negative-buying-power', async (req, res) => {
+  try {
+    const users = await User.findAll({ order: [['created_at', 'DESC']] });
+    const repairedUsers = [];
+
+    for (const user of users) {
+      const repair = await sequelize.transaction((t) => removeTradesCausingNegativeBuyingPower(user.id, t));
+      if (repair.removed_predictions > 0) {
+        repairedUsers.push({
+          user_id: user.id,
+          username: user.username,
+          ...repair
+        });
+      }
+    }
+
+    res.json({
+      ok: true,
+      repaired_users: repairedUsers.length,
+      removed_predictions: repairedUsers.reduce((sum, user) => sum + user.removed_predictions, 0),
+      users: repairedUsers
+    });
+  } catch (error) {
+    console.error('Bulk fix negative buying power error:', error);
+    res.status(500).json({ error: 'Failed to fix negative buying power users' });
+  }
+});
+
+app.post('/api/users/:id/fix-balance', async (req, res) => {
+  try {
+    const repair = await sequelize.transaction(async (t) => {
+      let user = await User.findByPk(req.params.id, { transaction: t });
+      if (!user) {
+        user = await User.create({
+          id: req.params.id,
+          username: 'user',
+          email: ''
+        }, { transaction: t });
+      }
+
+      return removeTradesCausingNegativeBuyingPower(req.params.id, t);
+    });
+
+    res.json({
+      ok: true,
+      message: repair.removed_predictions > 0
+        ? `Removed ${repair.removed_predictions} trade(s) to restore non-negative buying power.`
+        : 'Buying power is already non-negative.',
+      ...repair,
+      cancelled_predictions: repair.removed_predictions
+    });
+  } catch (error) {
+    console.error('Fix balance error:', error);
+    res.status(500).json({ error: 'Failed to fix balance' });
   }
 });
 
