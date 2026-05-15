@@ -358,10 +358,8 @@ export default function DashboardPage() {
       let activeMtm   = 0;
 
       tradesUpTo.forEach(p => {
-        if (p.status === 'won') {
+        if (['won', 'lost', 'sold', 'refunded'].includes(p.status)) {
           settledPnL += (p.actual_return || 0) - (p.stake_amount || 0);
-        } else if (p.status === 'lost') {
-          settledPnL -= (p.stake_amount || 0) - (p.actual_return || 0);
         } else if (p.status === 'active') {
           stakedSoFar += p.stake_amount || 0;
           activeMtm   += getMtm(p);
