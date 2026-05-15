@@ -46,4 +46,6 @@ export const api = {
   withdraw: (userId, amount) =>
     request(`/users/${userId}/withdraw`, { method: 'POST', body: JSON.stringify({ amount }) }),
   getTransactions: (userId) => request(`/users/${userId}/transactions`),
+  fixBalance: (userId) =>
+    request(`/users/${userId}/fix-balance`, { method: 'POST' }),
 };

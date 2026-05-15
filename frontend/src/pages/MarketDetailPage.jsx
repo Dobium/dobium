@@ -131,6 +131,8 @@ export default function MarketDetailPage() {
   const [sellAmount, setSellAmount] = useState('');
   const [sellLoading, setSellLoading] = useState(false);
   const [sellMsg, setSellMsg] = useState('');
+  const [buyingPower, setBuyingPower] = useState(null);
+  const [buyingPowerLoading, setBuyingPowerLoading] = useState(false);
 
   // Fetch user's positions for this market
   useEffect(() => {
@@ -162,6 +164,17 @@ export default function MarketDetailPage() {
       .catch(() => { setUserPositions({}); setUserAvgEntry({}); });
   }, [market?.id, session]);
 
+  // Fetch buying power for the logged-in user
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId || userId === 'demo_user') return;
+    setBuyingPowerLoading(true);
+    api.getBalance(userId)
+      .then(data => setBuyingPower(data.balance ?? 0))
+      .catch(() => setBuyingPower(null))
+      .finally(() => setBuyingPowerLoading(false));
+  }, [session]);
+
   if (loading) return <div className="loading-center"><div className="spinner" /></div>;
   if (error || !market) return <div className="empty-state"><p>Market not found.</p></div>;
 
@@ -174,19 +187,31 @@ export default function MarketDetailPage() {
   const handleTrade = async (e) => {
     e.preventDefault();
     if (!selectedOutcome || !stake) return;
+
+    const stakeNum = parseFloat(stake);
+
+    // Client-side buying power guard
+    if (session?.user?.id && session.user.id !== 'demo_user' && buyingPower !== null && stakeNum > buyingPower) {
+      setTradeMsg(`❌ Insufficient buying power. Available: $${buyingPower.toFixed(2)}, Required: $${stakeNum.toFixed(2)}`);
+      return;
+    }
+
     setTradeLoading(true); setTradeMsg('');
     try {
       const userId = session?.user?.id || 'demo_user';
       await api.createPrediction({
         market_id: market.id,
         outcome_id: selectedOutcome.id,
-        stake_amount: parseFloat(stake),
+        stake_amount: stakeNum,
         odds_at_prediction: selectedOutcome.probability || 50,
         user_id: userId,
       });
       setTradeMsg('✅ Position placed successfully!');
       setStake('');
-      // Refresh market data to see updated prices
+      // Refresh buying power then reload market data
+      if (userId !== 'demo_user') {
+        setBuyingPower(prev => prev !== null ? Math.max(0, prev - stakeNum) : null);
+      }
       window.location.reload();
     } catch (err) {
       setTradeMsg(`❌ ${err.message}`);
@@ -484,6 +509,25 @@ export default function MarketDetailPage() {
                     </p>
                   </div>
 
+                  {/* Buying Power Display */}
+                  {session?.user?.id && session.user.id !== 'demo_user' && (
+                    <div className={`flex items-center justify-between rounded-lg px-4 py-3 border ${
+                      buyingPower !== null && parseFloat(stake) > buyingPower
+                        ? 'bg-red-500/10 border-red-500/40'
+                        : 'bg-slate-800/50 border-slate-700'
+                    }`}>
+                      <span className="text-slate-400 text-xs font-medium">💰 Buying Power</span>
+                      <span className={`text-sm font-bold ${
+                        buyingPowerLoading ? 'text-slate-500' :
+                        buyingPower === null ? 'text-slate-500' :
+                        parseFloat(stake) > buyingPower ? 'text-red-400' :
+                        'text-green-400'
+                      }`}>
+                        {buyingPowerLoading ? '...' : buyingPower !== null ? `$${buyingPower.toFixed(2)}` : 'N/A'}
+                      </span>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-slate-300 text-sm font-medium mb-2">Stake Amount</label>
                     <div className="relative">
@@ -491,14 +535,34 @@ export default function MarketDetailPage() {
                       <input
                         type="number"
                         min="1"
+                        max={buyingPower !== null && session?.user?.id !== 'demo_user' ? buyingPower : undefined}
                         step="0.01"
                         value={stake}
                         onChange={e => setStake(e.target.value)}
                         placeholder="10.00"
                         required
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 pl-8 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500"
+                        className={`w-full bg-slate-800 border rounded-lg px-4 pl-8 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 ${
+                          buyingPower !== null && parseFloat(stake) > buyingPower
+                            ? 'border-red-500 focus:ring-red-500/50'
+                            : 'border-slate-700 focus:ring-yellow-500/50 focus:border-yellow-500'
+                        }`}
                       />
                     </div>
+                    {buyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && parseFloat(stake) > buyingPower && (
+                      <p className="text-red-400 text-xs mt-1.5 flex items-center gap-1">
+                        <span>⚠</span>
+                        <span>Exceeds your buying power by ${(parseFloat(stake) - buyingPower).toFixed(2)}</span>
+                      </p>
+                    )}
+                    {buyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && (
+                      <button
+                        type="button"
+                        onClick={() => setStake(buyingPower.toFixed(2))}
+                        className="mt-1.5 text-xs text-yellow-500 hover:text-yellow-400 transition-colors"
+                      >
+                        Use max (${ buyingPower.toFixed(2)})
+                      </button>
+                    )}
                   </div>
 
                   {payout && (
@@ -537,7 +601,7 @@ export default function MarketDetailPage() {
 
                   <button
                     type="submit"
-                    disabled={tradeLoading}
+                    disabled={tradeLoading || (buyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && parseFloat(stake) > buyingPower)}
                     className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 disabled:from-slate-700 disabled:to-slate-700 text-slate-950 disabled:text-slate-500 font-bold py-3 rounded-xl transition-all"
                   >
                     {tradeLoading ? 'Placing Prediction...' : 'Place Prediction'}

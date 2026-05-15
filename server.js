@@ -284,6 +284,10 @@ app.post('/api/predictions', async (req, res) => {
     return res.status(400).json({ error: 'Invalid prediction payload' });
   }
 
+  if (stake_amount <= 0) {
+    return res.status(400).json({ error: 'Stake amount must be greater than zero' });
+  }
+
   const markets = await readJson(MARKETS_PATH);
   const predictions = await readJson(PREDICTIONS_PATH);
 
@@ -294,6 +298,20 @@ app.post('/api/predictions', async (req, res) => {
 
   const outcome = market.outcomes.find((o) => o.id === outcome_id);
   if (!outcome) return res.status(404).json({ error: 'Outcome not found' });
+
+  // ── Buying-power check ──────────────────────────────────────────────────────
+  // Only enforce if a user_id is provided (skip for anonymous / demo trades)
+  if (user_id && user_id !== 'demo_user') {
+    const balanceInfo = await calculateBalanceFromTransactions(user_id);
+    if (stake_amount > balanceInfo.balance) {
+      return res.status(402).json({
+        error: `Insufficient buying power. Available: $${balanceInfo.balance.toFixed(2)}, Required: $${stake_amount.toFixed(2)}`,
+        available_balance: balanceInfo.balance,
+        required: stake_amount
+      });
+    }
+  }
+  // ───────────────────────────────────────────────────────────────────────────
 
   const potential_return = Number((stake_amount * (100 / Math.max(odds_at_prediction, 1))).toFixed(2));
 
@@ -350,6 +368,106 @@ app.post('/api/markets/:id/resolve', async (req, res) => {
   await writeJson(MARKETS_PATH, markets);
 
   res.json({ ok: true, market });
+});
+
+// ============================================================================
+// POSITIONS — SELL
+// ============================================================================
+
+/**
+ * Sell (partially or fully) an active position on a given outcome.
+ * The sell return = sell_amount * (current_probability / avg_entry_probability).
+ * The sold portion is marked settled and the net return is credited via a
+ * synthetic deposit transaction so buying power updates immediately.
+ */
+app.post('/api/positions/sell', async (req, res) => {
+  const { market_id, outcome_id, user_id, sell_amount } = req.body;
+
+  if (!market_id || !outcome_id || !user_id || typeof sell_amount !== 'number' || sell_amount <= 0) {
+    return res.status(400).json({ error: 'Invalid sell payload' });
+  }
+
+  const markets = await readJson(MARKETS_PATH);
+  let predictions = await readJson(PREDICTIONS_PATH);
+
+  const market = markets.find((m) => m.id === market_id);
+  if (!market) return res.status(404).json({ error: 'Market not found' });
+  if (market.status !== 'active') return res.status(400).json({ error: 'Market is not active' });
+
+  const outcome = market.outcomes.find((o) => o.id === outcome_id);
+  if (!outcome) return res.status(404).json({ error: 'Outcome not found' });
+
+  // Collect the user's active predictions for this outcome
+  const userPreds = predictions.filter(
+    (p) => p.user_id === user_id && p.market_id === market_id && p.outcome_id === outcome_id && p.status === 'active'
+  );
+
+  const totalStake = userPreds.reduce((sum, p) => sum + (p.stake_amount || 0), 0);
+  if (sell_amount > totalStake + 0.001) {
+    return res.status(400).json({ error: `Cannot sell more than your position size ($${totalStake.toFixed(2)})` });
+  }
+
+  // Weighted-average entry probability
+  const weightedSum = userPreds.reduce((sum, p) => sum + (p.odds_at_prediction || 50) * (p.stake_amount || 0), 0);
+  const avgEntryProb = totalStake > 0 ? weightedSum / totalStake : 50;
+  const currentProb = outcome.probability || 50;
+
+  // Sell return uses the ratio of current vs entry price
+  const sell_return = Number((sell_amount * (currentProb / Math.max(avgEntryProb, 1))).toFixed(2));
+
+  // Reduce / close predictions FIFO
+  let remaining = sell_amount;
+  for (let i = 0; i < userPreds.length && remaining > 0; i++) {
+    const pred = predictions.find((p) => p.id === userPreds[i].id);
+    if (!pred) continue;
+    if (pred.stake_amount <= remaining + 0.001) {
+      remaining -= pred.stake_amount;
+      pred.status = 'sold';
+      pred.actual_return = Number((pred.stake_amount * (currentProb / Math.max(avgEntryProb, 1))).toFixed(2));
+      pred.sold_at = new Date().toISOString();
+      // Reduce market stake
+      outcome.total_stake = Math.max(0, (outcome.total_stake || 0) - pred.stake_amount);
+    } else {
+      // Partial sell – split the prediction
+      const splitStake = remaining;
+      const splitReturn = Number((splitStake * (currentProb / Math.max(avgEntryProb, 1))).toFixed(2));
+      const splitPred = {
+        ...pred,
+        id: nanoid(12),
+        stake_amount: splitStake,
+        status: 'sold',
+        actual_return: splitReturn,
+        sold_at: new Date().toISOString()
+      };
+      pred.stake_amount = Number((pred.stake_amount - splitStake).toFixed(2));
+      predictions.push(splitPred);
+      outcome.total_stake = Math.max(0, (outcome.total_stake || 0) - splitStake);
+      remaining = 0;
+    }
+  }
+
+  recomputeMarketStats(market);
+
+  // Credit the sell return as a deposit so buying power updates
+  let transactions = [];
+  try { transactions = await readJson(TRANSACTIONS_PATH); } catch (e) { transactions = []; }
+  const creditTx = {
+    id: nanoid(12),
+    user_id,
+    type: 'deposit',
+    amount: sell_return,
+    payment_method: 'sell_return',
+    status: 'completed',
+    created_at: new Date().toISOString(),
+    note: `Sell return for ${market.title} — ${outcome.title}`
+  };
+  transactions.push(creditTx);
+
+  await writeJson(PREDICTIONS_PATH, predictions);
+  await writeJson(MARKETS_PATH, markets);
+  await writeJson(TRANSACTIONS_PATH, transactions);
+
+  res.json({ ok: true, sell_amount, sell_return, avg_entry_prob: avgEntryProb, current_prob: currentProb });
 });
 
 // ============================================================================
@@ -564,6 +682,77 @@ app.get('/api/users/:id/transactions', async (req, res) => {
 
   const userTransactions = transactions.filter((t) => t.user_id === req.params.id);
   res.json(userTransactions);
+});
+
+// ============================================================================
+// BALANCE REPAIR — fix users whose buying power went negative
+// ============================================================================
+
+/**
+ * POST /api/users/:id/fix-balance
+ *
+ * For users who somehow accumulated more active-stake than deposits allow,
+ * this endpoint cancels the most-recent active predictions (newest first)
+ * until the user's buying power is >= 0, then returns the repaired balance.
+ *
+ * In a fair-play system this shouldn't happen, but it guards against edge-cases
+ * from demo usage, bugs, or data migration issues.
+ */
+app.post('/api/users/:id/fix-balance', async (req, res) => {
+  const userId = req.params.id;
+
+  let predictions = [];
+  let transactions = [];
+  try { predictions = await readJson(PREDICTIONS_PATH); } catch (e) { predictions = []; }
+  try { transactions = await readJson(TRANSACTIONS_PATH); } catch (e) { transactions = []; }
+
+  // Current financial snapshot
+  const balanceBefore = await calculateBalanceFromTransactions(userId);
+
+  if (balanceBefore.balance >= 0) {
+    return res.json({
+      ok: true,
+      message: 'Balance is already non-negative — no fix needed.',
+      balance: balanceBefore.balance,
+      cancelled_predictions: 0
+    });
+  }
+
+  // The raw deficit before Math.max(0,...) hides it
+  const totalDeposits = balanceBefore.totalDeposits;
+  const totalWithdrawals = balanceBefore.totalWithdrawals;
+  const trueBalance = totalDeposits - totalWithdrawals - balanceBefore.activePredictionStakes;
+
+  let deficit = Math.abs(trueBalance); // amount we need to claw back
+  const cancelledIds = [];
+
+  // Sort active predictions newest-first (cancel most recent excess trades)
+  const userActivePreds = predictions
+    .filter((p) => p.user_id === userId && p.status === 'active')
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  for (const pred of userActivePreds) {
+    if (deficit <= 0) break;
+    // Cancel this prediction — refund the stake to restore buying power
+    const idx = predictions.findIndex((p) => p.id === pred.id);
+    if (idx === -1) continue;
+    predictions[idx] = { ...predictions[idx], status: 'cancelled', cancelled_reason: 'balance_repair', cancelled_at: new Date().toISOString() };
+    cancelledIds.push(pred.id);
+    deficit -= pred.stake_amount;
+  }
+
+  await writeJson(PREDICTIONS_PATH, predictions);
+
+  const balanceAfter = await calculateBalanceFromTransactions(userId);
+
+  res.json({
+    ok: true,
+    message: `Cancelled ${cancelledIds.length} prediction(s) to restore a non-negative balance.`,
+    balance_before: balanceBefore.balance,
+    balance_after: balanceAfter.balance,
+    cancelled_predictions: cancelledIds.length,
+    cancelled_ids: cancelledIds
+  });
 });
 
 app.listen(PORT, () => {
