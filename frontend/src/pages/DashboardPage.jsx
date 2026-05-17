@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { useMarkets } from '../hooks/useMarkets';
 import { useWallet } from '../hooks/useWallet';
 import { formatCurrency } from '../store/storage';
+import ActivityHistory from '../components/ActivityHistory';
 
 // ============================================================================
 // Robinhood-style dual-canvas equity chart
@@ -412,94 +413,8 @@ export default function DashboardPage() {
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 5);
 
-  const allActivitiesList = allPredictions
-    .map(pred => {
-      const market = markets.find(m => m.id === pred.market_id);
-      const outcome = market?.outcomes?.find(o => o.id === pred.outcome_id);
-      const isSettled = ['won', 'lost'].includes(pred.status);
-      const isSold = pred.status === 'sold';
-
-      let action = 'Bought';
-      if (isSettled) action = 'Resolved';
-      if (isSold) action = 'Sold';
-
-      return {
-        id: pred.id,
-        date: pred.resolved_at || pred.sold_at || pred.updated_at || pred.created_at || new Date().toISOString(),
-        marketTitle: market?.title || 'Unknown Market',
-        outcomeTitle: outcome?.title || 'Unknown',
-        action,
-        status: pred.status,
-        probability: pred.odds_at_prediction || 50,
-        amount: pred.stake_amount || 0,
-        returnAmount: (isSettled || isSold) ? (pred.actual_return || 0) : null
-      };
-    })
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
-
   if (showAllActivity) {
-    return (
-      <div className="max-w-7xl mx-auto p-6 lg:p-8">
-        <div className="flex items-center gap-4 mb-6">
-          <button onClick={() => setShowAllActivity(false)} className="text-slate-400 hover:text-white transition-colors">
-            ← Back to Dashboard
-          </button>
-          <h1 className="text-2xl font-bold text-white">Activity History</h1>
-        </div>
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300 min-w-[800px]">
-            <thead className="bg-slate-800/50 text-slate-400 border-b border-slate-800">
-              <tr>
-                <th className="px-4 py-3 font-medium">Date</th>
-                <th className="px-4 py-3 font-medium">Market</th>
-                <th className="px-4 py-3 font-medium">Action</th>
-                <th className="px-4 py-3 font-medium">Contract</th>
-                <th className="px-4 py-3 font-medium text-right">Price</th>
-                <th className="px-4 py-3 font-medium text-right">Amount</th>
-                <th className="px-4 py-3 font-medium text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {allActivitiesList.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-slate-500">No activity yet</td>
-                </tr>
-              ) : allActivitiesList.map(act => (
-                <tr key={act.id} className="hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {new Date(act.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    <span className="text-slate-500 ml-1 text-xs">{new Date(act.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-                  </td>
-                  <td className="px-4 py-3 max-w-[200px] truncate text-white font-medium" title={act.marketTitle}>{act.marketTitle}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${act.action === 'Bought' ? 'bg-blue-500/10 text-blue-400' :
-                        act.action === 'Sold' ? 'bg-slate-500/10 text-slate-400' :
-                          'bg-purple-500/10 text-purple-400'
-                      }`}>{act.action}</span>
-                  </td>
-                  <td className="px-4 py-3">{act.outcomeTitle}</td>
-                  <td className="px-4 py-3 text-right">{Math.round(act.probability)}¢</td>
-                  <td className="px-4 py-3 text-right font-medium text-white">${act.amount.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right">
-                    {act.status === 'active' ? (
-                      <span className="text-slate-400">Active</span>
-                    ) : act.status === 'won' ? (
-                      <span className="text-green-400 font-medium">Won (+${(act.returnAmount - act.amount).toFixed(2)})</span>
-                    ) : act.status === 'lost' ? (
-                      <span className="text-red-400 font-medium">Lost (-${act.amount.toFixed(2)})</span>
-                    ) : act.status === 'sold' ? (
-                      <span className="text-slate-300 font-medium">Sold (${act.returnAmount?.toFixed(2)})</span>
-                    ) : (
-                      <span className="text-slate-500 capitalize">{act.status}</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
+    return <ActivityHistory predictions={allPredictions} markets={markets} onBack={() => setShowAllActivity(false)} />;
   }
 
   return (
