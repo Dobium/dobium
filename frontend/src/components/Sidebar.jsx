@@ -77,6 +77,8 @@ export default function Sidebar() {
     .join('')
     .toUpperCase();
 
+  const isAdmin = user?.email === 'donotreply.dobium@gmail.com';
+
   // Mobile Bottom Navigation
   if (isMobile) {
     return (
@@ -96,6 +98,15 @@ export default function Sidebar() {
           </svg>
           <span>Dashboard</span>
         </NavLink>
+
+        {isAdmin && (
+          <NavLink to="/admin" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
+            <svg fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+            </svg>
+            <span>Admin</span>
+          </NavLink>
+        )}
 
         <button
           onClick={() => navigate('/settings')}
@@ -121,7 +132,7 @@ export default function Sidebar() {
           {/* Logo */}
           <div className="sidebar-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
             <div className="sidebar-logo-icon">
-              <img src="/Logo.png" alt="Samsa" className="sidebar-logo-img" style={{ width: isNotificationsOpen ? 40 : 64, height: isNotificationsOpen ? 40 : 64, objectFit: 'contain', transition: 'all 0.3s ease' }} />
+              <img src="/Logo.png" alt="Dobium" className="sidebar-logo-img" style={{ width: isNotificationsOpen ? 40 : 64, height: isNotificationsOpen ? 40 : 64, objectFit: 'contain', transition: 'all 0.3s ease' }} />
             </div>
           </div>
 
@@ -145,6 +156,17 @@ export default function Sidebar() {
               </div>
               {!isNotificationsOpen && <span className="sidebar-item-text">Dashboard</span>}
             </NavLink>
+
+            {isAdmin && (
+              <NavLink to="/admin" className={({ isActive }) => `sidebar-item${isActive ? ' active' : ''}`}>
+                <div className="sidebar-item-icon">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                </div>
+                {!isNotificationsOpen && <span className="sidebar-item-text">Admin Panel</span>}
+              </NavLink>
+            )}
           </nav>
 
           {/* Avatar button — replaces Settings + Logout */}

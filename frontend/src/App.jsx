@@ -8,6 +8,8 @@ import ExplorePage from './pages/ExplorePage';
 import MarketDetailPage from './pages/MarketDetailPage';
 import NewsPage from './pages/NewsPage';
 import SettingsPage from './pages/SettingsPage';
+import AdminDashboard from './pages/AdminDashboard';
+
 
 function AppRoutes() {
   const { session, loading } = useAuth();
@@ -39,6 +41,7 @@ function AppRoutes() {
         <Route path="/auth" element={<Navigate to="/" replace />} />
         <Route element={<Layout />}>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/portfolio" element={<Navigate to="/" replace />} />
           <Route path="/markets/:id" element={<MarketDetailPage />} />

@@ -186,11 +186,14 @@ function MiniChart({ market, outcomes, isBinary }) {
 export default function MarketCard({ market }) {
   const navigate = useNavigate();
   const marketType = market.market_type || 'binary';
-  const rawOutcomes = market.outcomes || [];
-  // Sort outcomes highest → lowest probability
-  const outcomes = [...rawOutcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0));
   const isBinary = marketType === 'binary';
   const isMultiMultiple = marketType === 'multi_multiple';
+
+  const rawOutcomes = market.outcomes || [];
+  const displaySourceOutcomes = isMultiMultiple ? rawOutcomes.filter(o => o.id.endsWith('_yes')) : rawOutcomes;
+
+  // Sort outcomes highest → lowest probability
+  const outcomes = [...displaySourceOutcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0));
   const typeLabel = isBinary ? 'Binary' : isMultiMultiple ? 'Multi-Independent' : 'Multi';
   const isResolved = market.status === 'resolved';
   const winningOutcomeIds = (() => {
@@ -213,12 +216,12 @@ export default function MarketCard({ market }) {
           <button
             key={outcome.id}
             className={`flex-1 relative overflow-hidden rounded-lg px-3 py-2 transition-all duration-200 border ${isResolved && winningOutcomeSet.has(outcome.id)
-                ? 'bg-green-500/15 border-green-500'
-                : isResolved
-                  ? 'bg-slate-800/40 border-slate-700 opacity-70'
-                  : idx === 0
-                    ? 'bg-green-500/10 border-green-500/50 hover:border-green-500 hover:bg-green-500/20'
-                    : 'bg-red-500/10 border-red-500/50 hover:border-red-500 hover:bg-red-500/20'
+              ? 'bg-green-500/15 border-green-500'
+              : isResolved
+                ? 'bg-slate-800/40 border-slate-700 opacity-70'
+                : idx === 0
+                  ? 'bg-green-500/10 border-green-500/50 hover:border-green-500 hover:bg-green-500/20'
+                  : 'bg-red-500/10 border-red-500/50 hover:border-red-500 hover:bg-red-500/20'
               } active:scale-95`}
             onClick={(e) => {
               e.stopPropagation();
@@ -250,17 +253,17 @@ export default function MarketCard({ market }) {
             <button
               key={outcome.id}
               className={`w-[calc(50%-4px)] relative overflow-hidden rounded-lg px-3 py-2 transition-all duration-200 border ${isResolved && isWinner
-                  ? 'bg-green-500/15 border-green-500'
-                  : isResolved
-                    ? 'bg-slate-800/40 border-slate-700 opacity-70'
-                    : `${colors.bg} ${colors.border} ${colors.hover}`
+                ? 'bg-green-500/15 border-green-500'
+                : isResolved
+                  ? 'bg-slate-800/40 border-slate-700 opacity-70'
+                  : `${colors.bg} ${colors.border} ${colors.hover}`
                 } active:scale-[0.98] flex flex-col items-center justify-center`}
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/markets/${market.id}`);
               }}
             >
-              <span className="text-white font-medium text-xs truncate text-center w-full">{normalizeOutcomeTitle(outcome.title)}</span>
+              <span className="text-white font-medium text-xs truncate text-center w-full">{isMultiMultiple ? outcome.title.replace(/\s*\(Yes\)$/i, '') : normalizeOutcomeTitle(outcome.title)}</span>
               <span className={`text-base font-semibold ${colors.text}`}>
                 {Math.round(outcome.probability || 0)}¢
               </span>

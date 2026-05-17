@@ -1,20 +1,20 @@
 // ============================================================================
-// SAMSA ENGINE — CLI Entry Point
+// DOBIUM ENGINE — CLI Entry Point
 // ============================================================================
 //
 // Usage (called by Node.js via child_process):
 //
 //   echo '{"command":"settle","stake":100,"probability":0.5,"did_win":true}' \
-//     | ./samsa-engine
+//     | ./dobium-engine
 //
 //   echo '{"command":"breakdown","stake":100,"probability":0.25}' \
-//     | ./samsa-engine
+//     | ./dobium-engine
 //
 //   echo '{"command":"resolve","winning_outcome_id":"YES","trades":[...]}' \
-//     | ./samsa-engine
+//     | ./dobium-engine
 //
 //   echo '{"command":"invest","b":100,"q_yes":0,"q_no":0,"side":"YES","stake":50}' \
-//     | ./samsa-engine
+//     | ./dobium-engine
 //
 // All commands read JSON from stdin and write JSON to stdout.
 // Errors are returned as {"error":"..."} with exit code 1.
@@ -23,7 +23,7 @@
 use std::io::{self, Read};
 use serde::{Deserialize, Serialize};
 use serde_json;
-use samsa_engine::{
+use dobium_engine::{
     payout::{settle_trade, resolve_market, trade_breakdown, TradeInput, PLATFORM_FEE},
     pricing::LmsrMarket,
 };
@@ -74,7 +74,7 @@ fn ok(payload: impl Serialize) {
 }
 
 fn err(msg: &str) {
-    eprintln!("samsa-engine error: {msg}");
+    eprintln!("dobium-engine error: {msg}");
     println!("{{\"error\":\"{msg}\"}}");
     std::process::exit(1);
 }

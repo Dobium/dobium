@@ -5,7 +5,7 @@ const morgan = require('morgan');
 const path = require('path');
 const fs = require('fs').promises;
 const { nanoid } = require('nanoid');
-const { Op, DataTypes } = require('sequelize');
+const { Op, DataTypes, Sequelize } = require('sequelize');
 
 // Import database models
 const {
@@ -18,6 +18,7 @@ const {
   PriceHistory,
   initializeDatabase
 } = require('./lib/database/models');
+const { sendEmail } = require('./lib/email');
 
 const Notification = sequelize.define('Notification', {
   id: {
@@ -46,7 +47,7 @@ const Notification = sequelize.define('Notification', {
   },
   created_at: {
     type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
+    defaultValue: Sequelize.NOW
   }
 }, {
   tableName: 'notifications',
@@ -245,7 +246,7 @@ async function removeTradesCausingNegativeBuyingPower(userId, transaction) {
 // ============================================================================
 
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, service: 'samsa-api', database: 'postgresql' });
+  res.json({ ok: true, service: 'dobium-api', database: 'postgresql' });
 });
 
 // ============================================================================
@@ -263,12 +264,23 @@ const BASE_LIQUIDITY = 200;
  */
 function recomputeProbabilities(outcomes, totalVolume, marketType) {
   if (marketType === 'multi_multiple') {
-    return outcomes.map(o => ({
-      ...o,
-      probability: parseFloat(
-        ((BASE_LIQUIDITY + parseFloat(o.total_stake || 0)) / (2 * BASE_LIQUIDITY + parseFloat(o.total_stake || 0)) * 100).toFixed(2)
-      )
-    }));
+    const priced = [];
+    for (let i = 0; i < outcomes.length; i += 2) {
+      const yes = outcomes[i];
+      const no = outcomes[i + 1];
+      if (!yes || !no) {
+        if (yes) priced.push(yes);
+        continue;
+      }
+      const total = parseFloat(yes.total_stake || 0) + parseFloat(no.total_stake || 0);
+      const denom = 2 * BASE_LIQUIDITY + total;
+      const pYes = (BASE_LIQUIDITY + parseFloat(yes.total_stake || 0)) / denom * 100;
+      const pNo = 100 - pYes;
+
+      priced.push({ ...yes, probability: parseFloat(pYes.toFixed(2)) });
+      priced.push({ ...no, probability: parseFloat(pNo.toFixed(2)) });
+    }
+    return priced;
   }
   const n = outcomes.length;
   const denom = n * BASE_LIQUIDITY + totalVolume;
@@ -436,8 +448,8 @@ async function resolveMarketInstance(market, requestedOutcomeIds, options = {}) 
         where: { id: prediction.user_id },
         defaults: {
           id: prediction.user_id,
-          username: 'user',
-          email: ''
+          username: prediction.user_id.substring(0, 20),
+          email: `${prediction.user_id}@placeholder.com`
         },
         transaction
       });
@@ -668,13 +680,36 @@ app.post('/api/markets', async (req, res) => {
         search_keywords
       }, { transaction: t });
 
-      const outcomeRecords = outcomes.map(o => ({
-        id: `${marketId}_${o.id || nanoid(8)}`,
-        market_id: marketId,
-        title: o.title,
-        probability: typeof o.probability === 'number' ? o.probability : Math.round(100 / outcomes.length),
-        total_stake: 0
-      }));
+      let outcomeRecords = [];
+      if (market_type === 'multi_multiple') {
+        outcomes.forEach(o => {
+          const baseId = o.id || nanoid(8);
+          const probYes = typeof o.probability === 'number' ? o.probability : 50;
+          const probNo = 100 - probYes;
+          outcomeRecords.push({
+            id: `${marketId}_${baseId}_yes`,
+            market_id: marketId,
+            title: `${o.title} (Yes)`,
+            probability: probYes,
+            total_stake: 0
+          });
+          outcomeRecords.push({
+            id: `${marketId}_${baseId}_no`,
+            market_id: marketId,
+            title: `${o.title} (No)`,
+            probability: probNo,
+            total_stake: 0
+          });
+        });
+      } else {
+        outcomeRecords = outcomes.map(o => ({
+          id: `${marketId}_${o.id || nanoid(8)}`,
+          market_id: marketId,
+          title: o.title,
+          probability: typeof o.probability === 'number' ? o.probability : Math.round(100 / outcomes.length),
+          total_stake: 0
+        }));
+      }
       await Outcome.bulkCreate(outcomeRecords, { transaction: t });
 
       // Initial price snapshot
@@ -712,17 +747,30 @@ app.post('/api/markets', async (req, res) => {
 // PUT update market
 app.put('/api/markets/:id', async (req, res) => {
   try {
-    const { close_date, description, title, status } = req.body;
+    const { close_date, resolution_date, description, title, status, outcomes } = req.body;
     const result = await sequelize.transaction(async (t) => {
       const market = await Market.findByPk(req.params.id, { transaction: t });
       if (!market) throw Object.assign(new Error('Market not found'), { status: 404 });
 
       await market.update({
         ...(close_date !== undefined && { close_date }),
+        ...(resolution_date !== undefined && { resolution_date }),
         ...(description !== undefined && { description }),
         ...(title !== undefined && { title }),
         ...(status !== undefined && { status })
       }, { transaction: t });
+
+      if (outcomes && Array.isArray(outcomes)) {
+        for (const o of outcomes) {
+          const outcome = await Outcome.findByPk(o.id, { transaction: t });
+          if (outcome) {
+            await outcome.update({
+              ...(o.title !== undefined && { title: o.title }),
+              ...(o.probability !== undefined && { probability: o.probability })
+            }, { transaction: t });
+          }
+        }
+      }
 
       return await fetchMarketWithRelations(req.params.id, t);
     });
@@ -797,7 +845,11 @@ app.post('/api/predictions', async (req, res) => {
     if (user_id) {
       await User.findOrCreate({
         where: { id: user_id },
-        defaults: { id: user_id, username: user_id.substring(0, 20), email: null }
+        defaults: {
+          id: user_id,
+          username: user_id.substring(0, 20),
+          email: `${user_id}@placeholder.com`
+        }
       });
     }
 
@@ -1064,8 +1116,8 @@ app.get('/api/users/:id/balance', async (req, res) => {
       // Create default user if not found
       user = await User.create({
         id: req.params.id,
-        username: 'user',
-        email: ''
+        username: req.params.id.substring(0, 20),
+        email: `${req.params.id}@placeholder.com`
       });
     }
 
@@ -1163,8 +1215,8 @@ app.post('/api/users/:id/fix-balance', async (req, res) => {
       if (!user) {
         user = await User.create({
           id: req.params.id,
-          username: 'user',
-          email: ''
+          username: req.params.id.substring(0, 20),
+          email: `${req.params.id}@placeholder.com`
         }, { transaction: t });
       }
 
@@ -1266,8 +1318,8 @@ app.post('/api/users/:id/deposit', async (req, res) => {
       if (!user) {
         user = await User.create({
           id: req.params.id,
-          username: 'user',
-          email: ''
+          username: req.params.id.substring(0, 20),
+          email: `${req.params.id}@placeholder.com`
         }, { transaction: t });
       }
 
@@ -1382,8 +1434,8 @@ app.post('/api/users/:id/withdraw', async (req, res) => {
       if (!user) {
         user = await User.create({
           id: req.params.id,
-          username: 'user',
-          email: ''
+          username: req.params.id.substring(0, 20),
+          email: `${req.params.id}@placeholder.com`
         }, { transaction: t });
       }
 
@@ -1470,6 +1522,64 @@ app.put('/api/users/:id/notifications/read-all', async (req, res) => {
   } catch (error) {
     console.error('Update all notifications error:', error);
     res.status(500).json({ error: 'Failed to update notifications' });
+  }
+});
+
+// ============================================================================
+// ADMIN ENDPOINTS
+// ============================================================================
+
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    const { adminEmail } = req.query;
+    if (adminEmail !== 'donotreply.dobium@gmail.com') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const users = await User.findAll({
+      attributes: ['id', 'username', 'email', 'created_at'],
+      order: [['created_at', 'DESC']]
+    });
+    res.json(users);
+  } catch (error) {
+    console.error('Admin fetch users error:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+app.post('/api/admin/send-email', async (req, res) => {
+  try {
+    const { to, subject, text, html, adminEmail } = req.body;
+
+    // Verify admin identity
+    if (adminEmail !== 'donotreply.dobium@gmail.com') {
+      return res.status(403).json({ error: 'Forbidden — admin access required' });
+    }
+
+    if (!to || !subject) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const styledHtml = html || `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Dobium</h1>
+          <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Prediction Markets</p>
+        </div>
+        <div style="color: #334155; font-size: 16px; line-height: 1.6; white-space: pre-wrap; background-color: #f8fafc; padding: 24px; border-radius: 8px;">
+          ${text}
+        </div>
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center;">
+          <p style="color: #94a3b8; font-size: 13px; margin: 0;">&copy; ${new Date().getFullYear()} Dobium. All rights reserved.</p>
+          <p style="color: #cbd5e1; font-size: 12px; margin-top: 8px;">You are receiving this system notification because you are a registered user of Dobium.</p>
+        </div>
+      </div>
+    `;
+
+    const info = await sendEmail({ to, subject, text, html: styledHtml });
+    res.json({ success: true, messageId: info.messageId });
+  } catch (error) {
+    console.error('Admin email error:', error);
+    res.status(500).json({ error: 'Failed to send email' });
   }
 });
 
@@ -1586,7 +1696,7 @@ async function initDatabase() {
 }
 
 const server = app.listen(PORT, () => {
-  console.log(`✅ Samsa API listening on http://localhost:${PORT}`);
+  console.log(`✅ Dobium API listening on http://localhost:${PORT}`);
 });
 
 server.on('error', (err) => {

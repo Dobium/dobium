@@ -330,10 +330,11 @@ export default function MarketDetailPage() {
         {/* Left Column: Outcomes */}
         <div className="flex-1 min-w-0">
           <h2 className="text-xl font-semibold text-white mb-4">Outcomes</h2>
-          <div className="space-y-3">
-            {outcomes.map(o => {
-              const isYes = o.title?.toLowerCase() === 'yes';
-              const isNo = o.title?.toLowerCase() === 'no';
+          {(() => {
+            const renderOutcome = (o, displayTitleOverride = null) => {
+              const displayTitle = displayTitleOverride || o.title;
+              const isYes = displayTitle?.toLowerCase() === 'yes' || o.title?.toLowerCase().endsWith('(yes)');
+              const isNo = displayTitle?.toLowerCase() === 'no' || o.title?.toLowerCase().endsWith('(no)');
               const isSelected = selectedOutcome?.id === o.id;
               const isWinner = winningOutcomeSet.has(o.id);
 
@@ -369,7 +370,7 @@ export default function MarketDetailPage() {
                 >
                   <div className="flex justify-between items-center mb-3">
                     <span className="flex items-center gap-2 text-white font-medium">
-                      {o.title}
+                      {displayTitle}
                       {market.status === 'resolved' && isWinner && (
                         <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-green-300">Won</span>
                       )}
@@ -423,8 +424,8 @@ export default function MarketDetailPage() {
                                 }
                               }}
                               className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${sellingOutcomeId === o.id
-                                  ? 'bg-slate-700 text-slate-300'
-                                  : 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30'
+                                ? 'bg-slate-700 text-slate-300'
+                                : 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30'
                                 }`}
                             >
                               {sellingOutcomeId === o.id ? 'Cancel' : 'Sell'}
@@ -508,8 +509,32 @@ export default function MarketDetailPage() {
                   })()}
                 </div>
               );
-            })}
-          </div>
+            };
+
+            if (isMultiMultiple) {
+              return (
+                <div className="space-y-6">
+                  {Array.from({ length: Math.ceil(market.outcomes.length / 2) }).map((_, i) => {
+                    const yes = market.outcomes[i * 2];
+                    const no = market.outcomes[i * 2 + 1];
+                    if (!yes || !no) return null;
+                    const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
+                    return (
+                      <div key={yes.id} className="bg-slate-900/40 rounded-xl p-4 border border-slate-700/50">
+                        <h3 className="text-lg font-semibold text-white mb-3 pl-1">{baseTitle}</h3>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <div className="flex-1">{renderOutcome(yes, 'Yes')}</div>
+                          <div className="flex-1">{renderOutcome(no, 'No')}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+
+            return <div className="space-y-3">{outcomes.map(o => renderOutcome(o))}</div>;
+          })()}
         </div>
 
         {/* Right Column: Trade Form */}
@@ -540,14 +565,14 @@ export default function MarketDetailPage() {
                   {/* Buying Power Display */}
                   {session?.user?.id && session.user.id !== 'demo_user' && (
                     <div className={`flex items-center justify-between rounded-lg px-4 py-3 border ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower
-                        ? 'bg-red-500/10 border-red-500/40'
-                        : 'bg-slate-800/50 border-slate-700'
+                      ? 'bg-red-500/10 border-red-500/40'
+                      : 'bg-slate-800/50 border-slate-700'
                       }`}>
                       <span className="text-slate-400 text-xs font-medium">💰 Buying Power</span>
                       <span className={`text-sm font-bold ${buyingPowerLoading ? 'text-slate-500' :
-                          buyingPower === null ? 'text-slate-500' :
-                            parseFloat(stake) > safeBuyingPower ? 'text-red-400' :
-                              'text-green-400'
+                        buyingPower === null ? 'text-slate-500' :
+                          parseFloat(stake) > safeBuyingPower ? 'text-red-400' :
+                            'text-green-400'
                         }`}>
                         {buyingPowerLoading ? '...' : safeBuyingPower !== null ? `$${safeBuyingPower.toFixed(2)}` : 'N/A'}
                       </span>
@@ -568,8 +593,8 @@ export default function MarketDetailPage() {
                         placeholder="10.00"
                         required
                         className={`w-full bg-slate-800 border rounded-lg px-4 pl-8 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower
-                            ? 'border-red-500 focus:ring-red-500/50'
-                            : 'border-slate-700 focus:ring-yellow-500/50 focus:border-yellow-500'
+                          ? 'border-red-500 focus:ring-red-500/50'
+                          : 'border-slate-700 focus:ring-yellow-500/50 focus:border-yellow-500'
                           }`}
                       />
                     </div>

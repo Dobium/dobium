@@ -1,5 +1,5 @@
 """
-SAMSA - Data Store Utilities
+DOBIUM - Data Store Utilities
 JSON file-based data storage for prediction markets
 """
 
@@ -109,4 +109,3 @@ def find_in_json(file_path: str, item_id: str, id_field: str = 'id') -> Any:
     """
     data = read_json(file_path)
     return next((item for item in data if item.get(id_field) == item_id), None)
-

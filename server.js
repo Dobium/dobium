@@ -51,7 +51,7 @@ function recomputeMarketStats(market) {
 }
 
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, service: 'samsa-api' });
+  res.json({ ok: true, service: 'dobium-api' });
 });
 
 // ============================================================================
@@ -995,5 +995,5 @@ app.put('/api/users/:id/notifications/read-all', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Samsa API listening on http://localhost:${PORT}`);
+  console.log(`Dobium API listening on http://localhost:${PORT}`);
 });

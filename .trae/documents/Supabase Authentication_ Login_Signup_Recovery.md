@@ -1,15 +1,15 @@
 ## Overview
-- Implement a responsive, accessible authentication flow (login, signup, password recovery) using the existing SAMSA Supabase project.
+- Implement a responsive, accessible authentication flow (login, signup, password recovery) using the existing DOBIUM Supabase project.
 - Gate the app behind auth: show login first; on success, transition to main app, persist session.
 - Match current slate/yellow/amber aesthetics with Tailwind utilities already used.
 
-## Use Existing SAMSA Supabase
+## Use Existing DOBIUM Supabase
 - Read `SUPABASE_URL` and `SUPABASE_ANON_KEY` from the existing environment (no new Supabase project).
 - Configure email verification and password reset to redirect back into the app.
 
 ## Config Injection
 - Serve `GET /config/supabase.js` that returns: `window.SUPABASE_CONFIG = { url: process.env.SUPABASE_URL, anonKey: process.env.SUPABASE_ANON_KEY }`.
-- Include this script before auth logic in the app so the client initializes Supabase with the SAMSA project.
+- Include this script before auth logic in the app so the client initializes Supabase with the DOBIUM project.
 
 ## UI/UX: Login View
 - Implement a login view (either new `login.html` or a dedicated section inside `index.html`) with Tailwind:

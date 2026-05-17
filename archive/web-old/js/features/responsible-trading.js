@@ -1,5 +1,5 @@
 // ========================================
-// SAMSA - RESPONSIBLE TRADING MODULE
+// DOBIUM - RESPONSIBLE TRADING MODULE
 // Implements ethical forecasting practices
 // Risk management and user protection
 // ========================================
@@ -13,15 +13,15 @@ const RISK_CONTROLS = {
   // Position size limits (as percentage of balance)
   // maxPositionSizePercent: 10, // Max 10% of balance per position
   // warningPositionSizePercent: 5, // Warn at 5%
-  
+
   // Daily allocation limits
   // maxDailyAllocationPercent: 25, // Max 25% of balance per day
-  
+
   // Cooldown after losses (in milliseconds)
   lossCooldownDuration: 30000, // 30 seconds reflection time after loss
   rapidTradeWindow: 60000, // 1 minute window for rapid trade detection
   maxTradesInWindow: 3, // Max 3 trades per minute
-  
+
   // Self-control defaults
   defaultDailyLimit: null, // User can set
   defaultWeeklyLimit: null,
@@ -69,25 +69,25 @@ function checkAndResetLimits() {
   const state = loadRiskControlState();
   const today = new Date().toDateString();
   const weekStart = getWeekStart();
-  
+
   let updated = false;
-  
+
   if (state.lastDailyReset !== today) {
     state.dailySpent = 0;
     state.lastDailyReset = today;
     updated = true;
   }
-  
+
   if (state.lastWeeklyReset !== weekStart) {
     state.weeklySpent = 0;
     state.lastWeeklyReset = weekStart;
     updated = true;
   }
-  
+
   if (updated) {
     saveRiskControlState(state);
   }
-  
+
   return state;
 }
 
@@ -112,20 +112,20 @@ function validateTradeRisk(amount) {
   const state = checkAndResetLimits();
   const balance = typeof getBalance === 'function' ? getBalance() : 0;
   const capitalAtRisk = calculateCapitalAtRisk(amount);
-  
+
   const warnings = [];
   const blocked = [];
-  
+
   // Check if trading is paused
   if (state.tradingPaused) {
     blocked.push('Trading is currently paused. Go to Settings > Risk Controls to resume.');
   }
-  
+
   // Check observe-only mode
   if (state.observeOnlyMode) {
     blocked.push('Observe-only mode is active. Disable it in Settings > Risk Controls to trade.');
   }
-  
+
   // Check loss cooldown
   if (state.lastLossTime) {
     const timeSinceLoss = Date.now() - new Date(state.lastLossTime).getTime();
@@ -134,7 +134,7 @@ function validateTradeRisk(amount) {
       warnings.push(`Reflection period: ${remainingSeconds}s remaining since your last resolved position.`);
     }
   }
-  
+
   // LIMITS FEATURE - Commented out but preserved for future use
   // Check position size limits
   // if (capitalAtRisk > RISK_CONTROLS.maxPositionSizePercent) {
@@ -142,27 +142,27 @@ function validateTradeRisk(amount) {
   // } else if (capitalAtRisk > RISK_CONTROLS.warningPositionSizePercent) {
   //   warnings.push(`This position represents ${capitalAtRisk.toFixed(1)}% of your capital.`);
   // }
-  
+
   // LIMITS FEATURE - Commented out but preserved for future use
   // Check daily limits
   // if (state.dailyLimit && (state.dailySpent + amount) > state.dailyLimit) {
   //   const remaining = Math.max(0, state.dailyLimit - state.dailySpent);
   //   blocked.push(`Daily allocation limit reached. Remaining: $${remaining.toFixed(2)}`);
   // }
-  
+
   // Check weekly limits
   // if (state.weeklyLimit && (state.weeklySpent + amount) > state.weeklyLimit) {
   //   const remaining = Math.max(0, state.weeklyLimit - state.weeklySpent);
   //   blocked.push(`Weekly allocation limit reached. Remaining: $${remaining.toFixed(2)}`);
   // }
-  
+
   // Check rapid trading
   const now = Date.now();
   const recentTrades = state.recentTrades.filter(t => now - t < RISK_CONTROLS.rapidTradeWindow);
   if (recentTrades.length >= RISK_CONTROLS.maxTradesInWindow) {
     warnings.push('Multiple trades detected in quick succession. Take a moment to review your strategy.');
   }
-  
+
   return {
     allowed: blocked.length === 0,
     warnings,
@@ -181,11 +181,11 @@ function recordTrade(amount) {
   state.dailySpent += amount;
   state.weeklySpent += amount;
   state.recentTrades.push(Date.now());
-  
+
   // Keep only recent trades within the window
   const now = Date.now();
   state.recentTrades = state.recentTrades.filter(t => now - t < RISK_CONTROLS.rapidTradeWindow * 2);
-  
+
   saveRiskControlState(state);
 }
 
@@ -209,16 +209,16 @@ function recordLoss() {
  */
 function updateAccuracyScore(predictedProbability, wasCorrect) {
   const state = loadRiskControlState();
-  
+
   // Brier score component (lower is better, we track average)
   const probabilityDecimal = predictedProbability / 100;
   const outcome = wasCorrect ? 1 : 0;
   const brierScore = Math.pow(probabilityDecimal - outcome, 2);
-  
+
   // Update totals
   state.totalPredictions += 1;
   state.totalAccuracyScore += (1 - brierScore); // Convert to 0-1 where 1 is perfect
-  
+
   // Update calibration buckets (group predictions by probability range)
   const bucket = Math.floor(predictedProbability / 10) * 10; // 0, 10, 20, ..., 90
   if (!state.calibrationData[bucket]) {
@@ -228,7 +228,7 @@ function updateAccuracyScore(predictedProbability, wasCorrect) {
   if (wasCorrect) {
     state.calibrationData[bucket].correct += 1;
   }
-  
+
   saveRiskControlState(state);
 }
 
@@ -237,15 +237,15 @@ function updateAccuracyScore(predictedProbability, wasCorrect) {
  */
 function getForecasterStats() {
   const state = loadRiskControlState();
-  
-  const avgAccuracy = state.totalPredictions > 0 
-    ? (state.totalAccuracyScore / state.totalPredictions) * 100 
+
+  const avgAccuracy = state.totalPredictions > 0
+    ? (state.totalAccuracyScore / state.totalPredictions) * 100
     : 0;
-  
+
   // Calculate calibration score
   let calibrationError = 0;
   let calibrationBuckets = 0;
-  
+
   for (const [bucket, data] of Object.entries(state.calibrationData)) {
     if (data.total >= 5) { // Only count buckets with enough data
       const expectedRate = (parseInt(bucket) + 5) / 100; // Center of bucket
@@ -254,11 +254,11 @@ function getForecasterStats() {
       calibrationBuckets += 1;
     }
   }
-  
-  const calibrationScore = calibrationBuckets > 0 
+
+  const calibrationScore = calibrationBuckets > 0
     ? 100 - (calibrationError / calibrationBuckets * 100)
     : 0;
-  
+
   return {
     totalPredictions: state.totalPredictions,
     accuracyScore: avgAccuracy.toFixed(1),
@@ -340,7 +340,7 @@ const EDUCATIONAL_NUDGES = {
     "Track your accuracy over time for better calibration."
   ],
   general: [
-    "Samsa helps you express beliefs about future events through trading.",
+    "Dobium helps you express beliefs about future events through trading.",
     "Focus on accuracy and calibration, not short-term results.",
     "The best forecasters acknowledge uncertainty.",
     "Take time to review your reasoning before each position."
@@ -385,7 +385,7 @@ function formatPositionDescription(amount, probability, balance) {
 function renderSelfControlSettings() {
   const state = checkAndResetLimits();
   const stats = getForecasterStats();
-  
+
   return `
     <!-- Risk Controls Section -->
     <div class="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-6">
@@ -492,10 +492,10 @@ function renderSelfControlSettings() {
     <!-- Platform Disclaimer -->
     <div class="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-6">
       <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
-        <span class="w-6 h-6">${window.SamsaIcons ? window.SamsaIcons.getIconByKey('clipboard', 'w-6 h-6') : ''}</span> About Samsa
+        <span class="w-6 h-6">${window.DobiumIcons ? window.DobiumIcons.getIconByKey('clipboard', 'w-6 h-6') : ''}</span> About Dobium
       </h2>
       <p class="text-slate-300 leading-relaxed">
-        Samsa is designed to help users express beliefs about future events through probability forecasting. 
+        Dobium is designed to help users express beliefs about future events through probability forecasting. 
         It is not intended for entertainment gambling. Our platform emphasizes accuracy, calibration, and 
         thoughtful analysis over speculation.
       </p>
@@ -572,5 +572,4 @@ window.toggleTradingPause = toggleTradingPause;
 window.loadRiskControlState = loadRiskControlState;
 window.EDUCATIONAL_NUDGES = EDUCATIONAL_NUDGES;
 
-console.log('%c[SAMSA] Responsible Trading Module loaded', 'color: #22c55e; font-weight: bold');
-
+console.log('%c[DOBIUM] Responsible Trading Module loaded', 'color: #22c55e; font-weight: bold');
