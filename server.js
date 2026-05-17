@@ -389,7 +389,8 @@ app.post('/api/markets/:id/resolve', async (req, res) => {
     return {
       ...p,
       status: won ? 'won' : 'lost',
-      actual_return: Number(actual_return.toFixed(2))
+      actual_return: Number(actual_return.toFixed(2)),
+      resolved_at: new Date().toISOString()
     };
   });
 
@@ -794,6 +795,74 @@ app.post('/api/users/:id/fix-balance', async (req, res) => {
     cancelled_ids: cancelledIds
   });
 });
+
+// ============================================================================
+// AUTOMATIC RESOLUTION ENGINE (For Demo / Paper Trading)
+// ============================================================================
+async function autoResolveMarkets() {
+  try {
+    const markets = await readJson(MARKETS_PATH);
+    let predictions = await readJson(PREDICTIONS_PATH);
+
+    const now = new Date();
+    let needsSave = false;
+
+    for (const market of markets) {
+      if (market.status === 'active' && market.close_date) {
+        const closeDate = new Date(market.close_date);
+
+        // If the market's close date has passed, automatically resolve it
+        if (closeDate <= now) {
+          console.log(`[Auto-Resolve] Market expired, closing: ${market.title}`);
+
+          // 1. Pick a winner (Weighted random choice based on probability)
+          const rand = Math.random() * 100;
+          let sum = 0;
+          let winning_outcome_id = market.outcomes[0].id; // fallback
+
+          for (const o of market.outcomes) {
+            sum += (o.probability || 0);
+            if (rand <= sum) {
+              winning_outcome_id = o.id;
+              break;
+            }
+          }
+
+          console.log(`[Auto-Resolve] Winner selected: ${winning_outcome_id}`);
+
+          // 2. Resolve Market
+          market.status = 'resolved';
+          market.winning_outcome_id = winning_outcome_id;
+          market.resolution_date = new Date().toISOString();
+
+          // 3. Settle active predictions
+          predictions = predictions.map((p) => {
+            if (p.market_id !== market.id || p.status !== 'active') return p;
+
+            const won = p.outcome_id === winning_outcome_id;
+            const pEntry = (p.odds_at_prediction || 50) / 100;
+            let actual_return = won ? p.stake_amount + p.stake_amount * (1 - pEntry) : p.stake_amount * pEntry;
+
+            return { ...p, status: won ? 'won' : 'lost', actual_return: Number(actual_return.toFixed(2)), resolved_at: new Date().toISOString() };
+          });
+
+          needsSave = true;
+        }
+      }
+    }
+
+    if (needsSave) {
+      await writeJson(PREDICTIONS_PATH, predictions);
+      await writeJson(MARKETS_PATH, markets);
+      console.log('[Auto-Resolve] Saved updated markets and predictions.');
+    }
+  } catch (error) {
+    console.error('[Auto-Resolve] Error:', error);
+  }
+}
+
+// Check for expired markets every 60 seconds
+setInterval(autoResolveMarkets, 60 * 1000);
 
 app.listen(PORT, () => {
   console.log(`Samsa API listening on http://localhost:${PORT}`);

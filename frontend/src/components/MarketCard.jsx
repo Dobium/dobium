@@ -1,4 +1,56 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+function CountdownTimer({ targetDate }) {
+  const [timeLeft, setTimeLeft] = useState('');
+  const [isUrgent, setIsUrgent] = useState(false);
+
+  useEffect(() => {
+    if (!targetDate) return;
+
+    const calculateTimeLeft = () => {
+      const now = new Date().getTime();
+      const target = new Date(targetDate).getTime();
+      const distance = target - now;
+
+      if (distance <= 0) {
+        setTimeLeft('Resolving soon...');
+        setIsUrgent(true);
+        return false;
+      }
+
+      setIsUrgent(distance < 1000 * 60 * 60); // Turns red when less than 1 hour remains
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      if (days > 0) {
+        setTimeLeft(`${days}d ${hours}h left`);
+      } else {
+        setTimeLeft(`${hours}h ${minutes}m ${seconds}s left`);
+      }
+      return true;
+    };
+
+    if (calculateTimeLeft()) {
+      const interval = setInterval(calculateTimeLeft, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [targetDate]);
+
+  if (!targetDate || !timeLeft) return null;
+
+  return (
+    <span className={`flex items-center gap-1 text-[11px] font-medium bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700 shadow-sm ${isUrgent ? 'text-red-400' : 'text-slate-400'}`}>
+      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      {timeLeft}
+    </span>
+  );
+}
 
 const CATEGORY_COLORS = {
   sports: 'from-blue-500 to-blue-600',
@@ -160,15 +212,14 @@ export default function MarketCard({ market }) {
         {outcomes.slice(0, 2).map((outcome, idx) => (
           <button
             key={outcome.id}
-            className={`flex-1 relative overflow-hidden rounded-lg px-3 py-2 transition-all duration-200 border ${
-              isResolved && winningOutcomeSet.has(outcome.id)
+            className={`flex-1 relative overflow-hidden rounded-lg px-3 py-2 transition-all duration-200 border ${isResolved && winningOutcomeSet.has(outcome.id)
                 ? 'bg-green-500/15 border-green-500'
                 : isResolved
-                ? 'bg-slate-800/40 border-slate-700 opacity-70'
-                : idx === 0
-                ? 'bg-green-500/10 border-green-500/50 hover:border-green-500 hover:bg-green-500/20'
-                : 'bg-red-500/10 border-red-500/50 hover:border-red-500 hover:bg-red-500/20'
-            } active:scale-95`}
+                  ? 'bg-slate-800/40 border-slate-700 opacity-70'
+                  : idx === 0
+                    ? 'bg-green-500/10 border-green-500/50 hover:border-green-500 hover:bg-green-500/20'
+                    : 'bg-red-500/10 border-red-500/50 hover:border-red-500 hover:bg-red-500/20'
+              } active:scale-95`}
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/markets/${market.id}`);
@@ -198,13 +249,12 @@ export default function MarketCard({ market }) {
           return (
             <button
               key={outcome.id}
-              className={`w-[calc(50%-4px)] relative overflow-hidden rounded-lg px-3 py-2 transition-all duration-200 border ${
-                isResolved && isWinner
+              className={`w-[calc(50%-4px)] relative overflow-hidden rounded-lg px-3 py-2 transition-all duration-200 border ${isResolved && isWinner
                   ? 'bg-green-500/15 border-green-500'
                   : isResolved
-                  ? 'bg-slate-800/40 border-slate-700 opacity-70'
-                  : `${colors.bg} ${colors.border} ${colors.hover}`
-              } active:scale-[0.98] flex flex-col items-center justify-center`}
+                    ? 'bg-slate-800/40 border-slate-700 opacity-70'
+                    : `${colors.bg} ${colors.border} ${colors.hover}`
+                } active:scale-[0.98] flex flex-col items-center justify-center`}
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/markets/${market.id}`);
@@ -247,6 +297,9 @@ export default function MarketCard({ market }) {
               <span className={`w-2 h-2 rounded-full inline-block ${isResolved ? 'bg-yellow-400' : 'bg-green-400 animate-pulse'}`}></span>
               {isResolved ? 'Resolved' : 'Live'}
             </span>
+            {!isResolved && market.close_date && (
+              <CountdownTimer targetDate={market.close_date} />
+            )}
           </div>
         </div>
 

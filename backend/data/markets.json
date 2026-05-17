@@ -31,10 +31,10 @@
   {
     "id": "drake_iceman_sales",
     "title": "How many units will \"Iceman\" sell in its first week?",
-    "description": "Predict the first-week sales numbers for Drake's \"Iceman\" album. Only one range will be correct.",
+    "description": "Predict the first-week sales numbers for Drake's \"Iceman\" album. The album dropped on 5/15 at 11 PM CST, and this market will resolve exactly one week later on 5/22 at 11 PM CST. Only one range will be correct.",
     "category": "entertainment",
     "status": "active",
-    "close_date": "2026-06-01T00:00:00.000Z",
+    "close_date": "2026-05-23T04:00:00.000Z",
     "resolution_date": null,
     "market_type": "multi_single",
     "outcomes": [
@@ -108,31 +108,156 @@
     "resolution_date": null,
     "market_type": "multi_multiple",
     "outcomes": [
-      { "id": "kendrick",    "title": "Kendrick Lamar",   "probability": 50, "total_stake": 0 },
-      { "id": "travis",      "title": "Travis Scott",     "probability": 50, "total_stake": 0 },
-      { "id": "21savage",    "title": "21 Savage",        "probability": 50, "total_stake": 0 },
-      { "id": "future",      "title": "Future",           "probability": 50, "total_stake": 0 },
-      { "id": "nicki",       "title": "Nicki Minaj",      "probability": 50, "total_stake": 0 },
-      { "id": "wayne",       "title": "Lil Wayne",        "probability": 50, "total_stake": 0 },
-      { "id": "weeknd",      "title": "The Weeknd",       "probability": 50, "total_stake": 0 },
-      { "id": "pnd",         "title": "PARTYNEXTDOOR",    "probability": 50, "total_stake": 0 },
-      { "id": "jcole",       "title": "J. Cole",          "probability": 50, "total_stake": 0 },
-      { "id": "lilbaby",     "title": "Lil Baby",         "probability": 50, "total_stake": 0 },
-      { "id": "gunna",       "title": "Gunna",            "probability": 50, "total_stake": 0 },
-      { "id": "youngthug",   "title": "Young Thug",       "probability": 50, "total_stake": 0 },
-      { "id": "rickross",    "title": "Rick Ross",        "probability": 50, "total_stake": 0 },
-      { "id": "2chainz",     "title": "2 Chainz",         "probability": 50, "total_stake": 0 },
-      { "id": "meekmill",    "title": "Meek Mill",        "probability": 50, "total_stake": 0 },
-      { "id": "sza",         "title": "SZA",              "probability": 50, "total_stake": 0 },
-      { "id": "rihanna",     "title": "Rihanna",          "probability": 50, "total_stake": 0 },
-      { "id": "badbunny",    "title": "Bad Bunny",        "probability": 50, "total_stake": 0 },
-      { "id": "chrisbrown",  "title": "Chris Brown",      "probability": 50, "total_stake": 0 },
-      { "id": "giveon",      "title": "Giveon",           "probability": 50, "total_stake": 0 },
-      { "id": "majid",       "title": "Majid Jordan",     "probability": 50, "total_stake": 0 },
-      { "id": "tydolla",     "title": "Ty Dolla $ign",    "probability": 50, "total_stake": 0 },
-      { "id": "summer",      "title": "Summer Walker",    "probability": 50, "total_stake": 0 },
-      { "id": "roddyricch",  "title": "Roddy Ricch",      "probability": 50, "total_stake": 0 },
-      { "id": "sexyy",       "title": "Sexyy Red",        "probability": 50, "total_stake": 0 }
+      {
+        "id": "kendrick",
+        "title": "Kendrick Lamar",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "travis",
+        "title": "Travis Scott",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "21savage",
+        "title": "21 Savage",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "future",
+        "title": "Future",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "nicki",
+        "title": "Nicki Minaj",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "wayne",
+        "title": "Lil Wayne",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "weeknd",
+        "title": "The Weeknd",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "pnd",
+        "title": "PARTYNEXTDOOR",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "jcole",
+        "title": "J. Cole",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "lilbaby",
+        "title": "Lil Baby",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "gunna",
+        "title": "Gunna",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "youngthug",
+        "title": "Young Thug",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "rickross",
+        "title": "Rick Ross",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "2chainz",
+        "title": "2 Chainz",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "meekmill",
+        "title": "Meek Mill",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "sza",
+        "title": "SZA",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "rihanna",
+        "title": "Rihanna",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "badbunny",
+        "title": "Bad Bunny",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "chrisbrown",
+        "title": "Chris Brown",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "giveon",
+        "title": "Giveon",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "majid",
+        "title": "Majid Jordan",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "tydolla",
+        "title": "Ty Dolla $ign",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "summer",
+        "title": "Summer Walker",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "roddyricch",
+        "title": "Roddy Ricch",
+        "probability": 50,
+        "total_stake": 0
+      },
+      {
+        "id": "sexyy",
+        "title": "Sexyy Red",
+        "probability": 50,
+        "total_stake": 0
+      }
     ],
     "total_volume": 0,
     "image_url": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800",

@@ -77,13 +77,21 @@ export default function ExplorePage() {
   const [trendingIndex, setTrendingIndex] = useState(0);
 
   const trending = [...markets]
+    .filter(m => m.status === 'active')
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
     .slice(0, 5);
 
   const filtered = markets.filter(m => {
     const categoryMatch = selectedCategory === 'All Markets' || m.category === selectedCategory.toLowerCase();
     const searchMatch = !search || m.title?.toLowerCase().includes(search.toLowerCase());
-    return categoryMatch && searchMatch;
+
+    // If the user typed a search query, show all matching markets (including resolved)
+    if (search.trim().length > 0) {
+      return categoryMatch && searchMatch;
+    }
+
+    // Otherwise, only show active markets
+    return categoryMatch && searchMatch && m.status === 'active';
   });
 
   useEffect(() => {
@@ -211,21 +219,21 @@ export default function ExplorePage() {
                       .sort((a, b) => (b.probability || 0) - (a.probability || 0))
                       .slice(0, 4)
                       .map((outcome, idx) => {
-                      const isYes = outcome.title?.toLowerCase() === 'yes';
-                      const isNo = outcome.title?.toLowerCase() === 'no';
-                      const colorClass = isYes ? 'bg-green-500/10 border-green-500/50 hover:border-green-500 text-green-400' : isNo ? 'bg-red-500/10 border-red-500/50 hover:border-red-500 text-red-400' : 'bg-blue-500/10 border-blue-500/50 hover:border-blue-500 text-blue-400';
+                        const isYes = outcome.title?.toLowerCase() === 'yes';
+                        const isNo = outcome.title?.toLowerCase() === 'no';
+                        const colorClass = isYes ? 'bg-green-500/10 border-green-500/50 hover:border-green-500 text-green-400' : isNo ? 'bg-red-500/10 border-red-500/50 hover:border-red-500 text-red-400' : 'bg-blue-500/10 border-blue-500/50 hover:border-blue-500 text-blue-400';
 
-                      return (
-                        <button
-                          key={outcome.id}
-                          onClick={() => navigate(`/markets/${trending[trendingIndex].id}`)}
-                          className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${colorClass}`}
-                        >
-                          <span className="text-white font-medium text-sm truncate pr-2 w-full text-left">{outcome.title}</span>
-                          <span className="text-lg font-bold shrink-0">{Math.round(outcome.probability || 0)}¢</span>
-                        </button>
-                      );
-                    })}
+                        return (
+                          <button
+                            key={outcome.id}
+                            onClick={() => navigate(`/markets/${trending[trendingIndex].id}`)}
+                            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${colorClass}`}
+                          >
+                            <span className="text-white font-medium text-sm truncate pr-2 w-full text-left">{outcome.title}</span>
+                            <span className="text-lg font-bold shrink-0">{Math.round(outcome.probability || 0)}¢</span>
+                          </button>
+                        );
+                      })}
                   </div>
                   {trending[trendingIndex].outcomes?.length > 4 && (
                     <p className="text-xs text-slate-500 text-center mt-2">+{trending[trendingIndex].outcomes.length - 4} more options</p>

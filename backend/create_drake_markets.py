@@ -28,10 +28,10 @@ markets = [
     {
         "id": "drake_iceman_sales",
         "title": "How many units will \"Iceman\" sell in its first week?",
-        "description": "Predict the first-week sales numbers for Drake's \"Iceman\" album.",
+        "description": "Predict the first-week sales numbers for Drake's \"Iceman\" album. The album dropped on 5/15 at 11 PM CST, and this market will resolve exactly one week later on 5/22 at 11 PM CST.",
         "category": "entertainment",
         "status": "active",
-        "close_date": "2026-06-01T00:00:00.000Z",
+        "close_date": "2026-05-23T04:00:00.000Z",
         "resolution_date": None,
         "outcomes": [
             {"id": "under_300k", "title": "Under 300K", "probability": 25.0, "total_stake": 0},
