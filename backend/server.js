@@ -2017,15 +2017,23 @@ async function initDatabase() {
   try {
     await sequelize.authenticate();
     console.log('✅ Database connection established');
-    await sequelize.sync({ alter: true });
-    console.log('✅ Database synchronized (all tables created/updated)');
 
-    // Only seed markets that don't already exist — never wipe live data
-    const marketCount = await Market.count();
-    console.log(`📊 Markets in database: ${marketCount}`);
-    console.log('🌱 Seeding missing markets from JSON...');
-    await seedMarketsFromJson();
-    await applyKnownMarketResolutions();
+    if (process.env.NODE_ENV !== 'production') {
+      // Only run schema sync and seeding in development / Railway.
+      // In production (Vercel serverless) the schema already exists and
+      // sequelize.sync({ alter: true }) adds 5-8s to every cold start —
+      // enough to blow past Vercel's 10s function timeout.
+      await sequelize.sync({ alter: true });
+      console.log('✅ Database synchronized (all tables created/updated)');
+
+      const marketCount = await Market.count();
+      console.log(`📊 Markets in database: ${marketCount}`);
+      console.log('🌱 Seeding missing markets from JSON...');
+      await seedMarketsFromJson();
+      await applyKnownMarketResolutions();
+    } else {
+      console.log('⚡ Production mode — skipping sync/seed (schema already exists)');
+    }
   } catch (error) {
     console.error('❌ Database initialization failed:', error.message);
     console.error('   Markets, predictions, and positions require a PostgreSQL database.');
