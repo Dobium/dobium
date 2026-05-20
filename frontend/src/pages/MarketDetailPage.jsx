@@ -22,11 +22,16 @@ function PriceChart({ outcomes, priceHistory }) {
 
     if (priceHistory && priceHistory.length > 0) {
       // Extract price data for this outcome from history
-      data = priceHistory.map(snapshot => snapshot.prices[o.id] || o.probability || 20);
+      data = priceHistory.map(snapshot => snapshot.prices[o.id] ?? o.probability ?? 20);
+
+      // Always pin the final point to the current live probability so the
+      // chart line ends exactly where the outcome probability badge shows.
+      const currentProb = o.probability ?? 20;
+      data.push(currentProb);
 
       // Ensure we have at least 2 points for the chart
       if (data.length < 2) {
-        data = [o.probability || 20, o.probability || 20];
+        data = [currentProb, currentProb];
       }
     } else {
       // No history yet - show flat line at current price

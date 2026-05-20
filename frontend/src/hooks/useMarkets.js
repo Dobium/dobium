@@ -34,11 +34,19 @@ export function useMarket(id) {
 
   useEffect(() => {
     if (!id) return;
+
+    const load = () =>
+      api.getMarket(id)
+        .then(data => { setMarket(data); setError(null); })
+        .catch(e => setError(e.message))
+        .finally(() => setLoading(false));
+
     setLoading(true);
-    api.getMarket(id)
-      .then(data => { setMarket(data); setError(null); })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
+    load();
+
+    // Poll every 30s so price chart and probabilities stay live
+    const interval = setInterval(load, 30_000);
+    return () => clearInterval(interval);
   }, [id]);
 
   return { market, loading, error };
