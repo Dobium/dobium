@@ -1,7 +1,7 @@
 # Vercel only needs the frontend — ignore everything else
-backend/
-api/
-data/
+/backend/
+/api/
+/data/
 tests/
 archive/
 docs/
