@@ -15,7 +15,8 @@ FROM node:20-slim AS frontend-builder
 
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm ci
+# NODE_ENV must NOT be 'production' here or npm ci will skip devDependencies (vite, etc.)
+RUN NODE_ENV=development npm ci
 
 COPY frontend/ .
 
