@@ -1,6 +1,5 @@
 /**
  * Vercel Serverless Entry Point
- * Wraps backend/server.js with error surfacing so crashes return JSON, not HTML 500.
  */
 
 let app;
@@ -21,5 +20,20 @@ module.exports = (req, res) => {
       type: initError.constructor.name,
     });
   }
+
+  // Debug: surface the exact URL Vercel passes to Express
+  if (req.url === '/api/_debug' || req.url === '/_debug') {
+    return res.status(200).json({
+      url: req.url,
+      path: req.path,
+      originalUrl: req.originalUrl,
+      method: req.method,
+      headers: {
+        host: req.headers.host,
+        'x-forwarded-for': req.headers['x-forwarded-for'],
+      },
+    });
+  }
+
   return app(req, res);
 };
