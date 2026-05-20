@@ -11,3 +11,9 @@ tests/
 archive/
 .trae/
 *.zip
+# Ignore Python files — this is a Node.js project; these confuse Vercel's framework detector
+backend/*.py
+backend/**/*.py
+backend/__pycache__/
+requirements.txt
+.venv/

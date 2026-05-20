@@ -1,4 +1,5 @@
 {
+  "framework": null,
   "buildCommand": "npm install --prefix frontend && npm run frontend:build && npm install",
   "installCommand": "npm install && npm install --prefix frontend",
   "functions": {
