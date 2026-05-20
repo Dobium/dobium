@@ -1,19 +1,12 @@
-backend/engine/
-backend/engine/target/
-backend/engine/Cargo.lock
-.git
-.gitignore
-node_modules
-.env.example
-README.md
-docs/
+# Vercel only needs the frontend — ignore everything else
+backend/
+api/
+data/
 tests/
 archive/
-.trae/
+docs/
+*.py
+*.sh
 *.zip
-# Ignore Python files — this is a Node.js project; these confuse Vercel's framework detector
-backend/*.py
-backend/**/*.py
-backend/__pycache__/
-requirements.txt
+node_modules/
 .venv/
