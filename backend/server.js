@@ -1062,7 +1062,15 @@ app.post('/api/positions/sell', async (req, res) => {
       });
 
       const totalStake = userPositions.reduce((sum, p) => sum + parseFloat(p.stake_amount || 0), 0);
-      if (totalStake === 0) throw Object.assign(new Error('No active position to sell'), { status: 400 });
+
+      if (totalStake === 0) {
+        // Diagnostic: check if predictions exist with any status
+        const anyPreds = await Prediction.count({ where: { user_id, market_id, outcome_id }, transaction: t });
+        throw Object.assign(
+          new Error(`No active position to sell (found ${anyPreds} prediction(s) total for this user/market/outcome, 0 with status=active)`),
+          { status: 400 }
+        );
+      }
       if (sell_amount > totalStake) throw Object.assign(new Error(`Cannot sell more than your position ($${totalStake.toFixed(2)})`), { status: 400 });
 
       // Weighted average entry probability
