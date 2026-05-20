@@ -2,6 +2,10 @@
  * Vercel Serverless Entry Point
  */
 
+// Explicitly require pg so Vercel's bundler (nft) includes it in the function bundle.
+// Sequelize loads pg dynamically via require(dialect) which static tracers can't follow.
+require('pg');
+
 let app;
 let initError = null;
 
