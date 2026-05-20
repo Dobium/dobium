@@ -1,7 +1,7 @@
 {
   "framework": null,
   "outputDirectory": "frontend/dist",
-  "buildCommand": "npm install --prefix frontend && npm run frontend:build && npm install",
+  "buildCommand": "NODE_ENV=development npm install --prefix frontend && npm run frontend:build && npm install",
   "installCommand": "npm install && npm install --prefix frontend",
   "functions": {
     "api/index.js": {
