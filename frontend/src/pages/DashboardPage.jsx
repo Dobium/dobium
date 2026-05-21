@@ -287,7 +287,7 @@ export default function DashboardPage() {
   }, [fetchPredictions]);
 
   // Calculate portfolio metrics
-  const startingBalance = wallet.paperStartingBalance || 100000;
+  const startingBalance = wallet.paperStartingBalance || 10000;
   const totalStaked = predictions.reduce((sum, p) => sum + (p.stake_amount || 0), 0);
   const settledPredictions = allPredictions.filter(p => p.status === 'won' || p.status === 'lost');
   const availableBalance = buyingPower;
