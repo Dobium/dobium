@@ -1,12 +1,3 @@
-# Vercel only needs the frontend — ignore everything else
-/backend/
-/api/
-/data/
-tests/
-archive/
-docs/
-*.py
-*.sh
-*.zip
-node_modules/
-.venv/
+pyproject.toml
+requirements.txt
+Pipfile
