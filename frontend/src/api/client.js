@@ -1,9 +1,17 @@
 // Use relative URL in production (same domain), absolute for local dev
-const API_BASE = import.meta.env.VITE_API_URL || (
+let API_BASE = import.meta.env.VITE_API_URL || (
   typeof window !== 'undefined' && window.location.hostname !== 'localhost'
     ? '/api'  // Production: relative URL (same domain)
     : 'http://localhost:3001/api'  // Development: absolute URL
 );
+
+// Automatically append /api if the user provided a raw base Render URL
+if (import.meta.env.VITE_API_URL) {
+  API_BASE = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+  if (!API_BASE.endsWith('/api')) {
+    API_BASE = `${API_BASE}/api`;
+  }
+}
 
 async function request(endpoint, options = {}) {
   const res = await fetch(`${API_BASE}${endpoint}`, {
