@@ -5,8 +5,10 @@ const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
 const fs = require('fs').promises;
-const { nanoid } = require('nanoid');
+const crypto = require('crypto');
 const { Op, DataTypes, Sequelize } = require('sequelize');
+
+const nanoid = (size = 12) => crypto.randomBytes(Math.ceil(size / 2)).toString('hex').slice(0, size);
 
 // Import database models
 const {
