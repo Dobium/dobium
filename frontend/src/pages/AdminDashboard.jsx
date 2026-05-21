@@ -79,10 +79,6 @@ export default function AdminDashboard() {
   const [broadcastSending, setBroadcastSending] = useState(false);
   const previewFrameRef = useRef(null);
 
-  // Bug reports (admin inbox)
-  const [bugReports, setBugReports] = useState([]);
-  const [bugReportFilter, setBugReportFilter] = useState('open'); // 'open' | 'all'
-
   // Custom compose fields
   const [customSubject, setCustomSubject] = useState('');
   const [customHeading, setCustomHeading] = useState('');
@@ -91,6 +87,11 @@ export default function AdminDashboard() {
   const [customCallout, setCustomCallout] = useState('');
   const [customCtaLabel, setCustomCtaLabel] = useState('');
   const [customCtaUrl, setCustomCtaUrl] = useState('');
+
+  // Daily Digest Preview state
+  const [digestPreviewHtml, setDigestPreviewHtml] = useState(null);
+  const [digestPreviewLoading, setDigestPreviewLoading] = useState(false);
+  const [digestUserId, setDigestUserId] = useState('');
 
   const adminAccount = 'donotreply.dobium@gmail.com';
   const rawApiUrl = import.meta.env.VITE_API_URL || '';
@@ -108,12 +109,6 @@ export default function AdminDashboard() {
       .then(data => setAllPredictions(Array.isArray(data) ? data : []))
       .catch(console.error);
 
-  const fetchBugReports = () =>
-    fetch(`${API_URL}/api/admin/bug-reports?adminEmail=${encodeURIComponent(adminAccount)}`)
-      .then(res => res.json())
-      .then(data => setBugReports(Array.isArray(data) ? data : []))
-      .catch(console.error);
-
   useEffect(() => {
     const userEmail = session?.user?.email;
     if (userEmail === adminAccount) {
@@ -124,7 +119,6 @@ export default function AdminDashboard() {
         .catch(() => setHealth({ ok: false, error: 'Cannot connect to API' }));
       fetchMarkets();
       fetchPredictions();
-      fetchBugReports();
       fetch(`${API_URL}/api/admin/users?adminEmail=${encodeURIComponent(adminAccount)}`)
         .then(res => res.json())
         .then(data => setUsers(Array.isArray(data) ? data : []))
@@ -245,6 +239,24 @@ export default function AdminDashboard() {
       ctaLabel: customCtaLabel,
       ctaUrl: customCtaUrl,
     });
+  };
+
+  const fetchDigestPreview = async (targetId) => {
+    setDigestPreviewLoading(true);
+    try {
+      const uId = targetId || session?.user?.email;
+      const res = await fetch(`${API_URL}/api/admin/preview-digest?adminEmail=${encodeURIComponent(session?.user?.email)}&userId=${encodeURIComponent(uId)}`);
+      const data = await res.json();
+      if (res.ok) {
+        setDigestPreviewHtml(data.html);
+      } else {
+        setDigestPreviewHtml(`<p style="color:red;padding:20px;">Error: ${data.error}</p>`);
+      }
+    } catch (err) {
+      setDigestPreviewHtml(`<p style="color:red;padding:20px;">Error connecting to server</p>`);
+    } finally {
+      setDigestPreviewLoading(false);
+    }
   };
 
   const handleScanBalances = async () => {
@@ -752,138 +764,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Bug Reports Inbox */}
-      <div className="bg-slate-800 p-6 rounded-lg shadow-lg mt-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-              🐛 Bug Reports
-              {bugReports.filter(r => r.status === 'open').length > 0 && (
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold">
-                  {bugReports.filter(r => r.status === 'open').length}
-                </span>
-              )}
-            </h2>
-            <p className="text-slate-400 text-xs mt-0.5">Problems reported by users</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setBugReportFilter('open')}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${bugReportFilter === 'open' ? 'bg-red-500/20 text-red-300 border border-red-500/40' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}
-            >Open</button>
-            <button
-              onClick={() => setBugReportFilter('all')}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${bugReportFilter === 'all' ? 'bg-slate-600 text-white border border-slate-500' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}
-            >All</button>
-            <button onClick={fetchBugReports} className="px-3 py-1 text-xs font-semibold rounded-full bg-slate-700 text-slate-400 hover:bg-slate-600 transition-colors">↻ Refresh</button>
-          </div>
-        </div>
-
-        {(() => {
-          const filtered = bugReports.filter(r => bugReportFilter === 'all' || r.status === 'open');
-          const SEVERITY_STYLE = {
-            low:      { bg: 'bg-yellow-500/10',  text: 'text-yellow-400',  border: 'border-yellow-500/30',  label: '🟡 Low' },
-            medium:   { bg: 'bg-orange-500/10',  text: 'text-orange-400',  border: 'border-orange-500/30',  label: '🟠 Medium' },
-            high:     { bg: 'bg-red-500/10',     text: 'text-red-400',     border: 'border-red-500/30',     label: '🔴 High' },
-            critical: { bg: 'bg-red-900/30',     text: 'text-red-300',     border: 'border-red-400/50',     label: '🚨 Critical' },
-          };
-          const STATUS_STYLE = {
-            open:     'bg-blue-500/10 text-blue-300 border-blue-500/30',
-            resolved: 'bg-green-500/10 text-green-400 border-green-500/30',
-            closed:   'bg-slate-700/50 text-slate-400 border-slate-600/30',
-          };
-
-          if (filtered.length === 0) {
-            return (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-600">
-                <span className="text-4xl mb-3">{bugReportFilter === 'open' ? '✅' : '📭'}</span>
-                <p className="text-sm">{bugReportFilter === 'open' ? 'No open reports — all clear!' : 'No bug reports yet.'}</p>
-              </div>
-            );
-          }
-
-          const handleUpdateStatus = async (reportId, newStatus) => {
-            try {
-              const res = await fetch(`${API_URL}/api/admin/bug-reports/${reportId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminEmail: adminAccount, status: newStatus })
-              });
-              if (res.ok) {
-                setBugReports(prev => prev.map(r => r.id === reportId ? { ...r, status: newStatus } : r));
-              }
-            } catch (err) {
-              console.error('Failed to update bug report status', err);
-            }
-          };
-
-          return (
-            <div className="space-y-3 max-h-[560px] overflow-y-auto custom-scrollbar pr-1">
-              {filtered.map(report => {
-                const sev = SEVERITY_STYLE[report.severity] || SEVERITY_STYLE.medium;
-                const statusCls = STATUS_STYLE[report.status] || STATUS_STYLE.open;
-                return (
-                  <div key={report.id} className={`rounded-xl border p-4 ${sev.bg} ${sev.border}`}>
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${sev.bg} ${sev.text} ${sev.border}`}>{sev.label}</span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700/60 text-slate-400 border border-slate-600/30 capitalize">{report.category}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${statusCls}`}>{report.status}</span>
-                        </div>
-                        <p className="text-white font-semibold text-sm leading-tight">{report.title}</p>
-                      </div>
-                      <div className="flex gap-1.5 flex-shrink-0">
-                        {report.status !== 'resolved' && (
-                          <button
-                            onClick={() => handleUpdateStatus(report.id, 'resolved')}
-                            title="Mark as Resolved"
-                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500/20 transition-colors"
-                          >✓ Resolve</button>
-                        )}
-                        {report.status !== 'closed' && (
-                          <button
-                            onClick={() => handleUpdateStatus(report.id, 'closed')}
-                            title="Close Report"
-                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-700/60 text-slate-400 border border-slate-600/30 hover:bg-slate-600/60 transition-colors"
-                          >✕ Close</button>
-                        )}
-                        {report.status !== 'open' && (
-                          <button
-                            onClick={() => handleUpdateStatus(report.id, 'open')}
-                            title="Reopen"
-                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20 transition-colors"
-                          >↺ Reopen</button>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="text-slate-400 text-xs leading-relaxed mb-2 whitespace-pre-wrap">{report.description}</p>
-
-                    {report.steps_to_reproduce && (
-                      <div className="mt-2 pl-3 border-l-2 border-slate-600/50">
-                        <p className="text-slate-500 text-xs font-semibold uppercase tracking-wide mb-1">Steps to Reproduce</p>
-                        <p className="text-slate-400 text-xs whitespace-pre-wrap">{report.steps_to_reproduce}</p>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-3 mt-3 pt-2 border-t border-slate-700/40">
-                      <span className="text-xs text-slate-500">
-                        {report.user_email || report.user_id?.substring(0, 16) || 'Anonymous'}
-                      </span>
-                      <span className="text-slate-700">·</span>
-                      <span className="text-xs text-slate-600">
-                        {new Date(report.created_at).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
-      </div>
-
       {/* Market Creation Section */}
       <div className="bg-slate-800 p-6 rounded-lg shadow-lg mt-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Create New Market</h2>
@@ -1290,7 +1170,8 @@ export default function AdminDashboard() {
           <div className="flex gap-1">
             {[
               { id: 'presets', label: '📋 Preset Campaigns' },
-              { id: 'custom', label: '✏️ Custom Compose' }
+              { id: 'custom', label: '✏️ Custom Compose' },
+              { id: 'digest', label: '📅 Daily Digest Preview' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -1434,6 +1315,49 @@ export default function AdminDashboard() {
               >
                 {broadcastLoading ? 'Generating preview…' : '🔍 Preview & Prepare Send'}
               </button>
+            </div>
+          )}
+
+          {/* ── DAILY DIGEST PREVIEW TAB ── */}
+          {broadcastTab === 'digest' && (
+            <div className="space-y-4">
+              <div className="flex flex-col md:flex-row gap-4 mb-4 items-end">
+                <div className="flex-1">
+                  <label className="block text-xs font-semibold mb-1.5 text-slate-400 uppercase tracking-wide">
+                    User ID or Email
+                  </label>
+                  <input
+                    type="text"
+                    value={digestUserId}
+                    onChange={e => setDigestUserId(e.target.value)}
+                    placeholder="e.g. user@example.com (leave blank for yourself)"
+                    className="w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-amber-400 transition-colors"
+                  />
+                </div>
+                <button
+                  onClick={() => fetchDigestPreview(digestUserId)}
+                  disabled={digestPreviewLoading}
+                  className="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 px-6 rounded-lg text-sm transition-colors disabled:opacity-40"
+                >
+                  {digestPreviewLoading ? 'Generating...' : 'Generate Preview'}
+                </button>
+              </div>
+
+              {digestPreviewHtml && (
+                <div className="border border-slate-700/60 rounded-xl overflow-hidden bg-slate-900/40">
+                  <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-700/60 bg-slate-800/60">
+                    <span className="text-white text-sm font-semibold">Daily Digest Email Preview</span>
+                  </div>
+                  <div className="p-4 min-h-[480px]">
+                    <iframe
+                      title="Daily Digest Preview"
+                      srcDoc={digestPreviewHtml}
+                      className="w-full min-h-[600px] rounded-lg border-0 bg-transparent"
+                      sandbox="allow-same-origin"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

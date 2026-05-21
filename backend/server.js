@@ -61,57 +61,6 @@ const Notification = sequelize.define('Notification', {
   underscored: true
 });
 
-// ── Bug Report model ─────────────────────────────────────────────────────────
-const BugReport = sequelize.define('BugReport', {
-  id: {
-    type: DataTypes.STRING(12),
-    primaryKey: true
-  },
-  user_id: {
-    type: DataTypes.STRING(50),
-    allowNull: true
-  },
-  user_email: {
-    type: DataTypes.STRING(255),
-    allowNull: true
-  },
-  category: {
-    type: DataTypes.STRING(50),
-    allowNull: false,
-    defaultValue: 'general'
-  },
-  title: {
-    type: DataTypes.STRING(255),
-    allowNull: false
-  },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: false
-  },
-  steps_to_reproduce: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  severity: {
-    type: DataTypes.STRING(20),
-    allowNull: false,
-    defaultValue: 'medium'
-  },
-  status: {
-    type: DataTypes.STRING(20),
-    allowNull: false,
-    defaultValue: 'open'
-  },
-  created_at: {
-    type: DataTypes.DATE,
-    defaultValue: Sequelize.NOW
-  }
-}, {
-  tableName: 'bug_reports',
-  timestamps: false,
-  underscored: true
-});
-
 const app = express();
 const PORT = process.env.PORT || 3001;
 const Stripe = require('stripe');
@@ -1849,6 +1798,80 @@ app.get('/api/admin/users', async (req, res) => {
   }
 });
 
+app.get('/api/admin/preview-digest', async (req, res) => {
+  try {
+    const { adminEmail, userId } = req.query;
+    if (adminEmail !== 'donotreply.dobium@gmail.com') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const { buildDigestHtml } = require('./lib/digest-email');
+
+    let targetUserId = userId || adminEmail;
+
+    let userAliases = [targetUserId];
+    const user = await User.findOne({
+      where: { [Op.or]: [{ id: targetUserId }, { email: targetUserId }] }
+    });
+    if (user) {
+      targetUserId = user.id;
+      userAliases.push(user.id);
+      if (user.email && user.email !== `${user.id}@placeholder.com`) userAliases.push(user.email);
+    }
+    userAliases = [...new Set(userAliases)];
+
+    const balanceInfo = await calculateBalanceFromTransactions(targetUserId);
+
+    const allPredictions = await Prediction.findAll({
+      where: { user_id: { [Op.in]: userAliases } }
+    });
+
+    const activePredictions = allPredictions.filter(p => p.status === 'active');
+
+    let activeMtmValue = 0;
+    for (const p of activePredictions) {
+      try {
+        const outcome = await Outcome.findByPk(p.outcome_id);
+        const stake = parseFloat(p.stake_amount || 0);
+        const entryProb = parseFloat(p.odds_at_prediction || 50);
+        const currentProb = outcome ? parseFloat(outcome.probability || 50) : entryProb;
+
+        const pE = entryProb / 100;
+        const pC = currentProb / 100;
+        const rMin = stake * pE;
+        const rMax = stake * (2 - pE);
+        activeMtmValue += rMin + (rMax - rMin) * pC;
+      } catch { }
+    }
+
+    const portfolioValue = balanceInfo.buyingPower + activeMtmValue;
+    const totalPnl = portfolioValue - balanceInfo.paperStartingBalance;
+
+    const totalPredictions = allPredictions.length;
+    const settledCount = allPredictions.filter(p => ['won', 'lost'].includes(p.status)).length;
+    const wonCount = allPredictions.filter(p => p.status === 'won').length;
+    const hasEverTraded = totalPredictions > 0;
+
+    const html = buildDigestHtml({
+      username: user ? (user.username || user.email.split('@')[0]) : 'Demo User',
+      startingBalance: balanceInfo.paperStartingBalance,
+      portfolioValue,
+      buyingPower: balanceInfo.buyingPower,
+      totalPnl,
+      totalPredictions,
+      wonCount,
+      settledCount,
+      hasEverTraded,
+      equityPoints
+    });
+
+    res.json({ html });
+  } catch (error) {
+    console.error('Preview digest error:', error);
+    res.status(500).json({ error: 'Failed to generate digest preview' });
+  }
+});
+
 app.post('/api/admin/send-email', async (req, res) => {
   try {
     const { to, subject, text, html, adminEmail } = req.body;
@@ -2121,137 +2144,6 @@ app.post('/api/admin/send-broadcast', async (req, res) => {
   } catch (error) {
     console.error('Broadcast error:', error);
     res.status(500).json({ error: 'Broadcast failed: ' + error.message });
-  }
-});
-
-
-// ============================================================================
-// BUG REPORTS
-// ============================================================================
-
-/**
- * POST /api/bug-report
- * Authenticated users submit a bug / problem report.
- * The report is stored in DB and an email alert fires to the admin.
- */
-app.post('/api/bug-report', async (req, res) => {
-  try {
-    const { userId, userEmail, category = 'general', title, description, stepsToReproduce, severity = 'medium' } = req.body;
-
-    if (!title || !description) {
-      return res.status(400).json({ error: 'title and description are required' });
-    }
-
-    const report = await BugReport.create({
-      id: nanoid(12),
-      user_id: userId || null,
-      user_email: userEmail || null,
-      category,
-      title,
-      description,
-      steps_to_reproduce: stepsToReproduce || null,
-      severity,
-      status: 'open',
-      created_at: new Date()
-    });
-
-    // Notify admin via email (best-effort — don't fail the request if email fails)
-    const adminEmail = process.env.EMAIL_USER || 'donotreply.dobium@gmail.com';
-    const severityEmoji = { low: '🟡', medium: '🟠', high: '🔴', critical: '🚨' }[severity] || '🟠';
-    try {
-      await sendEmail({
-        to: adminEmail,
-        subject: `${severityEmoji} Bug Report [${severity.toUpperCase()}]: ${title}`,
-        text: `New bug report submitted on Dobium.\n\nFrom: ${userEmail || userId || 'Anonymous'}\nCategory: ${category}\nSeverity: ${severity}\nTitle: ${title}\n\nDescription:\n${description}${stepsToReproduce ? '\n\nSteps to Reproduce:\n' + stepsToReproduce : ''}`,
-        html: `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>Bug Report</title></head>
-<body style="margin:0;padding:0;background:#0a0f1e;font-family:Arial,Helvetica,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0a0f1e;padding:32px 16px 48px;">
-    <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;border-radius:16px;overflow:hidden;border:1px solid rgba(239,68,68,0.3);">
-        <tr><td style="height:4px;background:linear-gradient(90deg,#7f1d1d,#ef4444,#fca5a5,#ef4444,#7f1d1d);font-size:0;line-height:0;">&nbsp;</td></tr>
-        <tr><td align="center" style="padding:20px 32px;background:#071428;">
-          <span style="font-size:28px;">🐛</span>
-          <h1 style="margin:8px 0 0;font-size:18px;color:#f1f5f9;font-weight:900;">New Bug Report</h1>
-        </td></tr>
-        <tr><td style="background:#0a1628;padding:24px 32px;border-top:1px solid rgba(239,68,68,0.1);">
-          <table width="100%" cellpadding="0" cellspacing="0">
-            <tr><td style="padding:6px 0;">
-              <span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#475569;">Severity</span><br/>
-              <span style="font-size:15px;font-weight:700;color:${severity === 'critical' ? '#ef4444' : severity === 'high' ? '#f97316' : severity === 'low' ? '#eab308' : '#f97316'}">${severityEmoji} ${severity.toUpperCase()}</span>
-            </td></tr>
-            <tr><td style="padding:6px 0;border-top:1px solid rgba(255,255,255,0.05);">
-              <span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#475569;">Category</span><br/>
-              <span style="font-size:14px;color:#94a3b8;">${category}</span>
-            </td></tr>
-            <tr><td style="padding:6px 0;border-top:1px solid rgba(255,255,255,0.05);">
-              <span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#475569;">Reported by</span><br/>
-              <span style="font-size:14px;color:#94a3b8;">${userEmail || userId || 'Anonymous'}</span>
-            </td></tr>
-            <tr><td style="padding:12px 0 6px;border-top:1px solid rgba(255,255,255,0.05);">
-              <span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#475569;">Title</span><br/>
-              <span style="font-size:16px;font-weight:700;color:#f1f5f9;">${title}</span>
-            </td></tr>
-            <tr><td style="padding:12px 0 6px;border-top:1px solid rgba(255,255,255,0.05);">
-              <span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#475569;">Description</span><br/>
-              <p style="margin:6px 0 0;font-size:13px;color:#94a3b8;line-height:1.7;white-space:pre-wrap;">${description}</p>
-            </td></tr>
-            ${stepsToReproduce ? `<tr><td style="padding:12px 0 6px;border-top:1px solid rgba(255,255,255,0.05);"><span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#475569;">Steps to Reproduce</span><br/><p style="margin:6px 0 0;font-size:13px;color:#94a3b8;line-height:1.7;white-space:pre-wrap;">${stepsToReproduce}</p></td></tr>` : ''}
-          </table>
-        </td></tr>
-        <tr><td style="height:3px;background:linear-gradient(90deg,#7f1d1d,#ef4444,#fca5a5,#ef4444,#7f1d1d);font-size:0;line-height:0;">&nbsp;</td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`
-      });
-    } catch (emailErr) {
-      console.warn('[bug-report] Admin email notification failed:', emailErr.message);
-    }
-
-    res.status(201).json({ ok: true, id: report.id });
-  } catch (error) {
-    console.error('Bug report submission error:', error);
-    res.status(500).json({ error: 'Failed to submit bug report' });
-  }
-});
-
-/**
- * GET /api/admin/bug-reports
- * Admin-only — returns all bug reports, newest first.
- */
-app.get('/api/admin/bug-reports', async (req, res) => {
-  try {
-    const { adminEmail } = req.query;
-    if (adminEmail !== 'donotreply.dobium@gmail.com') {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    const reports = await BugReport.findAll({
-      order: [['created_at', 'DESC']]
-    });
-    res.json(reports);
-  } catch (error) {
-    console.error('Fetch bug reports error:', error);
-    res.status(500).json({ error: 'Failed to fetch bug reports' });
-  }
-});
-
-/**
- * PATCH /api/admin/bug-reports/:id
- * Admin-only — update status of a bug report (open → resolved / closed).
- */
-app.patch('/api/admin/bug-reports/:id', async (req, res) => {
-  try {
-    const { adminEmail, status } = req.body;
-    if (adminEmail !== 'donotreply.dobium@gmail.com') {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    const report = await BugReport.findByPk(req.params.id);
-    if (!report) return res.status(404).json({ error: 'Report not found' });
-    await report.update({ status });
-    res.json(report);
-  } catch (error) {
-    console.error('Update bug report error:', error);
-    res.status(500).json({ error: 'Failed to update bug report' });
   }
 });
 

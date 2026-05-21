@@ -1,11 +1,30 @@
-import { useState, useEffect, useContext, createContext } from 'react';
+import { useState, useEffect, useContext, createContext, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
+// Best-effort: call the backend to send the welcome email (fires once per user).
+async function triggerWelcomeEmail(user) {
+  try {
+    const name =
+      user.user_metadata?.name ||
+      user.user_metadata?.full_name ||
+      user.user_metadata?.display_name ||
+      null;
+    await fetch('/api/auth/welcome', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id, email: user.email, name }),
+    });
+  } catch {
+    // Non-critical — never block the user experience
+  }
+}
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isNewSignup, setIsNewSignup] = useState(false);
 
   useEffect(() => {
     // Fetch session — always resolve loading even if Supabase is misconfigured
@@ -14,8 +33,12 @@ export function AuthProvider({ children }) {
       .catch(() => setSession(null))
       .finally(() => setLoading(false));
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
+      // Send welcome email after email confirmation or first Google OAuth sign-in
+      if (event === 'SIGNED_IN' && session?.user) {
+        triggerWelcomeEmail(session.user);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -65,9 +88,27 @@ export function AuthProvider({ children }) {
       },
     });
     if (error) throw new Error(error.message);
+    // If Supabase email confirmation is ON, data.session will be null and the
+    // user must click the confirmation link before they can sign in.
     setSession(data?.session ?? null);
+    setIsNewSignup(true);
+
+    // Send the confirmation email via our own Gmail (donotreply.dobium@gmail.com)
+    // rather than relying on Supabase's email service.
+    try {
+      await fetch('/api/auth/send-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizeEmail(email), name: fullName }),
+      });
+    } catch {
+      // Non-critical — signup succeeded even if confirmation email fails
+    }
+
     return data;
   };
+
+  const clearNewSignup = useCallback(() => setIsNewSignup(false), []);
 
   const resetPassword = async (email) => {
     const { error } = await supabase.auth.resetPasswordForEmail(normalizeEmail(email), {
@@ -82,7 +123,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, loading, login, loginWithGoogle, signup, resetPassword, logout }}>
+    <AuthContext.Provider value={{ session, loading, isNewSignup, clearNewSignup, login, loginWithGoogle, signup, resetPassword, logout }}>
       {children}
     </AuthContext.Provider>
   );
