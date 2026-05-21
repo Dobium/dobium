@@ -251,6 +251,10 @@ export default function AdminUserDashboard({ user, onBack }) {
   const [allPredictions, setAllPredictions] = useState([]);
   const [showAllActivity, setShowAllActivity] = useState(false);
 
+  const [resetLoading, setResetLoading] = useState(false);
+  const [fixLoading, setFixLoading] = useState(false);
+  const [repairMsg, setRepairMsg] = useState('');
+
   const fetchWallet = useCallback(() => {
     setWalletLoading(true);
     fetch(`/api/users/${user.id}/balance`)
@@ -285,6 +289,46 @@ export default function AdminUserDashboard({ user, onBack }) {
     const interval = setInterval(fetchPredictions, 60_000);
     return () => clearInterval(interval);
   }, [fetchPredictions]);
+
+  const handleResetWallet = async () => {
+    if (!window.confirm("Are you sure you want to delete all manual deposits and withdrawals for this user?")) return;
+    setResetLoading(true);
+    setRepairMsg('');
+    try {
+      const res = await fetch(`/api/users/${user.id}/reset-deposits`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setRepairMsg('Wallet deposits successfully reset.');
+        fetchWallet();
+      } else {
+        setRepairMsg(`Error: ${data.error}`);
+      }
+    } catch (err) {
+      setRepairMsg('Failed to connect to server.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleFixBalance = async () => {
+    if (!window.confirm("Auto-cancel active trades to fix negative buying power for this user?")) return;
+    setFixLoading(true);
+    setRepairMsg('');
+    try {
+      const res = await fetch(`/api/users/${user.id}/fix-balance`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setRepairMsg(data.message || 'Buying power repaired.');
+        fetchPredictions(); // Will also fetch wallet
+      } else {
+        setRepairMsg(`Error: ${data.error}`);
+      }
+    } catch (err) {
+      setRepairMsg('Failed to connect to server.');
+    } finally {
+      setFixLoading(false);
+    }
+  };
 
   const startingBalance = wallet?.paper_starting_balance || wallet?.paperStartingBalance || 100000;
   const totalStaked = predictions.reduce((sum, p) => sum + (p.stake_amount || 0), 0);
@@ -486,6 +530,37 @@ export default function AdminUserDashboard({ user, onBack }) {
                 <p className="text-slate-500 text-xs">Calibration</p>
               </div>
             </div>
+          </div>
+
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-white font-medium">Data &amp; Equity Repairs</span>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-3 border-b border-slate-800">
+                <div>
+                  <div className="text-sm font-semibold text-white">Reset Wallet Deposits</div>
+                  <div className="text-xs text-slate-500 mt-0.5">Clears manual funding to strictly track trading P&amp;L</div>
+                </div>
+                <button onClick={handleResetWallet} disabled={resetLoading} className="px-4 py-2 text-sm font-semibold bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 text-red-400 rounded-lg transition-all disabled:opacity-50">
+                  {resetLoading ? 'Resetting...' : 'Reset Deposits'}
+                </button>
+              </div>
+              <div className="flex justify-between items-center py-3">
+                <div>
+                  <div className="text-sm font-semibold text-white">Repair Buying Power Deficit</div>
+                  <div className="text-xs text-slate-500 mt-0.5">Auto-cancels active trades to resolve negative buying power</div>
+                </div>
+                <button onClick={handleFixBalance} disabled={fixLoading} className="px-4 py-2 text-sm font-semibold bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 text-amber-400 rounded-lg transition-all disabled:opacity-50">
+                  {fixLoading ? 'Repairing...' : 'Repair Deficit'}
+                </button>
+              </div>
+            </div>
+            {repairMsg && (
+              <p className={`mt-3 text-sm ${repairMsg.startsWith('Error') || repairMsg.startsWith('Failed') ? 'text-red-400' : 'text-green-400'}`}>
+                {repairMsg}
+              </p>
+            )}
           </div>
 
           <div>
