@@ -591,21 +591,23 @@ app.post('/api/markets/:id/resolve', async (req, res) => {
   async function calculateBalanceFromTransactions(userId) {
     let transactions = [];
     let predictions = [];
+    let users = [];
 
-    try {
-      transactions = await readJson(TRANSACTIONS_PATH);
-    } catch (e) {
-      transactions = [];
-    }
+    try { transactions = await readJson(TRANSACTIONS_PATH); } catch (e) { transactions = []; }
+    try { predictions = await readJson(PREDICTIONS_PATH); } catch (e) { predictions = []; }
+    try { users = await readJson(USERS_PATH); } catch (e) { users = []; }
 
-    try {
-      predictions = await readJson(PREDICTIONS_PATH);
-    } catch (e) {
-      predictions = [];
+    // Find aliases for the user (in case email and ID are mixed up)
+    let userAliases = [userId];
+    const matchedUser = users.find(u => u.id === userId || u.email === userId);
+    if (matchedUser) {
+      userAliases.push(matchedUser.id);
+      if (matchedUser.email) userAliases.push(matchedUser.email);
     }
+    userAliases = [...new Set(userAliases)];
 
     // Filter transactions for this user
-    const userTransactions = transactions.filter(t => t.user_id === userId);
+    const userTransactions = transactions.filter(t => userAliases.includes(t.user_id));
 
     // Sum deposits (completed only)
     const totalDeposits = userTransactions
@@ -619,12 +621,12 @@ app.post('/api/markets/:id/resolve', async (req, res) => {
 
     // Sum active prediction stakes (money locked in trades)
     const activePredictionStakes = predictions
-      .filter(p => p.user_id === userId && p.status === 'active')
+      .filter(p => userAliases.includes(p.user_id) && p.status === 'active')
       .reduce((sum, p) => sum + (p.stake_amount || 0), 0);
 
     // Sum PnL of settled trades (won, lost, sold, refunded)
     const settledPnL = predictions
-      .filter(p => p.user_id === userId && ['won', 'lost', 'sold', 'refunded'].includes(p.status))
+      .filter(p => userAliases.includes(p.user_id) && ['won', 'lost', 'sold', 'refunded'].includes(p.status))
       .reduce((sum, p) => {
         let actualReturn = p.actual_return || 0;
         if (p.status === 'lost' && actualReturn === 0) {
@@ -633,14 +635,22 @@ app.post('/api/markets/:id/resolve', async (req, res) => {
         return sum + (actualReturn - (p.stake_amount || 0));
       }, 0);
 
+    // Fallback base balance for demo users with trades but no deposits
+    let baseBalance = 0;
+    if (totalDeposits === 0 && (activePredictionStakes > 0 || settledPnL !== 0 || userId === 'demo_user')) {
+      baseBalance = 1000; // Provide standard $1000 demo buying power
+    }
+
     // Balance = deposits - withdrawals - active stakes + settledPnL
-    const balance = totalDeposits - totalWithdrawals - activePredictionStakes + settledPnL;
+    const trueBalance = totalDeposits + baseBalance - totalWithdrawals - activePredictionStakes + settledPnL;
 
     return {
-      balance: Math.max(0, balance), // Never negative
-      totalDeposits,
+      balance: Math.max(0, trueBalance), // Never negative
+      totalDeposits: totalDeposits + baseBalance,
       totalWithdrawals,
-      activePredictionStakes
+      activePredictionStakes,
+      settledPnL,
+      trueBalance
     };
   }
 
@@ -830,7 +840,7 @@ app.post('/api/markets/:id/resolve', async (req, res) => {
     // Current financial snapshot
     const balanceBefore = await calculateBalanceFromTransactions(userId);
 
-    if (balanceBefore.balance >= 0) {
+    if (balanceBefore.trueBalance >= 0) {
       return res.json({
         ok: true,
         message: 'Balance is already non-negative — no fix needed.',
@@ -840,9 +850,7 @@ app.post('/api/markets/:id/resolve', async (req, res) => {
     }
 
     // The raw deficit before Math.max(0,...) hides it
-    const totalDeposits = balanceBefore.totalDeposits;
-    const totalWithdrawals = balanceBefore.totalWithdrawals;
-    const trueBalance = totalDeposits - totalWithdrawals - balanceBefore.activePredictionStakes;
+    const trueBalance = balanceBefore.trueBalance;
 
     let deficit = Math.abs(trueBalance); // amount we need to claw back
     const cancelledIds = [];

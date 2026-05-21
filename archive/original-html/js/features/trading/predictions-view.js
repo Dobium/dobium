@@ -49,27 +49,44 @@ let currentTradeMode = 'buy'; // 'buy' or 'sell'
 function getUserPosition(marketId, outcomeId) {
   const userPredictions = typeof predictions !== 'undefined' ? predictions : [];
   const position = userPredictions
-    .filter(p => String(p.marketId || p.market_id) === String(marketId) && 
-                 String(p.outcomeId || p.outcome_id) === String(outcomeId) && 
-                 p.status === 'active')
+    .filter(p => String(p.marketId || p.market_id) === String(marketId) &&
+      String(p.outcomeId || p.outcome_id) === String(outcomeId) &&
+      p.status === 'active')
     .reduce((sum, p) => sum + (p.stake || p.stake_amount || 0), 0);
   return position;
+}
+
+function getAvgEntryProb(marketId, outcomeId) {
+  const userPredictions = typeof predictions !== 'undefined' ? predictions : [];
+  const activePreds = userPredictions.filter(p =>
+    String(p.marketId || p.market_id) === String(marketId) &&
+    String(p.outcomeId || p.outcome_id) === String(outcomeId) &&
+    p.status === 'active'
+  );
+
+  const totalStake = activePreds.reduce((sum, p) => sum + (p.stake || p.stake_amount || 0), 0);
+  if (totalStake === 0) return 50;
+
+  const weightedSum = activePreds.reduce((sum, p) => sum + (p.probability || p.odds_at_prediction || p.entryProb || 50) * (p.stake || p.stake_amount || 0), 0);
+  return weightedSum / totalStake;
 }
 
 /**
  * Calculate sell value - what user gets back when selling position
  * Sell value = position * current probability (they exit at current market price)
  */
-function calcSellValue(positionSize, currentProbability) {
-  const p = currentProbability > 1 ? currentProbability / 100 : currentProbability;
-  return positionSize * p * (1 - PLATFORM_FEE);
+function calcSellValue(positionSize, currentProbability, avgEntryProbability) {
+  const currentP = currentProbability > 1 ? currentProbability : currentProbability * 100;
+  const entryP = avgEntryProbability ? (avgEntryProbability > 1 ? avgEntryProbability : avgEntryProbability * 100) : 50;
+  if (entryP === 0) return 0;
+  return positionSize * (currentP / entryP) * (1 - PLATFORM_FEE);
 }
 
 /**
  * Calculate sell profit/loss
  */
 function calcSellProfitLoss(positionSize, entryProbability, currentProbability) {
-  const sellValue = calcSellValue(positionSize, currentProbability);
+  const sellValue = calcSellValue(positionSize, currentProbability, entryProbability);
   // Original cost was the position size
   return sellValue - positionSize;
 }
@@ -88,11 +105,11 @@ function showInlineTradingForm(marketId, outcomeId) {
     console.error('Outcome not found:', outcomeId);
     return;
   }
-  
+
   const probability = outcome.probability;
   const container = document.getElementById('inlineTradingForm');
   const statsCard = document.getElementById('statsCard');
-  
+
   if (!container) {
     // Fallback to modal if container doesn't exist
     openPredictionForm(marketId, outcomeId);
@@ -117,12 +134,13 @@ function showInlineTradingForm(marketId, outcomeId) {
 
   // Determine colors based on outcome
   const isYes = normalizePredictionOutcomeTitle(outcome.title).toLowerCase() === 'yes';
-  const isBinary = market.outcomes.length === 2 && 
+  const isBinary = market.outcomes.length === 2 &&
     market.outcomes.some(o => normalizePredictionOutcomeTitle(o.title).toLowerCase() === 'yes') &&
     market.outcomes.some(o => normalizePredictionOutcomeTitle(o.title).toLowerCase() === 'no');
 
   // Check user's existing position
   const userPosition = getUserPosition(marketId, outcomeId);
+  const avgEntryProb = getAvgEntryProb(marketId, outcomeId);
   const hasPosition = userPosition > 0;
 
   container.innerHTML = `
@@ -142,7 +160,7 @@ function showInlineTradingForm(marketId, outcomeId) {
             class="flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all bg-green-500/20 text-green-400 border border-green-500/50">
             Buy
           </button>
-          <button id="sellTabBtn" onclick="switchTradeMode('sell', '${marketId}', '${outcomeId}', ${probability})"
+          <button id="sellTabBtn" onclick="switchTradeMode('sell', '${marketId}', '${outcomeId}', ${probability}, ${avgEntryProb})"
             class="flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all text-slate-400 hover:text-white ${!hasPosition ? 'opacity-50 cursor-not-allowed' : ''}"
             ${!hasPosition ? 'disabled title="No position to sell"' : ''}>
             Sell ${hasPosition ? `($${userPosition.toFixed(2)})` : ''}
@@ -243,12 +261,12 @@ function showInlineTradingForm(marketId, outcomeId) {
           <!-- Quick Sell Amounts -->
           <div class="flex gap-2 mb-4">
             ${hasPosition ? ['25', '50', '75', '100'].map(pct => {
-              const amt = (userPosition * (parseInt(pct) / 100)).toFixed(2);
-              return `
-                <button onclick="document.getElementById('inlineSellAmount').value='${amt}'; updateInlineSellCalculations(${amt}, ${probability})" 
+    const amt = (userPosition * (parseInt(pct) / 100)).toFixed(2);
+    return `
+                <button onclick="document.getElementById('inlineSellAmount').value='${amt}'; updateInlineSellCalculations(${amt}, ${probability}, ${avgEntryProb})" 
                   class="flex-1 py-1.5 text-xs rounded-md bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">${pct}%</button>
               `;
-            }).join('') : ''}
+  }).join('') : ''}
           </div>
 
           <!-- Sell Value Display -->
@@ -274,7 +292,7 @@ function showInlineTradingForm(marketId, outcomeId) {
           </div>
 
           <!-- Confirm Sell Button -->
-          <button onclick="showSellReview('${marketId}', '${outcomeId}', ${probability}, ${userPosition})" 
+          <button onclick="showSellReview('${marketId}', '${outcomeId}', ${probability}, ${userPosition}, ${avgEntryProb})" 
             class="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-3 rounded-lg transition-all">
             Review Sell Order
           </button>
@@ -284,10 +302,10 @@ function showInlineTradingForm(marketId, outcomeId) {
   `;
 
   // Add input listener for real-time calculations
-  document.getElementById('inlineStakeAmount').addEventListener('input', function(e) {
+  document.getElementById('inlineStakeAmount').addEventListener('input', function (e) {
     updateInlineTradeCalculations(parseFloat(e.target.value) || 0, probability);
   });
-  
+
   // Focus the input
   setTimeout(() => document.getElementById('inlineStakeAmount').focus(), 100);
 }
@@ -298,15 +316,15 @@ function showInlineTradingForm(marketId, outcomeId) {
 function hideInlineTradingForm() {
   const container = document.getElementById('inlineTradingForm');
   const statsCard = document.getElementById('statsCard');
-  
+
   if (container) container.classList.add('hidden');
   if (statsCard) statsCard.classList.remove('hidden');
-  
+
   // Remove highlight from buttons
   document.querySelectorAll('.outcome-btn').forEach(btn => {
     btn.classList.remove('ring-2', 'ring-yellow-500', 'ring-offset-2', 'ring-offset-slate-950');
   });
-  
+
   currentInlineSelection = null;
 }
 
@@ -316,17 +334,17 @@ function hideInlineTradingForm() {
 function updateInlineTradeCalculations(stake, probability) {
   const p = probability / 100;
   const balance = typeof getBalance === 'function' ? getBalance() : 0;
-  
+
   const winProfit = calcWinProfit(stake, p);
   const winReturn = calcWinReturn(stake, p);
   const lossAmount = calcLossAmount(stake, p);
   const loseReturn = calcLoseReturn(stake, p);
-  
+
   const winReturnEl = document.getElementById('inlineWinReturn');
   const winProfitEl = document.getElementById('inlineWinProfit');
   const loseReturnEl = document.getElementById('inlineLoseReturn');
   const lossAmountEl = document.getElementById('inlineLossAmount');
-  
+
   if (winReturnEl) winReturnEl.textContent = '$' + winReturn.toFixed(2);
   if (winProfitEl) winProfitEl.textContent = '+$' + winProfit.toFixed(2) + ' return';
   if (loseReturnEl) loseReturnEl.textContent = '$' + loseReturn.toFixed(2);
@@ -360,7 +378,7 @@ function updateInlineTradeCalculations(stake, probability) {
   if (typeof validateTradeRisk === 'function' && stake > 0) {
     const validation = validateTradeRisk(stake);
     const warningsEl = document.getElementById('inlineRiskWarnings');
-    
+
     if (warningsEl) {
       if (validation.warnings.length > 0 || validation.blocked.length > 0) {
         warningsEl.classList.remove('hidden');
@@ -395,7 +413,7 @@ function updateInlineTradeCalculations(stake, probability) {
  */
 function showPositionReview(marketId, outcomeId, probability) {
   const stake = parseFloat(document.getElementById('inlineStakeAmount')?.value || document.getElementById('stakeAmount')?.value) || 0;
-  
+
   if (stake <= 0) {
     alert('Please enter a valid position size');
     return;
@@ -413,7 +431,7 @@ function showPositionReview(marketId, outcomeId, probability) {
   const market = markets.find(m => String(m.id) === String(marketId));
   const outcome = market?.outcomes.find(o => String(o.id) === String(outcomeId));
   const balance = typeof getBalance === 'function' ? getBalance() : 0;
-  
+
   const p = probability / 100;
   const winProfit = calcWinProfit(stake, p);
   const winReturn = calcWinReturn(stake, p);
@@ -552,14 +570,14 @@ function closePositionReview() {
  */
 async function confirmPosition(marketId, outcomeId, probability, stake) {
   closePositionReview();
-  
+
   // Store reflection if provided
   const reflectionEl = document.getElementById('reflectionPrompt');
   const reflection = reflectionEl ? reflectionEl.value.trim() : '';
-  
+
   // Close any inline form
   hideInlineTradingForm();
-  
+
   // Submit the prediction
   await submitPredictionWithReview(marketId, outcomeId, probability, stake, reflection);
 }
@@ -569,12 +587,12 @@ async function confirmPosition(marketId, outcomeId, probability, stake) {
  */
 async function submitInlinePrediction(marketId, outcomeId, probability) {
   const stake = parseFloat(document.getElementById('inlineStakeAmount').value) || 0;
-  
+
   if (stake <= 0) {
     alert('Please enter a valid position size');
     return;
   }
-  
+
   // Show position review instead of direct submission
   showPositionReview(marketId, outcomeId, probability);
 }
@@ -582,17 +600,17 @@ async function submitInlinePrediction(marketId, outcomeId, probability) {
 /**
  * Switch between Buy and Sell modes
  */
-function switchTradeMode(mode, marketId, outcomeId, probability) {
+function switchTradeMode(mode, marketId, outcomeId, probability, avgEntryProb = 50) {
   currentTradeMode = mode;
-  
+
   const buyBtn = document.getElementById('buyTabBtn');
   const sellBtn = document.getElementById('sellTabBtn');
   const buyContent = document.getElementById('buyModeContent');
   const sellContent = document.getElementById('sellModeContent');
-  
+
   if (mode === 'buy') {
     buyBtn.className = 'flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all bg-green-500/20 text-green-400 border border-green-500/50';
-    sellBtn.className = sellBtn.disabled ? 
+    sellBtn.className = sellBtn.disabled ?
       'flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all text-slate-400 opacity-50 cursor-not-allowed' :
       'flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all text-slate-400 hover:text-white';
     buyContent.classList.remove('hidden');
@@ -602,12 +620,12 @@ function switchTradeMode(mode, marketId, outcomeId, probability) {
     buyBtn.className = 'flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all text-slate-400 hover:text-white';
     buyContent.classList.add('hidden');
     sellContent.classList.remove('hidden');
-    
+
     // Add listener for sell amount input
     const sellInput = document.getElementById('inlineSellAmount');
     if (sellInput) {
-      sellInput.addEventListener('input', function(e) {
-        updateInlineSellCalculations(parseFloat(e.target.value) || 0, probability);
+      sellInput.addEventListener('input', function (e) {
+        updateInlineSellCalculations(parseFloat(e.target.value) || 0, probability, avgEntryProb);
       });
     }
   }
@@ -616,13 +634,13 @@ function switchTradeMode(mode, marketId, outcomeId, probability) {
 /**
  * Update sell calculations in real-time
  */
-function updateInlineSellCalculations(sellAmount, probability) {
-  const sellValue = calcSellValue(sellAmount, probability);
+function updateInlineSellCalculations(sellAmount, probability, avgEntryProb = 50) {
+  const sellValue = calcSellValue(sellAmount, probability, avgEntryProb);
   const profitLoss = sellValue - sellAmount;
-  
+
   const sellValueEl = document.getElementById('inlineSellValue');
   const profitLossEl = document.getElementById('inlineSellProfitLoss');
-  
+
   if (sellValueEl) sellValueEl.textContent = '$' + sellValue.toFixed(2);
   if (profitLossEl) {
     if (profitLoss >= 0) {
@@ -638,25 +656,25 @@ function updateInlineSellCalculations(sellAmount, probability) {
 /**
  * Show sell review modal
  */
-function showSellReview(marketId, outcomeId, probability, maxPosition) {
+function showSellReview(marketId, outcomeId, probability, maxPosition, avgEntryProb = 50) {
   const sellAmount = parseFloat(document.getElementById('inlineSellAmount')?.value) || 0;
-  
+
   if (sellAmount <= 0) {
     alert('Please enter a valid sell amount');
     return;
   }
-  
+
   if (sellAmount > maxPosition) {
     alert(`You can only sell up to $${maxPosition.toFixed(2)} of your position`);
     return;
   }
-  
+
   const market = markets.find(m => String(m.id) === String(marketId));
   const outcome = market?.outcomes.find(o => String(o.id) === String(outcomeId));
-  
-  const sellValue = calcSellValue(sellAmount, probability);
+
+  const sellValue = calcSellValue(sellAmount, probability, avgEntryProb);
   const profitLoss = sellValue - sellAmount;
-  
+
   const modal = document.createElement('div');
   modal.className = 'fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4';
   modal.id = 'sellReviewModal';
@@ -746,7 +764,7 @@ function closeSellReview() {
 async function confirmSell(marketId, outcomeId, sellAmount, sellValue) {
   closeSellReview();
   hideInlineTradingForm();
-  
+
   // Show loading modal
   const modal = document.createElement('div');
   modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
@@ -760,22 +778,22 @@ async function confirmSell(marketId, outcomeId, sellAmount, sellValue) {
     </div>
   `;
   document.body.appendChild(modal);
-  
+
   // Update predictions - mark portion as sold
   const userPredictions = typeof predictions !== 'undefined' ? predictions : [];
   let remainingToSell = sellAmount;
-  
+
   for (let i = 0; i < userPredictions.length && remainingToSell > 0; i++) {
     const pred = userPredictions[i];
-    if (String(pred.marketId || pred.market_id) === String(marketId) && 
-        String(pred.outcomeId || pred.outcome_id) === String(outcomeId) && 
-        pred.status === 'active') {
+    if (String(pred.marketId || pred.market_id) === String(marketId) &&
+      String(pred.outcomeId || pred.outcome_id) === String(outcomeId) &&
+      pred.status === 'active') {
       const predStake = pred.stake || pred.stake_amount || 0;
       if (predStake <= remainingToSell) {
         // Sell entire position
         pred.status = 'sold';
         pred.soldAt = new Date().toISOString();
-        pred.saleValue = calcSellValue(predStake, pred.probability || pred.odds_at_prediction);
+        pred.saleValue = predStake * (sellValue / sellAmount);
         remainingToSell -= predStake;
       } else {
         // Partial sell - reduce position
@@ -783,7 +801,7 @@ async function confirmSell(marketId, outcomeId, sellAmount, sellValue) {
         pred.stake = predStake - soldPortion;
         pred.stake_amount = predStake - soldPortion;
         remainingToSell = 0;
-        
+
         // Record the sale
         userPredictions.push({
           id: Date.now(),
@@ -795,19 +813,19 @@ async function confirmSell(marketId, outcomeId, sellAmount, sellValue) {
           stake_amount: soldPortion,
           status: 'sold',
           soldAt: new Date().toISOString(),
-          saleValue: calcSellValue(soldPortion, pred.probability || pred.odds_at_prediction)
+          saleValue: soldPortion * (sellValue / sellAmount)
         });
       }
     }
   }
-  
+
   // Add sell value to balance
   if (typeof addBalance === 'function') {
     addBalance(sellValue);
   } else if (typeof walletState !== 'undefined') {
     walletState.balance = (walletState.balance || 0) + sellValue;
   }
-  
+
   // Show confirmation
   setTimeout(() => {
     const profitLoss = sellValue - sellAmount;
@@ -870,7 +888,7 @@ function openPredictionForm(marketId, outcomeId) {
   }
   const probability = outcome.probability; // Assume this is 0-100
   const balance = typeof getBalance === 'function' ? getBalance() : 0;
-  
+
   // Get educational nudge
   const nudge = typeof getRandomNudge === 'function' ? getRandomNudge('beforeTrade') : '';
 
@@ -988,21 +1006,21 @@ function openPredictionForm(marketId, outcomeId) {
   document.body.appendChild(modal);
 
   // Add input listener for real-time calculations
-  document.getElementById('stakeAmount').addEventListener('input', function(e) {
+  document.getElementById('stakeAmount').addEventListener('input', function (e) {
     const stake = parseFloat(e.target.value) || 0;
     updateTradeCalculations(stake, probability);
     // LIMITS FEATURE - Commented out but preserved for future use
     // updateCapitalRiskIndicator(stake, balance);
     updateRiskWarnings(stake);
   });
-  
+
   // Focus the input
   setTimeout(() => document.getElementById('stakeAmount').focus(), 100);
 }
 
 function showPositionReviewFromModal(marketId, outcomeId, probability) {
   const stake = parseFloat(document.getElementById('stakeAmount').value) || 0;
-  
+
   if (stake <= 0) {
     alert('Please enter a valid position size');
     return;
@@ -1046,12 +1064,12 @@ function showPositionReviewFromModal(marketId, outcomeId, probability) {
 
 function updateRiskWarnings(stake) {
   if (typeof validateTradeRisk !== 'function' || stake <= 0) return;
-  
+
   const validation = validateTradeRisk(stake);
   const warningsEl = document.getElementById('riskWarnings');
-  
+
   if (!warningsEl) return;
-  
+
   if (validation.warnings.length > 0 || validation.blocked.length > 0) {
     warningsEl.classList.remove('hidden');
     warningsEl.innerHTML = [
@@ -1079,17 +1097,17 @@ function updateRiskWarnings(stake) {
 
 function updateTradeCalculations(stake, probability) {
   const p = probability / 100; // Convert to decimal
-  
+
   // Calculate values using the fair trading model
   const winProfit = calcWinProfit(stake, p);
   const winReturn = calcWinReturn(stake, p);
   const lossAmount = calcLossAmount(stake, p);
   const loseReturn = calcLoseReturn(stake, p);
-  
+
   // Calculate return percentages (how much you get back relative to investment)
   const winReturnPercent = stake > 0 ? ((winReturn / stake) * 100).toFixed(0) : 0;
   const loseReturnPercent = stake > 0 ? ((loseReturn / stake) * 100).toFixed(0) : 0;
-  
+
   // Update UI
   document.getElementById('winReturn').textContent = '$' + winReturn.toFixed(2);
   document.getElementById('winProfit').textContent = '+$' + winProfit.toFixed(2);
@@ -1107,7 +1125,7 @@ async function submitPredictionWithReview(marketId, outcomeId, probability, stak
   if (typeof hasSufficientBalance === 'function' && !hasSufficientBalance(stake)) {
     const currentBalance = typeof getBalance === 'function' ? getBalance() : 0;
     alert(`Insufficient balance. You have $${currentBalance.toFixed(2)} available. Please deposit more funds.`);
-    
+
     if (typeof openDepositModal === 'function') {
       openDepositModal();
     }
@@ -1122,10 +1140,10 @@ async function submitPredictionWithReview(marketId, outcomeId, probability, stak
       return;
     }
   }
-  
+
   // Get full breakdown from LMSR engine
   const lmsrBreakdown = window.LMSR ? window.LMSR.getTradeBreakdown(stake, probability) : null;
-  
+
   const breakdown = {
     marketId,
     outcomeId,
@@ -1139,14 +1157,14 @@ async function submitPredictionWithReview(marketId, outcomeId, probability, stak
     platformRevenue: lmsrBreakdown ? lmsrBreakdown.platformRevenue : null,
     reflection: reflection
   };
-  
+
   console.log('Position confirmed:', breakdown);
-  
+
   // Record trade for limit tracking
   if (typeof recordTrade === 'function') {
     recordTrade(stake);
   }
-  
+
   // Show loading modal
   const modal = document.createElement('div');
   modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
@@ -1160,9 +1178,9 @@ async function submitPredictionWithReview(marketId, outcomeId, probability, stak
     </div>
   `;
   document.body.appendChild(modal);
-  
+
   let apiSuccess = false;
-  
+
   // Try to save to API
   try {
     const response = await fetch('/api/predictions', {
@@ -1178,33 +1196,33 @@ async function submitPredictionWithReview(marketId, outcomeId, probability, stak
         reflection: reflection
       })
     });
-    
+
     if (response.ok) {
       const prediction = await response.json();
       console.log('Prediction saved to API:', prediction);
       apiSuccess = true;
-      
+
       // Deduct balance from wallet
       if (typeof deductBalance === 'function') {
         deductBalance(stake);
       }
-      
+
       // Update local market data
       const market = markets.find(m => String(m.id) === String(marketId));
       if (market) {
         const outcome = market.outcomes.find(o => String(o.id) === String(outcomeId));
         if (outcome) {
           // Update stake
-          outcome.stake = (outcome.stake || 0) + stake;
-          
+          outcome.total_stake = (outcome.total_stake || 0) + stake;
+
           // Recalculate probabilities based on stakes
-          const totalStake = market.outcomes.reduce((sum, o) => sum + (o.stake || 0), 0);
+          const totalStake = market.outcomes.reduce((sum, o) => sum + (o.total_stake || 0), 0);
           if (totalStake > 0) {
             market.outcomes.forEach(o => {
-              o.probability = Math.round((o.stake / totalStake) * 100);
+              o.probability = Math.round((o.total_stake / totalStake) * 100);
             });
           }
-          
+
           // Update volume
           market.volume = (market.volume || 0) + stake;
           market.volume24h = (market.volume24h || 0) + stake;
@@ -1217,7 +1235,7 @@ async function submitPredictionWithReview(marketId, outcomeId, probability, stak
   } catch (error) {
     console.log('API call failed:', error.message);
   }
-  
+
   // Update LMSR market state
   if (window.lmsrManager) {
     try {
@@ -1236,7 +1254,7 @@ async function submitPredictionWithReview(marketId, outcomeId, probability, stak
       console.log('LMSR market created and updated');
     }
   }
-  
+
   // Store locally
   if (typeof predictions === 'undefined') {
     window.predictions = [];
@@ -1247,10 +1265,10 @@ async function submitPredictionWithReview(marketId, outcomeId, probability, stak
     timestamp: new Date().toISOString(),
     status: 'active'
   });
-  
+
   // Get educational nudge for confirmation
   const nudge = typeof getRandomNudge === 'function' ? getRandomNudge('general') : '';
-  
+
   // Show confirmation (no celebratory animations - just clean, informational)
   modal.innerHTML = `
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full text-center">
@@ -1285,12 +1303,12 @@ async function submitPredictionWithReview(marketId, outcomeId, probability, stak
 
 async function submitPrediction(marketId, outcomeId, probability) {
   const stake = parseFloat(document.getElementById('stakeAmount')?.value) || 0;
-  
+
   if (stake <= 0) {
     alert('Please enter a valid position size');
     return;
   }
-  
+
   // Show position review instead of direct submission
   showPositionReview(marketId, outcomeId, probability);
 }
@@ -1301,12 +1319,12 @@ async function submitPrediction(marketId, outcomeId, probability) {
 function closePredictionModal() {
   const modal = document.querySelector('.fixed');
   if (modal) modal.remove();
-  
+
   // Refresh markets view if visible
   if (!document.getElementById('marketsView').classList.contains('hidden')) {
     renderMarkets();
   }
-  
+
   // Refresh detail view if visible
   const detailView = document.getElementById('detailView');
   if (detailView && !detailView.classList.contains('hidden')) {
@@ -1321,4 +1339,3 @@ function closePredictionModal() {
 }
 
 window.showPositionReviewFromModal = showPositionReviewFromModal;
-
