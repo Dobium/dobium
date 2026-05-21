@@ -8,7 +8,7 @@ const { Sequelize } = require('sequelize');
 // Load environment variables
 require('dotenv').config();
 
-const rawUrl = process.env.DATABASE_URL || 'postgresql://localhost:5432/samsa_dev';
+const rawUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || 'postgresql://localhost:5432/samsa_dev';
 const isRemote = !rawUrl.includes('localhost') && !rawUrl.includes('127.0.0.1');
 
 // NOTE: The previous version did a synchronous execSync() child-process DNS
@@ -24,10 +24,10 @@ const sequelize = new Sequelize(rawUrl, {
   dialect: 'postgres',
   logging: false,
   pool: {
-    max: 5,   // keep low for serverless — each instance has its own pool
+    max: 2,       // Limit to 1 or 2 connections per serverless instance
     min: 0,
     acquire: 30000,
-    idle: 10000
+    idle: 0       // Close connections immediately when they finish
   },
   dialectOptions: isRemote ? {
     ssl: {
