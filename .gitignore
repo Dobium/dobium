@@ -82,3 +82,6 @@ requirements.txt
 fix-balances.js
 check_balance.js
 send-welcome.js
+
+.vercel
+.env*

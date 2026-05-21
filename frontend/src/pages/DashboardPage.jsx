@@ -252,7 +252,15 @@ function calcPositionValue(stake, entryProbPct, currentProbPct) {
   const pCurrent = currentProbPct / 100;
   const rMin = stake * pEntry;
   const rMax = stake * (2 - pEntry);
-  return rMin + (rMax - rMin) * pCurrent;
+
+  if (pEntry === 0) return pCurrent > 0 ? rMax : rMin;
+  if (pEntry === 1) return pCurrent < 1 ? rMin : rMax;
+
+  if (pCurrent <= pEntry) {
+    return rMin + (stake - rMin) * (pCurrent / pEntry);
+  } else {
+    return stake + (rMax - stake) * ((pCurrent - pEntry) / (1 - pEntry));
+  }
 }
 
 function getResolvedReturn(pred) {

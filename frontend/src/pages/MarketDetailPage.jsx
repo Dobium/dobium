@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMarket } from '../hooks/useMarkets';
 import { useAuth } from '../hooks/useAuth';
@@ -11,10 +11,17 @@ function PriceChart({ outcomes, priceHistory }) {
   const height = 200;
   const padding = 20;
 
+  const [hoverIdx, setHoverIdx] = useState(null);
+  const svgRef = useRef(null);
+
   // Only chart the top 4 highest-probability outcomes to keep the chart readable
   const chartOutcomes = [...outcomes]
     .sort((a, b) => (b.probability || 0) - (a.probability || 0))
     .slice(0, 4);
+
+  const dataLength = (priceHistory && priceHistory.length > 0)
+    ? Math.max(2, priceHistory.length + 1)
+    : 2;
 
   // Use real price history or generate initial flat line if no history exists
   const histories = chartOutcomes.map((o, idx) => {
@@ -56,9 +63,32 @@ function PriceChart({ outcomes, priceHistory }) {
   const getY = (value) => padding + ((maxValue - value) / range) * (height - 2 * padding);
   const getX = (index, total) => padding + (index / (total - 1)) * (width - 2 * padding);
 
+  const handleMouseMove = (e) => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const svgX = ((e.clientX - rect.left) / rect.width) * width;
+    let idx = Math.round(((svgX - padding) / (width - 2 * padding)) * (dataLength - 1));
+    idx = Math.max(0, Math.min(idx, dataLength - 1));
+    setHoverIdx(idx);
+  };
+
+  const handleMouseLeave = () => setHoverIdx(null);
+
+  const hoverX = hoverIdx !== null ? getX(hoverIdx, dataLength) : null;
+  const hoverPct = hoverX !== null ? (hoverX / width) * 100 : 0;
+
+  let hoverDate = null;
+  if (hoverIdx !== null && priceHistory && priceHistory.length > 0) {
+    if (hoverIdx < priceHistory.length) {
+      hoverDate = new Date(priceHistory[hoverIdx].timestamp);
+    } else {
+      hoverDate = new Date();
+    }
+  }
+
   return (
-    <div className="relative w-full">
-      <svg className="w-full" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
+    <div className="relative w-full" onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+      <svg ref={svgRef} className="w-full" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
         <defs>
           {histories.map((h, idx) => (
             <linearGradient key={h.id} id={`gradient-${idx}`} x1="0%" y1="0%" x2="0%" y2="100%">
@@ -98,10 +128,45 @@ function PriceChart({ outcomes, priceHistory }) {
               <path d={areaPath} fill={`url(#gradient-${idx})`} />
               <path d={linePath} fill="none" stroke={h.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="4" fill={h.color} />
+              {hoverIdx !== null && (
+                <circle cx={points[hoverIdx].x} cy={points[hoverIdx].y} r="5" fill={h.color} stroke="#0f172a" strokeWidth="2" />
+              )}
             </g>
           );
         })}
+
+        {hoverX !== null && (
+          <line
+            x1={hoverX}
+            y1={padding}
+            x2={hoverX}
+            y2={height - padding}
+            stroke="#94a3b8"
+            strokeWidth="1"
+            strokeDasharray="3,3"
+            opacity="0.6"
+          />
+        )}
       </svg>
+
+      {hoverIdx !== null && (
+        <div
+          className="absolute pointer-events-none px-3 py-2 bg-slate-800/95 border border-slate-700 rounded-lg text-xs z-10 shadow-xl min-w-[120px]"
+          style={{ left: `${Math.min(Math.max(hoverPct, 5), 85)}%`, top: '10%' }}
+        >
+          {hoverDate && (
+            <div className="text-slate-400 mb-1 pb-1 border-b border-slate-700">
+              {hoverDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </div>
+          )}
+          {histories.map(h => (
+            <div key={h.id} className="flex justify-between items-center gap-3 my-0.5">
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: h.color }}></span><span className="text-slate-300 truncate max-w-[80px]">{h.title}</span></span>
+              <span className="text-white font-semibold">{Math.round(h.data[hoverIdx])}¢</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Legend */}
       <div className="flex flex-wrap gap-4 mt-4 justify-center">
@@ -115,6 +180,22 @@ function PriceChart({ outcomes, priceHistory }) {
       </div>
     </div>
   );
+}
+
+function calcPositionValue(stake, entryProbPct, currentProbPct) {
+  const pEntry = entryProbPct / 100;
+  const pCurrent = currentProbPct / 100;
+  const rMin = stake * pEntry;
+  const rMax = stake * (2 - pEntry);
+
+  if (pEntry === 0) return pCurrent > 0 ? rMax : rMin;
+  if (pEntry === 1) return pCurrent < 1 ? rMin : rMax;
+
+  if (pCurrent <= pEntry) {
+    return rMin + (stake - rMin) * (pCurrent / pEntry);
+  } else {
+    return stake + (rMax - stake) * ((pCurrent - pEntry) / (1 - pEntry));
+  }
 }
 
 export default function MarketDetailPage() {
@@ -394,13 +475,7 @@ export default function MarketDetailPage() {
                   </div>
                   {userPositions[o.id] > 0 && (() => {
                     const S = userPositions[o.id];
-                    const pEntry = (userAvgEntry[o.id] || 50) / 100;
-                    const pCurrent = (o.probability || 50) / 100;
-                    // R_max = S + S(1-p_entry), R_min = S - S(1-p_entry)
-                    // R_current = R_min + (R_max - R_min) × p_current
-                    const R_max = S + S * (1 - pEntry);
-                    const R_min = S - S * (1 - pEntry);
-                    const mtmValue = R_min + (R_max - R_min) * pCurrent;
+                    const mtmValue = calcPositionValue(S, userAvgEntry[o.id] || 50, o.probability || 50);
                     const unrealizedPnl = mtmValue - S;
                     return (
                       <div onClick={e => e.stopPropagation()}>
@@ -483,10 +558,8 @@ export default function MarketDetailPage() {
                                   <span className="text-slate-400">You receive:</span>
                                   <span className="text-white font-semibold">
                                     ${(() => {
-                                      const pEntry = (userAvgEntry[o.id] || 50) / 100;
-                                      const pCurrent = (o.probability || 50) / 100;
                                       const sellAmt = parseFloat(sellAmount);
-                                      return (sellAmt * (pEntry + 2 * pCurrent * (1 - pEntry))).toFixed(2);
+                                      return calcPositionValue(sellAmt, userAvgEntry[o.id] || 50, o.probability || 50).toFixed(2);
                                     })()}
                                   </span>
                                 </div>
@@ -495,10 +568,8 @@ export default function MarketDetailPage() {
                                   <span className={`font-semibold ${(o.probability || 50) >= (userAvgEntry[o.id] || 50) ? 'text-green-400' : 'text-red-400'
                                     }`}>
                                     {(() => {
-                                      const pEntry = (userAvgEntry[o.id] || 50) / 100;
-                                      const pCurrent = (o.probability || 50) / 100;
                                       const sellAmt = parseFloat(sellAmount);
-                                      const returnAmt = sellAmt * (pEntry + 2 * pCurrent * (1 - pEntry));
+                                      const returnAmt = calcPositionValue(sellAmt, userAvgEntry[o.id] || 50, o.probability || 50);
                                       const pnl = returnAmt - sellAmt;
                                       return `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
                                     })()}
