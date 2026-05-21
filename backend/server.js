@@ -8,6 +8,9 @@ const fs = require('fs').promises;
 const crypto = require('crypto');
 const { Op, DataTypes, Sequelize } = require('sequelize');
 
+// Force Vercel's bundler to include the PostgreSQL driver since Sequelize loads it dynamically
+require('pg');
+
 const nanoid = (size = 12) => crypto.randomBytes(Math.ceil(size / 2)).toString('hex').slice(0, size);
 
 // Import database models
