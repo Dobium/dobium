@@ -1961,10 +1961,10 @@ app.post('/api/admin/send-email', async (req, res) => {
     `;
 
     const info = await sendEmail({ to, subject, text, html: styledHtml });
-    res.json({ success: true, messageId: info.messageId });
+    res.json({ success: true, messageId: info?.messageId });
   } catch (error) {
     console.error('Admin email error:', error);
-    res.status(500).json({ error: 'Failed to send email' });
+    res.status(500).json({ error: 'Failed to send email', details: error.message });
   }
 });
 
@@ -2358,31 +2358,5 @@ if (require.main === module) {
   });
 }
 
-// Export the Express app for Vercel serverless (api/index.js)
-module.exports = app;
-// Export the Express app for Vercel serverless (api/index.js)
-module.exports = app;
-// Register the daily 12 PM CST digest email job
-registerDailyDigestJob(
-  { User, Transaction, Prediction, Outcome, Market },
-  sendEmail
-);
-  });
-
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`❌ Port ${PORT} is already in use.`);
-    console.error(`   In PowerShell, run:`);
-    console.error(`   netstat -ano | findstr :${PORT}`);
-    console.error(`   Then kill by PID:  taskkill /PID 12345 /F  (replace 12345 with the actual PID)`);
-    process.exit(1);
-  } else {
-    throw err;
-  }
-});
-}
-
-// Export the Express app for Vercel serverless (api/index.js)
-module.exports = app;
 // Export the Express app for Vercel serverless (api/index.js)
 module.exports = app;
