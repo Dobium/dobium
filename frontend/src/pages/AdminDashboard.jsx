@@ -158,7 +158,7 @@ export default function AdminDashboard() {
         setEmailCallout('');
         setEmailCta('');
       } else {
-        setMessage(`Error: ${data.error}`);
+        setMessage(`Error: ${data.details || data.error}`);
       }
     } catch (error) {
       setMessage('Failed to send email. Ensure the backend is running.');
@@ -217,7 +217,11 @@ export default function AdminDashboard() {
       });
       const data = await res.json();
       if (res.ok) {
-        setBroadcastMessage(`✅ Campaign sent — ${data.sent} delivered, ${data.failed} failed.`);
+        let msg = `✅ Campaign sent — ${data.sent} delivered, ${data.failed} failed.`;
+        if (data.failed > 0 && data.errors && data.errors.length > 0) {
+          msg += ` (Reason: ${data.errors[0].error})`;
+        }
+        setBroadcastMessage(msg);
         setBroadcastPreview(null);
       } else {
         setBroadcastMessage(`Error: ${data.error}`);
