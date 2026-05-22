@@ -11,10 +11,12 @@ async function triggerWelcomeEmail(user) {
       user.user_metadata?.full_name ||
       user.user_metadata?.display_name ||
       null;
-    await fetch('/api/auth/welcome', {
+    const rawApiUrl = import.meta.env.VITE_API_URL || '';
+    const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+    await fetch(`${API_URL}/api/auth/welcome`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id, email: user.email, name }),
+      body: JSON.stringify({ userId: user.id, email: user.email, username: name }),
     });
   } catch {
     // Non-critical — never block the user experience
@@ -93,13 +95,20 @@ export function AuthProvider({ children }) {
     setSession(data?.session ?? null);
     setIsNewSignup(true);
 
+    // Send a welcome message immediately upon successful signup
+    if (data?.user) {
+      triggerWelcomeEmail(data.user);
+    }
+
     // Send the confirmation email via our own Gmail (donotreply.dobium@gmail.com)
     // rather than relying on Supabase's email service.
     try {
-      await fetch('/api/auth/send-confirmation', {
+      const rawApiUrl = import.meta.env.VITE_API_URL || '';
+      const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+      await fetch(`${API_URL}/api/auth/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizeEmail(email), name: fullName }),
+        body: JSON.stringify({ email: normalizeEmail(email), name: fullName, confirmUrl: getRedirectUrl() }),
       });
     } catch {
       // Non-critical — signup succeeded even if confirmation email fails

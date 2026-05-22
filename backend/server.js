@@ -1933,7 +1933,7 @@ app.get('/api/admin/preview-digest', async (req, res) => {
 
 app.post('/api/admin/send-email', async (req, res) => {
   try {
-    const { to, subject, text, html, adminEmail } = req.body;
+    const { to, subject, text, html, adminEmail, heading, greeting, callout, cta } = req.body;
 
     // Verify admin identity
     if (adminEmail !== 'donotreply.dobium@gmail.com') {
@@ -1944,21 +1944,17 @@ app.post('/api/admin/send-email', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const styledHtml = html || `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; width: 100%; box-sizing: border-box; margin: 0 auto; padding: 5%; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-        <div style="text-align: center; margin-bottom: 32px;">
-          <h1 style="color: #d4af37; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">Dobium</h1>
-          <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Prediction Markets</p>
-        </div>
-        <div style="color: #334155; font-size: 16px; line-height: 1.6; white-space: pre-wrap; background-color: #f8fafc; padding: 24px; border-radius: 8px;">
-          ${text}
-        </div>
-        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center;">
-          <p style="color: #94a3b8; font-size: 13px; margin: 0;">&copy; ${new Date().getFullYear()} Dobium. All rights reserved.</p>
-          <p style="color: #cbd5e1; font-size: 12px; margin-top: 8px;">You are receiving this system notification because you are a registered user of Dobium.</p>
-        </div>
-      </div>
-    `;
+    const platformUrl = process.env.PLATFORM_URL || 'https://dobium.com';
+    const styledHtml = html || buildCustomBroadcastHtml({
+      heading,
+      body: text,
+      callout,
+      ctaLabel: cta,
+      ctaUrl: cta ? platformUrl : null,
+      username: greeting,
+      subject,
+      platformUrl
+    });
 
     const info = await sendEmail({ to, subject, text, html: styledHtml });
     res.json({ success: true, messageId: info?.messageId });
