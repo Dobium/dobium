@@ -1945,7 +1945,7 @@ app.post('/api/admin/send-email', async (req, res) => {
     }
 
     const styledHtml = html || `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; width: 100%; box-sizing: border-box; margin: 0 auto; padding: 5%; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         <div style="text-align: center; margin-bottom: 32px;">
           <h1 style="color: #d4af37; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">Dobium</h1>
           <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Prediction Markets</p>
@@ -2000,38 +2000,38 @@ const BROADCAST_CAMPAIGNS = {
         </td></tr>`).join('');
 
       return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>${BROADCAST_CAMPAIGNS.iceman_launch.subject}</title></head>
-<body style="margin:0;padding:0;background-color:#0a0f1e;font-family:Arial,Helvetica,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0f1e;padding:32px 16px 48px;">
+<body style="margin:0;padding:0;background-color:#0a0f1e;font-family:Arial,Helvetica,sans-serif;width:100%;-webkit-text-size-adjust:100%;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0f1e;padding:5% 3%;">
     <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;border-radius:16px;overflow:hidden;border:1px solid rgba(212,175,55,0.2);box-shadow:0 0 48px rgba(212,175,55,0.06);">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;border:1px solid rgba(212,175,55,0.2);box-shadow:0 0 48px rgba(212,175,55,0.06);">
         <tr><td style="height:4px;background:linear-gradient(90deg,#7a5c10,#b8952a,#d4af37,#f0cc6a,#d4af37,#b8952a,#7a5c10);font-size:0;line-height:0;">&nbsp;</td></tr>
-        <tr><td align="center" style="padding:20px 32px 18px;background-color:#071428;">
-          <img src="${platformUrl}/Logo-Title.png" alt="Dobium" width="130" style="display:block;height:auto;border:0;margin:0 auto;" />
+        <tr><td align="center" style="padding:20px 5% 18px;background-color:#071428;">
+          <img src="${platformUrl}/Logo-Title.png" alt="Dobium" width="130" style="display:block;max-width:100%;height:auto;border:0;margin:0 auto;" />
         </td></tr>
-        <tr><td align="center" style="padding:36px 32px 32px;background:linear-gradient(160deg,#0c1e40 0%,#071428 60%,#04101f 100%);">
+        <tr><td align="center" style="padding:36px 5% 32px;background:linear-gradient(160deg,#0c1e40 0%,#071428 60%,#04101f 100%);">
           <div style="width:56px;height:56px;border-radius:14px;background:rgba(212,175,55,0.1);border:1.5px solid rgba(212,175,55,0.4);margin:0 auto 20px;text-align:center;line-height:56px;font-size:26px;">📊</div>
           <h1 style="margin:0 0 8px;font-size:24px;font-weight:900;color:#f1f5f9;line-height:1.2;letter-spacing:-0.5px;">Drake's Iceman — Live Markets Are Open</h1>
           <p style="margin:0;font-size:13px;color:#64748b;line-height:1.6;max-width:380px;">The album dropped. The data is moving. Be first to trade it.</p>
         </td></tr>
-        <tr><td style="background:#0a1628;padding:22px 32px;border-top:1px solid rgba(212,175,55,0.1);border-bottom:1px solid rgba(212,175,55,0.1);">
+        <tr><td style="background:#0a1628;padding:22px 5%;border-top:1px solid rgba(212,175,55,0.1);border-bottom:1px solid rgba(212,175,55,0.1);">
           ${username ? `<p style="margin:0 0 8px;font-size:15px;font-weight:600;color:#f1f5f9;">Hey ${username},</p>` : ''}
           <p style="margin:0;font-size:14px;color:#94a3b8;line-height:1.8;">Drake's <strong>Iceman</strong> is officially out — and real performance data is already shaping up.</p>
           <p style="margin:12px 0 0;font-size:14px;color:#94a3b8;line-height:1.8;">We've opened a set of short-term prediction markets on <strong style="color:#d4af37;">Dobium</strong> so you can track what happens next in real time.</p>
         </td></tr>
-        <tr><td style="background:#071428;padding:20px 32px 4px;">
+        <tr><td style="background:#071428;padding:20px 5% 4px;">
           <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#475569;">Right now, you can trade on</p>
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #1e3a5f;border-radius:10px;overflow:hidden;background:#0a1628;">
             ${questionsHtml}
           </table>
         </td></tr>
-        <tr><td style="background:#071428;padding:20px 32px 8px;">
+        <tr><td style="background:#071428;padding:20px 5% 8px;">
           <p style="margin:0;font-size:13px;color:#64748b;line-height:1.8;">These markets close soon — prices will move as more data comes in. The earlier you trade, the more edge you have.</p>
         </td></tr>
-        <tr><td align="center" style="background:#071428;padding:28px 32px 36px;">
+        <tr><td align="center" style="background:#071428;padding:28px 5% 36px;">
           <p style="margin:0 0 18px;font-size:13px;color:#64748b;">You can view and trade all live markets on Dobium</p>
-          <a href="${ctaUrl}" style="display:inline-block;padding:15px 52px;background:linear-gradient(135deg,#b8952a 0%,#d4af37 50%,#e8c645 100%);color:#0a0f1e;font-size:15px;font-weight:900;text-decoration:none;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 20px rgba(212,175,55,0.3);">Start Trading →</a>
+          <a href="${ctaUrl}" style="display:inline-block;padding:15px 10%;background:linear-gradient(135deg,#b8952a 0%,#d4af37 50%,#e8c645 100%);color:#0a0f1e;font-size:15px;font-weight:900;text-decoration:none;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 20px rgba(212,175,55,0.3);max-width:100%;box-sizing:border-box;">Start Trading →</a>
         </td></tr>
-        <tr><td align="center" style="padding:22px 32px 24px;background:#04101f;border-top:1px solid rgba(255,255,255,0.04);">
+        <tr><td align="center" style="padding:22px 5% 24px;background:#04101f;border-top:1px solid rgba(255,255,255,0.04);">
           <p style="margin:0 0 4px;font-size:11px;color:#334155;">© ${year} Dobium &middot; All rights reserved.</p>
           <p style="margin:0;font-size:10px;color:#1e293b;line-height:1.6;">You received this because you are a registered user of Dobium Prediction Markets.<br/>This is an automated platform update.</p>
         </td></tr>
@@ -2062,34 +2062,34 @@ function buildCustomBroadcastHtml({ heading, heroIcon = '✦', body, callout, ct
   const year = new Date().getFullYear();
   const safeBody = (body || '').replace(/\n/g, '<br/>');
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>${subject || 'A message from Dobium'}</title></head>
-<body style="margin:0;padding:0;background-color:#0a0f1e;font-family:Arial,Helvetica,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0f1e;padding:32px 16px 48px;">
+<body style="margin:0;padding:0;background-color:#0a0f1e;font-family:Arial,Helvetica,sans-serif;width:100%;-webkit-text-size-adjust:100%;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0f1e;padding:5% 3%;">
     <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;border-radius:16px;overflow:hidden;border:1px solid rgba(212,175,55,0.2);box-shadow:0 0 48px rgba(212,175,55,0.06);">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;border:1px solid rgba(212,175,55,0.2);box-shadow:0 0 48px rgba(212,175,55,0.06);">
         <tr><td style="height:4px;background:linear-gradient(90deg,#7a5c10,#b8952a,#d4af37,#f0cc6a,#d4af37,#b8952a,#7a5c10);font-size:0;line-height:0;">&nbsp;</td></tr>
-        <tr><td align="center" style="padding:20px 32px 18px;background-color:#071428;">
-          <img src="${platformUrl}/Logo-Title.png" alt="Dobium" width="130" style="display:block;height:auto;border:0;margin:0 auto;" />
+        <tr><td align="center" style="padding:20px 5% 18px;background-color:#071428;">
+          <img src="${platformUrl}/Logo-Title.png" alt="Dobium" width="130" style="display:block;max-width:100%;height:auto;border:0;margin:0 auto;" />
         </td></tr>
-        <tr><td align="center" style="padding:36px 32px 32px;background:linear-gradient(160deg,#0c1e40 0%,#071428 60%,#04101f 100%);">
+        <tr><td align="center" style="padding:36px 5% 32px;background:linear-gradient(160deg,#0c1e40 0%,#071428 60%,#04101f 100%);">
           <div style="width:52px;height:52px;border-radius:14px;background:rgba(212,175,55,0.1);border:1.5px solid rgba(212,175,55,0.4);margin:0 auto 18px;text-align:center;line-height:52px;font-size:24px;">${heroIcon}</div>
           <h1 style="margin:0 0 6px;font-size:22px;font-weight:900;color:#f1f5f9;line-height:1.25;letter-spacing:-0.3px;">${heading || 'A message from Dobium'}</h1>
           <p style="margin:0;font-size:12px;color:#475569;line-height:1.5;">${subject || ''}</p>
         </td></tr>
-        <tr><td style="background:#0a1628;padding:24px 32px;border-top:1px solid rgba(212,175,55,0.1);border-bottom:1px solid rgba(212,175,55,0.1);">
+        <tr><td style="background:#0a1628;padding:24px 5%;border-top:1px solid rgba(212,175,55,0.1);border-bottom:1px solid rgba(212,175,55,0.1);">
           ${username ? `<p style="margin:0 0 10px;font-size:15px;font-weight:600;color:#f1f5f9;">Hi ${username},</p>` : ''}
           <p style="margin:0;font-size:14px;color:#94a3b8;line-height:1.85;">${safeBody}</p>
         </td></tr>
-        ${callout ? `<tr><td style="background:#071428;padding:18px 32px;">
+        ${callout ? `<tr><td style="background:#071428;padding:18px 5%;">
           <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
             <td style="border-left:3px solid #d4af37;background:rgba(212,175,55,0.06);border-radius:0 8px 8px 0;padding:12px 16px;">
               <p style="margin:0;font-size:13px;color:#a78040;line-height:1.6;">${callout}</p>
             </td>
           </tr></table>
         </td></tr>` : ''}
-        ${ctaLabel && ctaUrl ? `<tr><td align="center" style="background:#071428;padding:28px 32px 36px;">
-          <a href="${ctaUrl}" style="display:inline-block;padding:14px 48px;background:linear-gradient(135deg,#b8952a 0%,#d4af37 50%,#e8c645 100%);color:#0a0f1e;font-size:14px;font-weight:900;text-decoration:none;border-radius:10px;box-shadow:0 4px 20px rgba(212,175,55,0.3);">${ctaLabel}</a>
+        ${ctaLabel && ctaUrl ? `<tr><td align="center" style="background:#071428;padding:28px 5% 36px;">
+          <a href="${ctaUrl}" style="display:inline-block;padding:14px 10%;background:linear-gradient(135deg,#b8952a 0%,#d4af37 50%,#e8c645 100%);color:#0a0f1e;font-size:14px;font-weight:900;text-decoration:none;border-radius:10px;box-shadow:0 4px 20px rgba(212,175,55,0.3);max-width:100%;box-sizing:border-box;">${ctaLabel}</a>
         </td></tr>` : ''}
-        <tr><td align="center" style="padding:22px 32px 24px;background:#04101f;border-top:1px solid rgba(255,255,255,0.04);">
+        <tr><td align="center" style="padding:22px 5% 24px;background:#04101f;border-top:1px solid rgba(255,255,255,0.04);">
           <p style="margin:0 0 4px;font-size:11px;color:#334155;">© ${year} Dobium &middot; All rights reserved.</p>
           <p style="margin:0;font-size:10px;color:#1e293b;line-height:1.6;">You received this because you are a registered user of Dobium Prediction Markets.</p>
         </td></tr>
@@ -2356,6 +2356,30 @@ if (require.main === module) {
       throw err;
     }
   });
+}
+
+// Export the Express app for Vercel serverless (api/index.js)
+module.exports = app;
+// Export the Express app for Vercel serverless (api/index.js)
+module.exports = app;
+// Register the daily 12 PM CST digest email job
+registerDailyDigestJob(
+  { User, Transaction, Prediction, Outcome, Market },
+  sendEmail
+);
+  });
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use.`);
+    console.error(`   In PowerShell, run:`);
+    console.error(`   netstat -ano | findstr :${PORT}`);
+    console.error(`   Then kill by PID:  taskkill /PID 12345 /F  (replace 12345 with the actual PID)`);
+    process.exit(1);
+  } else {
+    throw err;
+  }
+});
 }
 
 // Export the Express app for Vercel serverless (api/index.js)

@@ -1,5 +1,9 @@
 const nodemailer = require('nodemailer');
 
+if (!process.env.EMAIL_PASS) {
+  console.warn('⚠️ WARNING: EMAIL_PASS is missing in this environment. Emails will fail.');
+}
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
