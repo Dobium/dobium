@@ -740,6 +740,9 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-2 mt-1">
                         <p className="text-xs text-slate-500">{activity.outcomeTitle}</p>
                         <span className="text-xs text-slate-600 bg-slate-800/50 px-2 py-0.5 rounded">Entry: {activity.probability.toFixed(0)}%</span>
+                        {activity.status === 'won' && activity.probability < 35 && (
+                          <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 rounded text-[9px] font-bold uppercase tracking-wider">Called It 🔥</span>
+                        )}
                       </div>
                     </div>
                     <div className="shrink-0 text-right">

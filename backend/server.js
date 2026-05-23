@@ -601,13 +601,27 @@ async function resolveMarketInstance(market, requestedOutcomeIds, options = {}) 
         },
         transaction
       });
+    }
 
+    if (won) {
       const notification = await Notification.create({
         id: nanoid(12),
         user_id: prediction.user_id,
         type: 'prediction_won',
         title: 'Prediction Won!',
         message: `Your position in "${market.title}" won! You received a return of $${actualReturn.toFixed(2)}.`,
+        link: `/markets/${market.id}`,
+        is_read: false,
+        created_at: resolutionDate
+      }, { transaction });
+      broadcastNotification(notification.toJSON());
+    } else {
+      const notification = await Notification.create({
+        id: nanoid(12),
+        user_id: prediction.user_id,
+        type: 'prediction_lost',
+        title: 'Prediction Lost',
+        message: `Your position in "${market.title}" lost. You received a partial refund of $${actualReturn.toFixed(2)}.`,
         link: `/markets/${market.id}`,
         is_read: false,
         created_at: resolutionDate
@@ -635,6 +649,82 @@ async function getAllMarketsFormatted(whereClause = {}) {
     order: [['created_at', 'DESC'], [{ model: PriceHistory, as: 'price_history' }, 'timestamp', 'ASC']]
   });
   return markets.map(formatMarketResponse);
+}
+
+/**
+ * Helper to alert users if their active positions move significantly
+ */
+async function checkPositionAlerts(marketId, newPrices, transaction) {
+  try {
+    const market = await Market.findByPk(marketId, { transaction });
+    if (!market) return;
+    const activePreds = await Prediction.findAll({ where: { market_id: marketId, status: 'active' }, transaction });
+
+    const newNotifications = [];
+    for (const pred of activePreds) {
+      if (pred.user_id === 'demo_user') continue;
+
+      const currentProb = newPrices[pred.outcome_id] || 50;
+      const pEntry = parseFloat(pred.odds_at_prediction || 50);
+      const S = parseFloat(pred.stake_amount || 0);
+
+      const pE = Math.max(0, Math.min(100, pEntry)) / 100;
+      const pC = Math.max(0, Math.min(100, currentProb)) / 100;
+      const rMin = S * pE;
+      const rMax = S * (2 - pE);
+      const mtm = parseFloat((rMin + (rMax - rMin) * pC).toFixed(2));
+
+      const roi = S > 0 ? (mtm - S) / S : 0;
+      let alertType = null;
+      let alertTitle = '';
+      let alertMessage = '';
+
+      if (roi >= 1.0) {
+        alertType = 'position_up_100';
+        alertTitle = 'Position Doubled 🚀';
+        alertMessage = `Your position in "${market.title}" is up 100%+. Current value: $${mtm.toFixed(2)}.`;
+      } else if (roi >= 0.5) {
+        alertType = 'position_up_50';
+        alertTitle = 'Position Up 50% 📈';
+        alertMessage = `Your position in "${market.title}" is up over 50%. Current value: $${mtm.toFixed(2)}.`;
+      } else if (roi <= -0.9) {
+        alertType = 'position_down_90';
+        alertTitle = 'Position Down 90% 🔻';
+        alertMessage = `Your position in "${market.title}" has decreased by over 90%. Current value: $${mtm.toFixed(2)}.`;
+      } else if (roi <= -0.5) {
+        alertType = 'position_down_50';
+        alertTitle = 'Position Down 50% 📉';
+        alertMessage = `Your position in "${market.title}" has decreased by over 50%. Current value: $${mtm.toFixed(2)}.`;
+      }
+
+      if (alertType) {
+        const linkTag = `/markets/${market.id}?pred=${pred.id}&alert=${alertType}`;
+        const existing = await Notification.findOne({
+          where: { user_id: pred.user_id, link: linkTag },
+          transaction
+        });
+        if (!existing) {
+          newNotifications.push({
+            id: nanoid(12),
+            user_id: pred.user_id,
+            type: alertType,
+            title: alertTitle,
+            message: alertMessage,
+            link: linkTag,
+            is_read: false,
+            created_at: new Date()
+          });
+        }
+      }
+    }
+
+    if (newNotifications.length > 0) {
+      const created = await Notification.bulkCreate(newNotifications, { transaction, returning: true });
+      created.forEach(n => broadcastNotification(n.toJSON()));
+    }
+  } catch (err) {
+    console.error('Error checking position alerts:', err);
+  }
 }
 
 // ============================================================================
@@ -1085,6 +1175,24 @@ app.post('/api/predictions', async (req, res) => {
         prices
       }, { transaction: t });
 
+      // Check if this trade shifted prices enough to alert other traders
+      await checkPositionAlerts(market_id, prices, t);
+
+      // Notify the user their prediction was placed
+      if (user_id && user_id !== 'demo_user') {
+        const notification = await Notification.create({
+          id: nanoid(12),
+          user_id: user_id,
+          type: 'prediction_placed',
+          title: 'Position Secured 🎯',
+          message: `You're in on "${outcome.title}" at ${odds_at_prediction}%. Let's see how the market moves.`,
+          link: `/markets/${market_id}`,
+          is_read: false,
+          created_at: new Date()
+        }, { transaction: t });
+        broadcastNotification(notification.toJSON());
+      }
+
       if (user_id && user_id !== 'demo_user') {
         const balanceAfterTrade = await calculateBalanceFromTransactions(user_id, t);
         if (balanceAfterTrade.rawBalance < 0) {
@@ -1259,6 +1367,9 @@ app.post('/api/positions/sell', async (req, res) => {
       const prices = Object.fromEntries(pricedOutcomes.map(o => [o.id, o.probability]));
       await PriceHistory.create({ market_id, timestamp: new Date(), prices }, { transaction: t });
 
+      // Check if this sell-off shifted prices enough to alert other traders
+      await checkPositionAlerts(market_id, prices, t);
+
       // Record sell return as a transaction (credit back to user's cash)
       if (sellReturn > 0) {
         await Transaction.create({
@@ -1271,6 +1382,19 @@ app.post('/api/positions/sell', async (req, res) => {
           completed_at: new Date()
         }, { transaction: t });
       }
+
+      // Notify the user their position was successfully sold
+      const notification = await Notification.create({
+        id: nanoid(12),
+        user_id: user_id,
+        type: 'position_sold',
+        title: 'Position Sold',
+        message: `You sold your position in "${market.title}" for $${sellReturn.toFixed(2)}.`,
+        link: `/markets/${market.id}`,
+        is_read: false,
+        created_at: new Date()
+      }, { transaction: t });
+      broadcastNotification(notification.toJSON());
 
       const updatedMarket = await fetchMarketWithRelations(market_id, t);
 

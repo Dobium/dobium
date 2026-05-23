@@ -48,6 +48,7 @@ function buildDigestHtml({
   settledCount,
   hasEverTraded,
   equityPoints,
+  accuracyTrend = 0,
 }) {
   const year = new Date().getFullYear();
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -57,6 +58,14 @@ function buildDigestHtml({
   const pnlPct = startingBalance > 0 ? ((totalPnl / startingBalance) * 100).toFixed(2) : '0.00';
   const pnlSign = isProfit ? '+' : '';
   const accuracyPct = settledCount > 0 ? Math.round((wonCount / settledCount) * 100) : 0;
+
+  // Format Accuracy Trend
+  const trendSign = accuracyTrend > 0 ? '+' : '';
+  const trendColor = accuracyTrend > 0 ? '#4ade80' : '#f87171';
+  const trendArrow = accuracyTrend > 0 ? '↑' : '↓';
+  const trendText = Math.abs(accuracyTrend) >= 5
+    ? `<span style="color:${trendColor};font-weight:700;">${trendArrow} ${trendSign}${Math.round(accuracyTrend)}%</span> from last wk`
+    : `${wonCount}/${settledCount} resolved`;
 
   // ── "Get started" banner (no-trades users) ───────────────────────────────
   const noTradesBanner = !hasEverTraded ? `
@@ -196,7 +205,7 @@ function buildDigestHtml({
               <td style="text-align:center;padding:18px 8px;">
                 <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:8px;">Accuracy</div>
                 <div style="font-size:22px;font-weight:900;color:#4ade80;">${accuracyPct}%</div>
-                <div style="font-size:10px;color:#334155;margin-top:4px;">${wonCount}/${settledCount} resolved</div>
+                <div style="font-size:10px;color:#475569;margin-top:4px;">${trendText}</div>
               </td>
             </tr>
           </table>
@@ -206,7 +215,7 @@ function buildDigestHtml({
 
         <!-- CTA -->
         <tr><td align="center" style="background:#071428;padding:24px 32px 36px;">
-          <a href="${PLATFORM_URL}/dashboard" style="display:inline-block;padding:14px 48px;background:linear-gradient(135deg,#b8952a 0%,#d4af37 50%,#e8c645 100%);color:#0a0f1e;font-size:14px;font-weight:900;text-decoration:none;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 20px rgba(212,175,55,0.3);">View Full Dashboard →</a>
+          <a href="${PLATFORM_URL}/dashboard" style="display:inline-block;padding:14px 48px;background:linear-gradient(135deg,#b8952a 0%,#d4af37 50%,#e8c645 100%);color:#0a0f1e;font-size:14px;font-weight:900;text-decoration:none;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 20px rgba(212,175,55,0.3);">Review Your Predictions →</a>
         </td></tr>
 
         <!-- Footer -->

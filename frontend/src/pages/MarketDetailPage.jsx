@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useMarket } from '../hooks/useMarkets';
+import { useMarket, useMarkets } from '../hooks/useMarkets';
 import { useAuth } from '../hooks/useAuth';
 import { useWallet } from '../hooks/useWallet';
 import { api } from '../api/client';
@@ -201,6 +201,7 @@ function calcPositionValue(stake, entryProbPct, currentProbPct) {
 export default function MarketDetailPage() {
   const { id } = useParams();
   const { market, loading, error } = useMarket(id);
+  const { markets } = useMarkets();
   const { session } = useAuth();
   const navigate = useNavigate();
   const [selectedOutcome, setSelectedOutcome] = useState(null);
@@ -227,6 +228,7 @@ export default function MarketDetailPage() {
   const [tradeMsg, setTradeMsg] = useState('');
   const [userPositions, setUserPositions] = useState({});
   const [userAvgEntry, setUserAvgEntry] = useState({}); // weighted avg entry prob per outcome
+  const [resolvedPositions, setResolvedPositions] = useState([]);
   const [sellingOutcomeId, setSellingOutcomeId] = useState(null);
   const [sellAmount, setSellAmount] = useState('');
   const [sellLoading, setSellLoading] = useState(false);
@@ -241,7 +243,9 @@ export default function MarketDetailPage() {
       .then(data => {
         const allPredictions = Array.isArray(data) ? data : [];
         const userId = session?.user?.id || 'demo_user';
-        const userPreds = allPredictions.filter(p => p.user_id === userId && p.status === 'active');
+        const userPredsAll = allPredictions.filter(p => p.user_id === userId);
+        const userPreds = userPredsAll.filter(p => p.status === 'active');
+        const resolved = userPredsAll.filter(p => ['won', 'lost'].includes(p.status));
 
         // Group by outcome: sum stakes and track weighted avg entry
         const positions = {};
@@ -259,8 +263,9 @@ export default function MarketDetailPage() {
 
         setUserPositions(positions);
         setUserAvgEntry(avgEntry);
+        setResolvedPositions(resolved);
       })
-      .catch(() => { setUserPositions({}); setUserAvgEntry({}); });
+      .catch(() => { setUserPositions({}); setUserAvgEntry({}); setResolvedPositions([]); });
   }, [market?.id, session]);
 
   if (loading) return <div className="loading-center"><div className="spinner" /></div>;
@@ -271,6 +276,8 @@ export default function MarketDetailPage() {
   const marketType = market.market_type || 'binary';
   const isMultiMultiple = marketType === 'multi_multiple';
   const yesOutcome = outcomes.find(o => o.title?.toLowerCase() === 'yes') || outcomes[0];
+
+  const relatedMarkets = markets?.filter(m => m.id !== market?.id && m.status === 'active' && m.category === market?.category).slice(0, 3) || [];
 
   // Use a floored value for buying power to avoid floating-point precision mismatch with the input's max attribute
   const safeBuyingPower = buyingPower !== null ? Math.floor(buyingPower * 100) / 100 : null;

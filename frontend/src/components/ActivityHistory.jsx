@@ -254,6 +254,9 @@ export default function ActivityHistory({ predictions, markets, onBack }) {
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">
                               <span className="bg-slate-800/80 px-2.5 py-1 rounded text-slate-300 font-medium border border-slate-700">{act.outcomeTitle}</span>
+                              {act.status === 'won' && act.entryPrice < 35 && (
+                                <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 rounded text-[9px] font-bold uppercase tracking-wider shadow-sm">Called It 🔥</span>
+                              )}
                             </div>
                           </td>
                           <td className="px-6 py-4 text-right">

@@ -262,6 +262,23 @@ async function getUserStats(userId, { Transaction, Prediction, Outcome, User }) 
 
   const accuracy = settledCount > 0 ? (wonCount / settledCount) * 100 : 0;
 
+  // Calculate Accuracy Trend (vs 7 days ago)
+  const nowMs = Date.now();
+  const oneWeekAgoMs = nowMs - 7 * 24 * 60 * 60 * 1000;
+  const pastSettledCount = allPredictions.filter(p => {
+    if (!['won', 'lost'].includes(p.status)) return false;
+    const d = new Date(p.resolved_at || p.updated_at || p.created_at).getTime();
+    return d < oneWeekAgoMs;
+  }).length;
+  const pastWonCount = allPredictions.filter(p => {
+    if (p.status !== 'won') return false;
+    const d = new Date(p.resolved_at || p.updated_at || p.created_at).getTime();
+    return d < oneWeekAgoMs;
+  }).length;
+
+  const pastAccuracy = pastSettledCount > 0 ? (pastWonCount / pastSettledCount) * 100 : 0;
+  const accuracyTrend = (settledCount > 0 && pastSettledCount > 0) ? (accuracy - pastAccuracy) : 0;
+
   return {
     startingBalance: PAPER_STARTING_BALANCE,
     portfolioValue,
@@ -273,6 +290,7 @@ async function getUserStats(userId, { Transaction, Prediction, Outcome, User }) 
     hasEverTraded,
     equityPoints,
     accuracy,
+    accuracyTrend,
   };
 }
 
