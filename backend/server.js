@@ -1987,89 +1987,7 @@ app.post('/api/admin/send-email', async (req, res) => {
 // ============================================================================
 
 // Known campaigns — each defines the email payload
-const BROADCAST_CAMPAIGNS = {
-  iceman_launch: {
-    id: 'iceman_launch',
-    name: "Drake's Iceman — Live Markets",
-    subject: "New live markets now open for Drake's Iceman 📊",
-    buildHtml: (username, platformUrl) => {
-      const year = new Date().getFullYear();
-      const ctaUrl = `${platformUrl}/explore`;
-      const questions = [
-        { emoji: '📦', label: 'First-Week Sales', question: 'How many units will <em>Iceman</em> sell in its first week?' },
-        { emoji: '📊', label: 'Billboard', question: 'Will Iceman debut at number 1 on the Billboard 200?' },
-        { emoji: '🎧', label: 'Most Streamed', question: 'Most streamed song on <em>Iceman</em>?' },
-      ];
-      const questionsHtml = questions.map(q => `
-        <tr><td style="padding:12px 16px;border-bottom:1px solid #1e3a5f;">
-          <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-            <td width="36" style="vertical-align:top;padding-top:2px;">
-              <div style="width:28px;height:28px;border-radius:6px;background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.3);text-align:center;line-height:28px;font-size:14px;">${q.emoji}</div>
-            </td>
-            <td style="padding-left:10px;">
-              <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#d4af37;margin-bottom:2px;">${q.label}</div>
-              <div style="font-size:13px;color:#cbd5e1;line-height:1.5;">${q.question}</div>
-            </td>
-          </tr></table>
-        </td></tr>`).join('');
-
-      return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>${BROADCAST_CAMPAIGNS.iceman_launch.subject}</title></head>
-<body style="margin:0;padding:0;background-color:#0a0f1e;font-family:Arial,Helvetica,sans-serif;width:100%;-webkit-text-size-adjust:100%;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0f1e;padding:5% 3%;">
-    <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;border:1px solid rgba(212,175,55,0.2);box-shadow:0 0 48px rgba(212,175,55,0.06);">
-        <tr><td style="height:4px;background:linear-gradient(90deg,#7a5c10,#b8952a,#d4af37,#f0cc6a,#d4af37,#b8952a,#7a5c10);font-size:0;line-height:0;">&nbsp;</td></tr>
-        <tr><td align="center" style="padding:20px 5% 18px;background-color:#071428;">
-          <img src="${platformUrl}/Logo-Title.png" alt="Dobium" width="130" style="display:block;max-width:100%;height:auto;border:0;margin:0 auto;" />
-        </td></tr>
-        <tr><td align="center" style="padding:36px 5% 32px;background:linear-gradient(160deg,#0c1e40 0%,#071428 60%,#04101f 100%);">
-          <div style="width:56px;height:56px;border-radius:14px;background:rgba(212,175,55,0.1);border:1.5px solid rgba(212,175,55,0.4);margin:0 auto 20px;text-align:center;line-height:56px;font-size:26px;">📊</div>
-          <h1 style="margin:0 0 8px;font-size:24px;font-weight:900;color:#f1f5f9;line-height:1.2;letter-spacing:-0.5px;">Drake's Iceman — Live Markets Are Open</h1>
-          <p style="margin:0;font-size:13px;color:#64748b;line-height:1.6;max-width:380px;">The album dropped. The data is moving. Be first to trade it.</p>
-        </td></tr>
-        <tr><td style="background:#0a1628;padding:22px 5%;border-top:1px solid rgba(212,175,55,0.1);border-bottom:1px solid rgba(212,175,55,0.1);">
-          ${username ? `<p style="margin:0 0 8px;font-size:15px;font-weight:600;color:#f1f5f9;">Hey ${username},</p>` : ''}
-          <p style="margin:0;font-size:14px;color:#94a3b8;line-height:1.8;">Drake's <strong>Iceman</strong> is officially out — and real performance data is already shaping up.</p>
-          <p style="margin:12px 0 0;font-size:14px;color:#94a3b8;line-height:1.8;">We've opened a set of short-term prediction markets on <strong style="color:#d4af37;">Dobium</strong> so you can track what happens next in real time.</p>
-        </td></tr>
-        <tr><td style="background:#071428;padding:20px 5% 4px;">
-          <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#475569;">Right now, you can trade on</p>
-          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #1e3a5f;border-radius:10px;overflow:hidden;background:#0a1628;">
-            ${questionsHtml}
-          </table>
-        </td></tr>
-        <tr><td style="background:#071428;padding:20px 5% 8px;">
-          <p style="margin:0;font-size:13px;color:#64748b;line-height:1.8;">These markets close soon — prices will move as more data comes in. The earlier you trade, the more edge you have.</p>
-        </td></tr>
-        <tr><td align="center" style="background:#071428;padding:28px 5% 36px;">
-          <p style="margin:0 0 18px;font-size:13px;color:#64748b;">You can view and trade all live markets on Dobium</p>
-          <a href="${ctaUrl}" style="display:inline-block;padding:15px 10%;background:linear-gradient(135deg,#b8952a 0%,#d4af37 50%,#e8c645 100%);color:#0a0f1e;font-size:15px;font-weight:900;text-decoration:none;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 20px rgba(212,175,55,0.3);max-width:100%;box-sizing:border-box;">Start Trading →</a>
-        </td></tr>
-        <tr><td align="center" style="padding:22px 5% 24px;background:#04101f;border-top:1px solid rgba(255,255,255,0.04);">
-          <p style="margin:0 0 4px;font-size:11px;color:#334155;">© ${year} Dobium &middot; All rights reserved.</p>
-          <p style="margin:0;font-size:10px;color:#1e293b;line-height:1.6;">You received this because you are a registered user of Dobium Prediction Markets.<br/>This is an automated platform update.</p>
-        </td></tr>
-        <tr><td style="height:3px;background:linear-gradient(90deg,#7a5c10,#b8952a,#d4af37,#f0cc6a,#d4af37,#b8952a,#7a5c10);font-size:0;line-height:0;">&nbsp;</td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
-    },
-    buildText: () => `Drake's Iceman is officially out — and the first wave of real performance data is already shaping up.
-
-We've opened a set of short-term prediction markets on Dobium so you can track what happens next in real time.
-
-Right now, you can trade on questions like:
-
-  📦 First-Week Sales — How many units will Iceman sell in its first week?
-  📊 Billboard  — Will Iceman debut at number 1 on the Billboard 200?
-  🎧 Most Streams — Most streamed song on <em>Iceman</em>?
-
-These markets close soon — prices will move as more data comes in. The earlier you trade, the more edge you have.
-
-Start Trading: ${platformUrl}/explore`
-  }
-};
+const BROADCAST_CAMPAIGNS = {};
 
 // ── Custom campaign HTML builder ──────────────────────────────────────────────
 function buildCustomBroadcastHtml({ heading, heroIcon = '✦', body, callout, ctaLabel, ctaUrl, username, subject, platformUrl }) {
@@ -2286,34 +2204,6 @@ async function seedMarketsFromJson() {
   }
 }
 
-async function applyKnownMarketResolutions() {
-  console.log('Applying known Iceman market resolutions...');
-  for (const [marketId, resolution] of Object.entries(KNOWN_MARKET_RESOLUTIONS)) {
-    try {
-      await sequelize.transaction(async (t) => {
-        const market = await Market.findByPk(marketId, {
-          include: [{ model: Outcome, as: 'outcomes' }],
-          transaction: t
-        });
-
-        if (!market) {
-          console.log(`  Market ${marketId} not found; skipping`);
-          return;
-        }
-
-        const result = await resolveMarketInstance(market, resolution.winningOutcomeIds, {
-          transaction: t,
-          resolutionDate: resolution.resolutionDate
-        });
-
-        console.log(`  Resolved ${marketId}: ${result.winningOutcomeIds.join(', ')}`);
-      });
-    } catch (err) {
-      console.error(`  Failed to resolve ${marketId}: ${err.message}`);
-    }
-  }
-}
-
 async function initDatabase() {
   try {
     await sequelize.authenticate();
@@ -2329,7 +2219,6 @@ async function initDatabase() {
       console.log(`📊 Markets in database: ${marketCount}`);
       console.log('🌱 Seeding missing markets from JSON...');
       await seedMarketsFromJson();
-      await applyKnownMarketResolutions();
     } else {
       // Production (Vercel): run a lightweight sync that only CREATEs missing tables.
       // This is fast (~200ms) and ensures tables like 'notifications' exist
