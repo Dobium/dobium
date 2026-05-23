@@ -2170,9 +2170,36 @@ app.post('/api/admin/send-email', async (req, res) => {
 const BROADCAST_CAMPAIGNS = {};
 
 // ── Custom campaign HTML builder ──────────────────────────────────────────────
-function buildCustomBroadcastHtml({ heading, heroIcon = '✦', body, callout, ctaLabel, ctaUrl, username, subject, platformUrl }) {
+function buildCustomBroadcastHtml({ heading, heroIcon = '✦', body, callout, questions, ctaLabel, ctaUrl, username, subject, platformUrl }) {
   const year = new Date().getFullYear();
   const safeBody = (body || '').replace(/\n/g, '<br/>');
+
+  let questionsHtml = '';
+  if (questions && questions.length > 0) {
+    const qs = questions.map(q => `
+      <tr>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #1e3a5f;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td width="36" style="vertical-align:top; padding-top:2px;">
+                <div style="width:28px;height:28px;border-radius:6px;background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.3);text-align:center;line-height:28px;font-size:14px;">${q.emoji || '📌'}</div>
+              </td>
+              <td style="padding-left:10px;">
+                <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#d4af37;margin-bottom:2px;">${q.label}</div>
+                <div style="font-size:13px;color:#cbd5e1;line-height:1.5;">${q.question}</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    `).join('');
+    questionsHtml = `<tr><td style="background:#071428;padding:20px 5% 4px;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #1e3a5f;border-radius:10px;overflow:hidden;background:#0a1628;">
+        ${qs}
+      </table>
+    </td></tr>`;
+  }
+
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>${subject || 'A message from Dobium'}</title></head>
 <body style="margin:0;padding:0;background-color:#0a0f1e;font-family:Arial,Helvetica,sans-serif;width:100%;-webkit-text-size-adjust:100%;">
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0f1e;padding:5% 3%;">
@@ -2198,6 +2225,7 @@ function buildCustomBroadcastHtml({ heading, heroIcon = '✦', body, callout, ct
             </td>
           </tr></table>
         </td></tr>` : ''}
+    ${questionsHtml}
         ${ctaLabel && ctaUrl ? `<tr><td align="center" style="background:#071428;padding:28px 5% 36px;">
           <a href="${ctaUrl}" style="display:inline-block;padding:14px 10%;background:linear-gradient(135deg,#b8952a 0%,#d4af37 50%,#e8c645 100%);color:#0a0f1e;font-size:14px;font-weight:900;text-decoration:none;border-radius:10px;box-shadow:0 4px 20px rgba(212,175,55,0.3);max-width:100%;box-sizing:border-box;">${ctaLabel}</a>
         </td></tr>` : ''}
@@ -2224,7 +2252,7 @@ app.post('/api/admin/send-broadcast', async (req, res) => {
     const {
       campaignId, adminEmail, dryRun = true,
       // Custom campaign fields
-      subject, heading, heroIcon, body: bodyText, callout, ctaLabel, ctaUrl
+      subject, heading, heroIcon, body: bodyText, callout, questions, ctaLabel, ctaUrl
     } = req.body;
 
     if (adminEmail !== 'donotreply.dobium@gmail.com') {
@@ -2244,11 +2272,19 @@ app.post('/api/admin/send-broadcast', async (req, res) => {
         name: subject,
         subject,
         buildHtml: (username) => buildCustomBroadcastHtml({
-          heading, heroIcon, body: bodyText, callout, ctaLabel,
+          heading, heroIcon, body: bodyText, callout, questions, ctaLabel,
           ctaUrl: ctaUrl || platformUrl,
           username, subject, platformUrl
         }),
-        buildText: () => `${heading ? heading + '\n\n' : ''}${bodyText}${callout ? '\n\n' + callout : ''}${ctaLabel && ctaUrl ? '\n\n' + ctaLabel + ': ' + ctaUrl : ''}`
+        buildText: () => {
+          let text = `${heading ? heading + '\n\n' : ''}${bodyText}`;
+          if (callout) text += '\n\n' + callout;
+          if (questions && questions.length > 0) {
+            text += '\n\n' + questions.map(q => `  ${q.emoji || '📌'} ${q.label} — ${q.question}`).join('\n');
+          }
+          if (ctaLabel && ctaUrl) text += '\n\n' + ctaLabel + ': ' + ctaUrl;
+          return text;
+        }
       };
     } else {
       campaign = BROADCAST_CAMPAIGNS[campaignId];

@@ -89,6 +89,7 @@ export default function AdminDashboard() {
   const [customHeroIcon, setCustomHeroIcon] = useState('✦');
   const [customBody, setCustomBody] = useState('');
   const [customCallout, setCustomCallout] = useState('');
+  const [customQuestions, setCustomQuestions] = useState([]);
   const [customCtaLabel, setCustomCtaLabel] = useState('');
   const [customCtaUrl, setCustomCtaUrl] = useState('');
 
@@ -237,6 +238,20 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleAddQuestion = () => {
+    setCustomQuestions([...customQuestions, { emoji: '📌', label: '', question: '' }]);
+  };
+
+  const handleRemoveQuestion = (idx) => {
+    setCustomQuestions(customQuestions.filter((_, i) => i !== idx));
+  };
+
+  const handleChangeQuestion = (idx, field, value) => {
+    const newQ = [...customQuestions];
+    newQ[idx][field] = value;
+    setCustomQuestions(newQ);
+  };
+
   const handleCustomPreview = () => {
     handleBroadcastPreview('custom', {
       subject: customSubject,
@@ -244,6 +259,7 @@ export default function AdminDashboard() {
       heroIcon: customHeroIcon || '✦',
       body: customBody,
       callout: customCallout,
+      questions: customQuestions.filter(q => q.label || q.question),
       ctaLabel: customCtaLabel,
       ctaUrl: customCtaUrl,
     });
@@ -1384,6 +1400,63 @@ export default function AdminDashboard() {
                   placeholder="e.g. 📌 Paper trading mode — all positions use virtual funds."
                   className="w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-amber-400 transition-colors"
                 />
+              </div>
+
+              {/* Market Questions */}
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                    Market Questions <span className="text-slate-600 normal-case font-normal">(optional)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddQuestion}
+                    className="text-xs text-amber-400 hover:text-amber-300 font-semibold transition-colors"
+                  >
+                    + Add Question
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {customQuestions.map((q, idx) => (
+                    <div key={idx} className="flex gap-3 items-start bg-slate-900/40 p-3 rounded-lg border border-slate-700/50">
+                      <input
+                        type="text"
+                        value={q.emoji}
+                        onChange={e => handleChangeQuestion(idx, 'emoji', e.target.value)}
+                        placeholder="🎯"
+                        className="w-12 bg-slate-900/60 border border-slate-700 rounded-md px-2 py-2 text-white text-center text-sm outline-none focus:border-amber-400 transition-colors"
+                      />
+                      <div className="flex-1 space-y-2">
+                        <input
+                          type="text"
+                          value={q.label}
+                          onChange={e => handleChangeQuestion(idx, 'label', e.target.value)}
+                          placeholder="Label (e.g. First-Week Sales)"
+                          className="w-full bg-slate-900/60 border border-slate-700 rounded-md px-3 py-2 text-white text-sm outline-none focus:border-amber-400 transition-colors"
+                        />
+                        <input
+                          type="text"
+                          value={q.question}
+                          onChange={e => handleChangeQuestion(idx, 'question', e.target.value)}
+                          placeholder="Question (e.g. How many units will it sell?)"
+                          className="w-full bg-slate-900/60 border border-slate-700 rounded-md px-3 py-2 text-white text-sm outline-none focus:border-amber-400 transition-colors"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveQuestion(idx)}
+                        className="text-red-400 hover:text-red-300 p-2 flex items-center justify-center rounded transition-colors mt-0.5"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  {customQuestions.length === 0 && (
+                    <div className="text-center py-4 border border-dashed border-slate-700 rounded-lg text-slate-500 text-xs">
+                      No questions added. Click + Add Question to feature markets.
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* CTA */}
