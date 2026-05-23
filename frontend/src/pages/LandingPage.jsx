@@ -260,6 +260,15 @@ export default function LandingPage() {
         }
         .btn-google:hover:not(:disabled) { background: #f8fafc; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
         .btn-google:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Responsive adjustments for the slideshow on mobile */
+        @media (max-width: 768px) {
+          .landing-right { 
+            flex: none;
+            min-height: 300px; /* Scale down the slideshow height on mobile */
+            padding: 20px;
+          }
+        }
       `}</style>
     </div>
   );

@@ -1335,9 +1335,16 @@ app.post('/api/markets/:id/resolve', async (req, res) => {
 
 app.post('/api/auth/welcome', async (req, res) => {
   try {
-    const { email, username } = req.body;
+    const { userId, email, username } = req.body;
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
+    }
+
+    if (userId) {
+      const user = await User.findByPk(userId);
+      if (user && user.welcome_email_sent) {
+        return res.json({ success: true, message: 'Welcome email already sent' });
+      }
     }
 
     const { buildWelcomeHtml } = require('./lib/welcome-email');
@@ -1349,6 +1356,15 @@ app.post('/api/auth/welcome', async (req, res) => {
       text: `Welcome to Dobium, ${username || 'there'}! Your account is confirmed and ready to go.`,
       html
     });
+
+    if (userId) {
+      await User.upsert({
+        id: userId,
+        email: email,
+        username: username || email.split('@')[0],
+        welcome_email_sent: true
+      });
+    }
 
     res.json({ success: true, messageId: info?.messageId });
   } catch (error) {
