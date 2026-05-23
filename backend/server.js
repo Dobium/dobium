@@ -25,6 +25,7 @@ const {
   initializeDatabase
 } = require('./lib/database/models');
 const { sendEmail } = require('./lib/email');
+const { buildResolutionHtml } = require('./lib/resolution-email');
 const { registerDailyDigestJob, getUserStats } = require('./jobs/daily-digest');
 
 const Notification = sequelize.define('Notification', {
@@ -245,7 +246,15 @@ async function calculateBalanceFromTransactions(userId, transaction = null) {
           let pCurrent = S > 0 ? (ret * pEntry) / S : 0;
           pCurrent = Math.min(1.0, Math.max(0, pCurrent));
           const rMin = S * pEntry;
-          ret = rMin + (maxNewReturn - rMin) * pCurrent;
+          if (pEntry === 0) {
+            ret = pCurrent > 0 ? maxNewReturn : rMin;
+          } else if (pEntry === 1) {
+            ret = pCurrent < 1 ? rMin : maxNewReturn;
+          } else if (pCurrent <= pEntry) {
+            ret = rMin + (S - rMin) * (pCurrent / pEntry);
+          } else {
+            ret = S + (maxNewReturn - S) * ((pCurrent - pEntry) / (1 - pEntry));
+          }
         }
       }
       return sum + ret;
@@ -564,6 +573,9 @@ async function resolveMarketInstance(market, requestedOutcomeIds, options = {}) 
 
   for (const prediction of predictions) {
     const won = winningSet.has(prediction.outcome_id);
+    const outcomeObj = market.outcomes.find(o => o.id === prediction.outcome_id);
+    const outcomeTitle = outcomeObj ? outcomeObj.title : 'Unknown Outcome';
+
     const pEntry = parseFloat(prediction.odds_at_prediction || 50) / 100;
     const stakeAmount = parseFloat(prediction.stake_amount || 0);
     let actualReturn = 0;
@@ -601,6 +613,29 @@ async function resolveMarketInstance(market, requestedOutcomeIds, options = {}) 
         },
         transaction
       });
+    }
+
+    const pnl = actualReturn - stakeAmount;
+    const user = users.find(u => u.id === prediction.user_id);
+    if (user && user.email && !user.email.endsWith('@placeholder.com')) {
+      const username = user.username || user.email.split('@')[0];
+      const balanceInfo = await calculateBalanceFromTransactions(prediction.user_id, transaction);
+
+      const html = buildResolutionHtml({
+        username,
+        marketTitle: market.title,
+        outcomeTitle,
+        won,
+        stake: stakeAmount,
+        actualReturn,
+        pnl,
+        newBalance: balanceInfo.buyingPower
+      });
+      const subject = won ? `Prediction Won! 🎉 - ${market.title}` : `Prediction Lost 📉 - ${market.title}`;
+      const text = won
+        ? `Your prediction won! Return: $${actualReturn.toFixed(2)} (Profit: +$${pnl.toFixed(2)}) | New Balance: $${balanceInfo.buyingPower.toFixed(2)}`
+        : `Your prediction lost. Return: $${actualReturn.toFixed(2)} (Loss: -$${Math.abs(pnl).toFixed(2)}) | New Balance: $${balanceInfo.buyingPower.toFixed(2)}`;
+      sendEmail({ to: user.email, subject, text, html }).catch(err => console.error('Failed to send resolution email:', err.message));
     }
 
     if (won) {
@@ -672,7 +707,18 @@ async function checkPositionAlerts(marketId, newPrices, transaction) {
       const pC = Math.max(0, Math.min(100, currentProb)) / 100;
       const rMin = S * pE;
       const rMax = S * (2 - pE);
-      const mtm = parseFloat((rMin + (rMax - rMin) * pC).toFixed(2));
+
+      let mtmValue;
+      if (pE === 0) {
+        mtmValue = pC > 0 ? rMax : rMin;
+      } else if (pE === 1) {
+        mtmValue = pC < 1 ? rMin : rMax;
+      } else if (pC <= pE) {
+        mtmValue = rMin + (S - rMin) * (pC / pE);
+      } else {
+        mtmValue = S + (rMax - S) * ((pC - pE) / (1 - pE));
+      }
+      const mtm = parseFloat(mtmValue.toFixed(2));
 
       const roi = S > 0 ? (mtm - S) / S : 0;
       let alertType = null;
@@ -1237,12 +1283,22 @@ app.post('/api/predictions', async (req, res) => {
  */
 function calculatePositionValue(stake, entryProb, currentProb) {
   const S = Number(stake || 0);
-  const pEntry = Math.max(0.01, Math.min(99, Number(entryProb || 0))) / 100; // 0.01 to 0.99
-  const pCurrent = Math.max(0.01, Math.min(99, Number(currentProb || 0))) / 100; // 0.01 to 0.99
+  const pEntry = Math.max(0, Math.min(100, Number(entryProb || 0))) / 100;
+  const pCurrent = Math.max(0, Math.min(100, Number(currentProb || 0))) / 100;
 
   const rMin = S * pEntry;
   const rMax = S * (2 - pEntry);
-  const returnValue = rMin + (rMax - rMin) * pCurrent;
+
+  let returnValue;
+  if (pEntry === 0) {
+    returnValue = pCurrent > 0 ? rMax : rMin;
+  } else if (pEntry === 1) {
+    returnValue = pCurrent < 1 ? rMin : rMax;
+  } else if (pCurrent <= pEntry) {
+    returnValue = rMin + (S - rMin) * (pCurrent / pEntry);
+  } else {
+    returnValue = S + (rMax - S) * ((pCurrent - pEntry) / (1 - pEntry));
+  }
 
   return Number(Math.max(0, returnValue).toFixed(2));
 }
@@ -2272,7 +2328,12 @@ app.get('*', (req, res) => {
   if (req.path.startsWith('/api/') || req.path.startsWith('/config/')) {
     return res.status(404).json({ error: 'Not found' });
   }
-  res.sendFile(path.join(REACT_BUILD, 'index.html'));
+  res.sendFile(path.join(REACT_BUILD, 'index.html'), (err) => {
+    if (err) {
+      console.error('Error serving index.html:', err);
+      res.status(500).send('Frontend build not found. The deployment process did not build the React app. Please ensure your deployment build command includes building the frontend.');
+    }
+  });
 });
 
 // ============================================================================

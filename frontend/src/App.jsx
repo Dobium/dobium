@@ -1,8 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import Layout from './components/Layout';
-import LandingPage from './pages/LandingPage';
-import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
 import ExplorePage from './pages/ExplorePage';
 import MarketDetailPage from './pages/MarketDetailPage';
@@ -22,25 +20,12 @@ function AppRoutes() {
     );
   }
 
-  // If not signed in, redirect to landing (but allow auth page)
-  if (!session) {
-    return (
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    );
-  }
-
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
-        <Route path="/auth" element={<Navigate to="/" replace />} />
+        <Route path="/auth" element={<Navigate to="/explore" replace />} />
         <Route element={<Layout />}>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/" element={session ? <DashboardPage /> : <Navigate to="/explore" replace />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/portfolio" element={<Navigate to="/" replace />} />

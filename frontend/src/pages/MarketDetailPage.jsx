@@ -202,7 +202,7 @@ export default function MarketDetailPage() {
   const { id } = useParams();
   const { market, loading, error } = useMarket(id);
   const { markets } = useMarkets();
-  const { session } = useAuth();
+  const { session, openAuthModal } = useAuth();
   const navigate = useNavigate();
   const [selectedOutcome, setSelectedOutcome] = useState(null);
 
@@ -748,13 +748,23 @@ export default function MarketDetailPage() {
                     </div>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={tradeLoading || (safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower)}
-                    className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 disabled:from-slate-700 disabled:to-slate-700 text-slate-950 disabled:text-slate-500 font-bold py-3 rounded-xl transition-all"
-                  >
-                    {tradeLoading ? 'Placing Prediction...' : 'Place Prediction'}
-                  </button>
+                  {!session ? (
+                    <button
+                      type="button"
+                      onClick={openAuthModal}
+                      className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-slate-950 font-bold py-3 rounded-xl transition-all"
+                    >
+                      Sign in to trade
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={tradeLoading || (safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower)}
+                      className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 disabled:from-slate-700 disabled:to-slate-700 text-slate-950 disabled:text-slate-500 font-bold py-3 rounded-xl transition-all"
+                    >
+                      {tradeLoading ? 'Placing Prediction...' : 'Place Prediction'}
+                    </button>
+                  )}
 
                   {!session && (
                     <p className="text-slate-500 text-xs text-center">You'll be asked to log in</p>

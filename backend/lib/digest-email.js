@@ -36,6 +36,7 @@ function fmtPnl(val) {
  * @param {number}  opts.wonCount          - resolved predictions that were won
  * @param {number}  opts.settledCount      - resolved predictions (won + lost)
  * @param {boolean} opts.hasEverTraded     - false = show "get started" CTA
+ * @param {Array}   opts.activePositions   - array of user's active positions
  */
 function buildDigestHtml({
   username,
@@ -49,6 +50,7 @@ function buildDigestHtml({
   hasEverTraded,
   equityPoints,
   accuracyTrend = 0,
+  activePositions = [],
 }) {
   const year = new Date().getFullYear();
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -96,37 +98,23 @@ function buildDigestHtml({
       return result;
     }
 
-    const sampledPoints = downsample(equityPoints, 40);
-    const dataValues = sampledPoints.map(p => parseFloat(p.value).toFixed(2));
-    const labels = sampledPoints.map(() => "''");
+    const sampledPoints = downsample(equityPoints, 24);
+    const dataValues = sampledPoints.map(p => Math.round(p.value));
 
     const colorHex = isProfit ? '4ade80' : 'f87171';
-    const fillHex = isProfit ? 'rgba(74, 222, 128, 0.15)' : 'rgba(248, 113, 113, 0.15)';
+    const fillHex = isProfit ? 'rgba(74,222,128,0.15)' : 'rgba(248,113,113,0.15)';
 
     const chartConfig = {
-      type: 'line',
+      type: 'sparkline',
       data: {
-        labels: labels,
         datasets: [{
           data: dataValues,
           borderColor: `#${colorHex}`,
           backgroundColor: fillHex,
           borderWidth: 3,
           fill: true,
-          pointRadius: 0,
           lineTension: 0.4
         }]
-      },
-      options: {
-        legend: { display: false },
-        scales: {
-          xAxes: [{ display: false, gridLines: { display: false } }],
-          yAxes: [{ display: false, gridLines: { display: false } }]
-        },
-        layout: { padding: { top: 10, bottom: 10, left: 0, right: 0 } },
-        plugins: {
-          datalabels: { display: false }
-        }
       }
     };
 
@@ -139,6 +127,41 @@ function buildDigestHtml({
       </td></tr>
     `;
   }
+
+  // ── Active Positions List ───────────────────────────────────────────────────
+  const positionsHtml = activePositions && activePositions.length > 0 ? `
+        <!-- Active Positions -->
+        <tr><td style="background:#071428;padding:10px 32px 28px;">
+          <p style="margin:0 0 16px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#475569;">Top Active Positions</p>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #1e3a5f;border-radius:12px;overflow:hidden;background:#0a1628;">
+            ${activePositions.slice(0, 5).map((pos, idx) => `
+              <tr>
+                <td style="padding:16px;${idx < Math.min(activePositions.length, 5) - 1 ? 'border-bottom:1px solid rgba(212,175,55,0.1);' : ''}">
+                  <div style="font-size:14px;font-weight:600;color:#f1f5f9;margin-bottom:6px;line-height:1.4;">${escHtml(pos.marketTitle)}</div>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td width="50%">
+                        <div style="font-size:12px;color:#cbd5e1;margin-bottom:2px;"><strong style="color:#d4af37;">${escHtml(pos.outcomeTitle)}</strong></div>
+                        <div style="font-size:11px;color:#64748b;">Entry: <span style="color:#f1f5f9;font-weight:600;">${pos.entryProb.toFixed(1)}%</span> &rarr; Now: <span style="color:${pos.currentProb >= pos.entryProb ? '#4ade80' : '#f87171'};font-weight:600;">${pos.currentProb.toFixed(1)}%</span></div>
+                      </td>
+                      <td width="50%" align="right">
+                        <div style="font-size:14px;font-weight:700;color:${pos.mtm >= pos.stake ? '#4ade80' : '#f87171'};">${fmtDollar(pos.mtm)}</div>
+                        <div style="font-size:11px;color:${pos.unrealizedPnl >= 0 ? '#4ade80' : '#f87171'};">${fmtPnl(pos.unrealizedPnl)}</div>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            `).join('')}
+            ${activePositions.length > 5 ? `
+              <tr>
+                <td style="padding:12px 16px;text-align:center;background:#0c1e40;border-top:1px solid rgba(212,175,55,0.1);">
+                  <a href="${PLATFORM_URL}/" style="font-size:12px;font-weight:600;color:#d4af37;text-decoration:none;">View all ${activePositions.length} positions →</a>
+                </td>
+              </tr>
+            ` : ''}
+          </table>
+        </td></tr>` : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -213,9 +236,11 @@ function buildDigestHtml({
 
         ${noTradesBanner}
 
+        ${positionsHtml}
+
         <!-- CTA -->
         <tr><td align="center" style="background:#071428;padding:24px 32px 36px;">
-          <a href="${PLATFORM_URL}/dashboard" style="display:inline-block;padding:14px 48px;background:linear-gradient(135deg,#b8952a 0%,#d4af37 50%,#e8c645 100%);color:#0a0f1e;font-size:14px;font-weight:900;text-decoration:none;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 20px rgba(212,175,55,0.3);">Review Your Predictions →</a>
+          <a href="${PLATFORM_URL}/" style="display:inline-block;padding:14px 48px;background:linear-gradient(135deg,#b8952a 0%,#d4af37 50%,#e8c645 100%);color:#0a0f1e;font-size:14px;font-weight:900;text-decoration:none;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 20px rgba(212,175,55,0.3);">Review Your Predictions →</a>
         </td></tr>
 
         <!-- Footer -->

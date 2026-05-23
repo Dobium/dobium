@@ -27,6 +27,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isNewSignup, setIsNewSignup] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     // Fetch session — always resolve loading even if Supabase is misconfigured
@@ -42,8 +43,26 @@ export function AuthProvider({ children }) {
         // Only trigger welcome email if the account was created in the last 2 minutes.
         // This ensures it only sends on initial signup (like Google OAuth) and not on every login.
         const isNewUser = new Date(session.user.created_at).getTime() > Date.now() - 120000;
-        if (isNewUser) {
+        const welcomeKey = `welcome_shown_${session.user.id}`;
+
+        if (isNewUser && !localStorage.getItem(welcomeKey)) {
+          localStorage.setItem(welcomeKey, 'true');
           triggerWelcomeEmail(session.user);
+          // Also send custom confirmation email for new OAuth users, as this event
+          // is the primary way they are detected.
+          try {
+            const name = session.user.user_metadata?.name || session.user.user_metadata?.full_name || null;
+            const rawApiUrl = import.meta.env.VITE_API_URL || '';
+            const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+            fetch(`${API_URL}/api/auth/confirm`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: session.user.email, name, confirmUrl: getRedirectUrl() }),
+            });
+          } catch { /* non-critical */ }
+
+          setIsNewSignup(true);
+          setIsAuthModalOpen(true);
         }
       }
     });
@@ -136,8 +155,11 @@ export function AuthProvider({ children }) {
     setSession(null);
   };
 
+  const openAuthModal = useCallback(() => setIsAuthModalOpen(true), []);
+  const closeAuthModal = useCallback(() => setIsAuthModalOpen(false), []);
+
   return (
-    <AuthContext.Provider value={{ session, loading, isNewSignup, clearNewSignup, login, loginWithGoogle, signup, resetPassword, logout }}>
+    <AuthContext.Provider value={{ session, loading, isNewSignup, clearNewSignup, login, loginWithGoogle, signup, resetPassword, logout, isAuthModalOpen, openAuthModal, closeAuthModal }}>
       {children}
     </AuthContext.Provider>
   );

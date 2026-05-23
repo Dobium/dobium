@@ -42,42 +42,56 @@ const SKIP_EMAILS = new Set([
  * Matches calcPositionValue() in DashboardPage.jsx.
  */
 function calcMtm(stake, entryProbPct, currentProbPct) {
-  const pE = entryProbPct / 100;
-  const pC = currentProbPct / 100;
-  const rMin = stake * pE;
-  const rMax = stake * (2 - pE);
-  return rMin + (rMax - rMin) * pC;
+  const S = Number(stake || 0);
+  const pEntry = Math.max(0, Math.min(100, Number(entryProbPct || 0))) / 100;
+  const pCurrent = Math.max(0, Math.min(100, Number(currentProbPct || 0))) / 100;
+  const rMin = S * pEntry;
+  const rMax = S * (2 - pEntry);
+
+  if (pEntry === 0) return pCurrent > 0 ? rMax : rMin;
+  if (pEntry === 1) return pCurrent < 1 ? rMin : rMax;
+
+  if (pCurrent <= pEntry) {
+    return rMin + (S - rMin) * (pCurrent / pEntry);
+  } else {
+    return S + (rMax - S) * ((pCurrent - pEntry) / (1 - pEntry));
+  }
 }
 
 /**
  * Sanitised resolved return — matches getResolvedReturn() in DashboardPage.jsx.
- * Falls back to formula-derived values when actual_return is missing/corrupt.
+ * Directly mirrors calculateBalanceFromTransactions in server.js to ensure 1:1 match.
  */
-function getResolvedReturn(pred) {
-  const S = parseFloat(pred.stake_amount || 0);
-  const entryProbPct = parseFloat(pred.odds_at_prediction || 50);
+function getResolvedReturn(p) {
+  const S = parseFloat(p.stake_amount || 0);
+  const pEntry = parseFloat(p.odds_at_prediction || 50) / 100;
+  let ret = parseFloat(p.actual_return || 0);
 
-  if (pred.status === 'won') {
-    const r = parseFloat(pred.actual_return || 0);
-    return (r > 0) ? r : calcMtm(S, entryProbPct, 100);
-  }
-  if (pred.status === 'lost') {
-    const r = parseFloat(pred.actual_return || 0);
-    return (r > 0) ? r : calcMtm(S, entryProbPct, 0);
-  }
-  if (pred.status === 'sold') {
-    const r = parseFloat(pred.actual_return || 0);
-    const pE = entryProbPct / 100;
-    const maxNewReturn = S * (2 - pE);
-    if (r > maxNewReturn) {
+  if (p.status === 'won') {
+    const maxReturn = S * (2 - pEntry);
+    if (ret <= 0 || ret > maxReturn) ret = maxReturn;
+  } else if (p.status === 'lost') {
+    const minReturn = S * pEntry;
+    if (ret <= 0 || ret > minReturn) ret = minReturn;
+  } else if (p.status === 'sold') {
+    const maxNewReturn = S * (2 - pEntry);
+    if (ret > maxNewReturn) {
       // Legacy formula: back-calculate pCurrent and re-derive with new formula
-      let pCurrent = S > 0 ? (r * pE) / S : 0;
+      let pCurrent = S > 0 ? (ret * pEntry) / S : 0;
       pCurrent = Math.min(1.0, Math.max(0, pCurrent));
-      return calcMtm(S, entryProbPct, pCurrent * 100);
+      const rMin = S * pEntry;
+      if (pEntry === 0) {
+        ret = pCurrent > 0 ? maxNewReturn : rMin;
+      } else if (pEntry === 1) {
+        ret = pCurrent < 1 ? rMin : maxNewReturn;
+      } else if (pCurrent <= pEntry) {
+        ret = rMin + (S - rMin) * (pCurrent / pEntry);
+      } else {
+        ret = S + (maxNewReturn - S) * ((pCurrent - pEntry) / (1 - pEntry));
+      }
     }
-    return r;
   }
-  return 0;
+  return ret;
 }
 
 // ── Main stats calculator ────────────────────────────────────────────────────
@@ -148,6 +162,7 @@ async function getUserStats(userId, { Transaction, Prediction, Outcome, User }) 
 
   // ── MTM of active positions (matches activeMtmValue in DashboardPage.jsx) ─
   let activeMtmValue = 0;
+  const activePositions = [];
   for (const p of activePredictions) {
     try {
       const market = markets.find(m => m.id === p.market_id);
@@ -155,19 +170,25 @@ async function getUserStats(userId, { Transaction, Prediction, Outcome, User }) 
       const stake = parseFloat(p.stake_amount || 0);
       const entryProb = parseFloat(p.odds_at_prediction || 50);   // correct field name
       const currentProb = outcome ? parseFloat(outcome.probability || 50) : entryProb;
-      activeMtmValue += calcMtm(stake, entryProb, currentProb);
+      const mtm = calcMtm(stake, entryProb, currentProb);
+      activeMtmValue += mtm;
+
+      activePositions.push({
+        id: p.id,
+        marketTitle: market?.title || 'Unknown Market',
+        outcomeTitle: outcome?.title || 'Unknown Outcome',
+        stake,
+        mtm,
+        unrealizedPnl: mtm - stake,
+        entryProb,
+        currentProb
+      });
     } catch { /* skip malformed position */ }
   }
+  activePositions.sort((a, b) => b.mtm - a.mtm);
 
-  function buildBackendEquityPoints(preds, markets, startingBalance) {
+  function buildBackendEquityPoints(preds, txnsList, markets, startingBalance) {
     const now = Date.now();
-
-    if (!preds || !preds.length) {
-      return [
-        { date: new Date(now - 86400000).toISOString(), value: startingBalance },
-        { date: new Date(now).toISOString(), value: startingBalance }
-      ];
-    }
 
     const getMtm = (p) => {
       const market = markets.find(m => m.id === p.market_id);
@@ -176,7 +197,11 @@ async function getUserStats(userId, { Transaction, Prediction, Outcome, User }) 
       return calcMtm(parseFloat(p.stake_amount || 0), parseFloat(p.odds_at_prediction || 50), pCurrent);
     };
 
-    const startOfDay = new Date(Math.min(...preds.map(p => new Date(p.created_at || p.createdAt).getTime())));
+    const startOfDay = preds.length > 0 || txnsList.length > 0
+      ? new Date(Math.min(...[...preds.map(p => new Date(p.created_at || p.createdAt).getTime()), ...txnsList.map(t => new Date(t.completed_at || t.created_at || t.createdAt).getTime())]))
+      : new Date(now - 86400000);
+
+    // Ensure we start a bit before the very first event to capture baseline
     startOfDay.setHours(0, 0, 0, 0);
 
     const historyEvents = [];
@@ -195,14 +220,29 @@ async function getUserStats(userId, { Transaction, Prediction, Outcome, User }) 
       }
     });
 
+    txnsList.forEach(t => {
+      if (t.status === 'completed' && t.payment_method !== 'sell_return') {
+        historyEvents.push({
+          date: new Date(t.completed_at || t.created_at || t.createdAt).getTime(),
+          type: t.type,
+          amount: parseFloat(t.amount || 0)
+        });
+      }
+    });
+
     historyEvents.sort((a, b) => a.date - b.date);
 
     const rawPoints = [{ date: startOfDay.getTime(), value: startingBalance }];
     let realizedPnl = 0;
+    let netTransfers = 0;
     const activeSet = new Set();
 
     historyEvents.forEach(ev => {
-      if (ev.type === 'open') {
+      if (ev.type === 'deposit') {
+        netTransfers += ev.amount;
+      } else if (ev.type === 'withdrawal') {
+        netTransfers -= ev.amount;
+      } else if (ev.type === 'open') {
         activeSet.add(ev.pred.id);
       } else if (ev.type === 'resolve') {
         activeSet.delete(ev.pred.id);
@@ -227,7 +267,7 @@ async function getUserStats(userId, { Transaction, Prediction, Outcome, User }) 
 
       rawPoints.push({
         date: ev.date,
-        value: startingBalance + realizedPnl + activeMtmPnL
+        value: startingBalance + netTransfers + realizedPnl + activeMtmPnL
       });
     });
 
@@ -243,12 +283,12 @@ async function getUserStats(userId, { Transaction, Prediction, Outcome, User }) 
         currentActiveMtmPnL += getMtm(p) - parseFloat(p.stake_amount || 0);
       }
     });
-    points.push({ date: new Date(now).toISOString(), value: startingBalance + realizedPnl + currentActiveMtmPnL });
+    points.push({ date: new Date(now).toISOString(), value: startingBalance + netTransfers + realizedPnl + currentActiveMtmPnL });
 
     return points;
   }
 
-  const equityPoints = buildBackendEquityPoints(allPredictions, markets, PAPER_STARTING_BALANCE);
+  const equityPoints = buildBackendEquityPoints(allPredictions, txns, markets, PAPER_STARTING_BALANCE);
 
   // ── Portfolio value — mirrors the dashboard hero number ───────────────────
   const portfolioValue = buyingPower + activeMtmValue;
@@ -291,6 +331,7 @@ async function getUserStats(userId, { Transaction, Prediction, Outcome, User }) 
     equityPoints,
     accuracy,
     accuracyTrend,
+    activePositions,
   };
 }
 
