@@ -41,6 +41,7 @@ export default function AdminDashboard() {
   const [marketCategory, setMarketCategory] = useState('technology');
   const [marketType, setMarketType] = useState('binary');
   const [marketCloseDate, setMarketCloseDate] = useState('');
+  const [marketIsTrending, setMarketIsTrending] = useState(false);
   const [marketOutcomes, setMarketOutcomes] = useState([{ title: 'Yes', probability: 50 }, { title: 'No', probability: 50 }]);
   const [createMarketLoading, setCreateMarketLoading] = useState(false);
   const [createMarketMessage, setCreateMarketMessage] = useState('');
@@ -69,6 +70,9 @@ export default function AdminDashboard() {
 
   // Market status action state
   const [statusLoading, setStatusLoading] = useState(null); // marketId currently being changed
+
+  // Derive current trending markets for preview
+  const currentTrending = activeMarkets.filter(m => m.is_trending);
 
   // ── Broadcast Campaign state ────────────────────────────────────────────────
   const [broadcastTab, setBroadcastTab] = useState('presets');          // 'presets' | 'custom'
@@ -363,7 +367,8 @@ export default function AdminDashboard() {
           market_type: marketType,
           close_date: marketCloseDate ? new Date(marketCloseDate).toISOString() : null,
           resolution_date: marketCloseDate ? new Date(marketCloseDate).toISOString() : null,
-          outcomes: formattedOutcomes
+          outcomes: formattedOutcomes,
+          is_trending: marketIsTrending
         })
       });
 
@@ -372,6 +377,7 @@ export default function AdminDashboard() {
         setCreateMarketMessage(`Successfully created market: ${data.title}`);
         setMarketTitle('');
         setMarketCloseDate('');
+        setMarketIsTrending(false);
       } else {
         setCreateMarketMessage(`Error: ${data.error}`);
       }
@@ -447,6 +453,29 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error('Status change failed', err);
       alert('Failed to update market status. Ensure the backend is running.');
+    } finally {
+      setStatusLoading(null);
+    }
+  };
+
+  // Quick-toggle for Trending status
+  const handleToggleTrending = async (market) => {
+    setStatusLoading(market.id);
+    try {
+      const res = await fetch(`${API_URL}/api/markets/${market.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_trending: !market.is_trending })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setActiveMarkets(prev => prev.map(m => m.id === data.id ? data : m));
+      } else {
+        alert(`Failed to update trending status: ${data.error}`);
+      }
+    } catch (err) {
+      console.error('Trending toggle failed', err);
+      alert('Failed to update trending status. Ensure the backend is running.');
     } finally {
       setStatusLoading(null);
     }
@@ -530,6 +559,7 @@ export default function AdminDashboard() {
           image_url: editingMarket.image_url,
           close_date: editingMarket.close_date ? new Date(editingMarket.close_date).toISOString() : null,
           resolution_date: editingMarket.close_date ? new Date(editingMarket.close_date).toISOString() : null,
+          is_trending: editingMarket.is_trending || false,
           outcomes: editingMarket.outcomes.map(o => ({
             id: o.id,
             title: o.title,
@@ -828,6 +858,16 @@ export default function AdminDashboard() {
                 onChange={(e) => setMarketCloseDate(e.target.value)}
               />
             </div>
+            <div className="flex items-center gap-2 mt-2">
+              <input
+                type="checkbox"
+                id="marketIsTrending"
+                checked={marketIsTrending}
+                onChange={(e) => setMarketIsTrending(e.target.checked)}
+                className="w-4 h-4 text-amber-500 bg-slate-900 border-slate-700 rounded focus:ring-amber-500 focus:ring-2"
+              />
+              <label htmlFor="marketIsTrending" className="text-sm font-medium text-slate-400 cursor-pointer">Feature on Trending Slideshow</label>
+            </div>
           </div>
 
           <div className="flex-1 space-y-4 flex flex-col">
@@ -899,6 +939,44 @@ export default function AdminDashboard() {
         </form>
       </div>
 
+      {/* Live Trending Slideshow Preview */}
+      <div className="bg-slate-800 p-6 rounded-lg shadow-lg mt-6 border border-amber-500/20 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl pointer-events-none">🔥</div>
+        <h2 className="text-xl font-semibold mb-2 text-white flex items-center gap-2">
+          <span className="text-amber-500">🔥</span> Live Trending Slideshow
+        </h2>
+        <p className="text-slate-400 text-sm mb-4 max-w-2xl">
+          This shows the exact markets currently appearing on the Explore Page slideshow. Only explicitly pinned markets will appear here.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          {currentTrending.map((m, idx) => (
+            <div key={m.id} className="bg-slate-900/60 rounded-xl border border-slate-700 p-3 flex flex-col justify-between hover:border-amber-500/30 transition-colors">
+              <div>
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                    #{idx + 1} Pinned
+                  </span>
+                </div>
+                <h4 className="text-white text-sm font-medium line-clamp-3 mb-2 leading-snug">{m.title}</h4>
+              </div>
+              <div className="text-xs text-slate-500 flex justify-between items-center mt-3 pt-3 border-t border-slate-800/80">
+                <span className="font-medium text-slate-400">${(m.total_volume || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                <button
+                  onClick={() => handleToggleTrending(m)}
+                  disabled={statusLoading === m.id}
+                  className="text-[10px] font-bold px-2.5 py-1 rounded transition-colors bg-slate-800 text-amber-400 hover:bg-slate-700"
+                >
+                  {statusLoading === m.id ? '...' : 'Un-pin'}
+                </button>
+              </div>
+            </div>
+          ))}
+          {currentTrending.length === 0 && (
+            <div className="col-span-5 text-center py-8 text-slate-500 text-sm">No pinned markets. Pin markets from the list below to show them in the trending slideshow!</div>
+          )}
+        </div>
+      </div>
+
       {/* Active Markets Section */}
       <div className="bg-slate-800 p-6 rounded-lg shadow-lg mt-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Manage Active Markets</h2>
@@ -912,10 +990,15 @@ export default function AdminDashboard() {
                 const traderCount = new Set(mPreds.map(p => p.user_id).filter(Boolean)).size;
                 const topOutcome = (m.outcomes || []).slice().sort((a, b) => b.probability - a.probability)[0];
                 return (
-                  <div key={m.id} className="bg-slate-900/50 p-4 rounded border border-slate-700">
+                  <div key={m.id} className={`p-4 rounded border transition-colors ${m.is_trending ? 'bg-amber-500/5 border-amber-500/30' : 'bg-slate-900/50 border-slate-700'}`}>
                     <div className="flex justify-between items-start gap-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-white font-medium truncate">{m.title}</h3>
+                        <h3 className="text-white font-medium truncate flex items-center gap-2">
+                          {m.title}
+                          {m.is_trending && (
+                            <span className="shrink-0 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">🔥 TRENDING</span>
+                          )}
+                        </h3>
                         <p className="text-slate-500 text-xs mt-0.5">{m.market_type || 'binary'} · ID: {m.id.slice(0, 8)}</p>
                         {/* Inline stats */}
                         <div className="flex flex-wrap gap-3 mt-2">
@@ -933,6 +1016,16 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div className="flex gap-1.5 flex-shrink-0 flex-wrap justify-end">
+                        <button
+                          onClick={() => handleToggleTrending(m)}
+                          disabled={statusLoading === m.id}
+                          className={`px-3 py-1.5 rounded font-semibold text-xs transition-colors disabled:opacity-40 border ${m.is_trending
+                            ? 'bg-amber-500/20 text-amber-400 border-amber-500/50 hover:bg-amber-500/30'
+                            : 'bg-slate-700/40 text-slate-400 border-slate-600 hover:text-amber-400 hover:border-amber-500/50'
+                            }`}
+                        >
+                          {statusLoading === m.id ? '...' : m.is_trending ? '★ Un-Trend' : '☆ Make Trending'}
+                        </button>
                         <button
                           onClick={() => setEditingMarket({ ...m, close_date: formatDateTimeLocal(m.close_date) })}
                           className="bg-blue-500/20 text-blue-400 border border-blue-500/50 hover:bg-blue-500/30 px-3 py-1.5 rounded font-semibold text-xs transition-colors"
@@ -1003,6 +1096,16 @@ export default function AdminDashboard() {
               <div>
                 <label className="block text-sm font-medium mb-1 text-slate-400">Close / Resolution Date</label>
                 <input type="datetime-local" value={editingMarket.close_date || ''} onChange={e => handleEditMarketChange('close_date', e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white outline-none focus:border-blue-400 transition-colors [&::-webkit-calendar-picker-indicator]:invert" />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="editMarketIsTrending"
+                  checked={editingMarket.is_trending || false}
+                  onChange={(e) => handleEditMarketChange('is_trending', e.target.checked)}
+                  className="w-4 h-4 text-blue-500 bg-slate-800 border-slate-700 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <label htmlFor="editMarketIsTrending" className="text-sm font-medium text-slate-400 cursor-pointer">Feature on Trending Slideshow</label>
               </div>
 
               <div className="mt-4">

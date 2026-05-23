@@ -265,9 +265,12 @@ export default function LandingPage() {
         @media (max-width: 768px) {
           .landing-right { 
             flex: none;
-            min-height: 300px; /* Scale down the slideshow height on mobile */
-            padding: 20px;
+            min-height: 250px; /* Scale down the slideshow height on mobile */
+            padding: 16px;
           }
+          .slide-icon { font-size: 2rem !important; margin-bottom: 10px !important; }
+          .slide-title { font-size: 1.4rem !important; margin-bottom: 8px !important; }
+          .slide-description { font-size: 0.9rem !important; }
         }
       `}</style>
     </div>

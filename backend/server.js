@@ -460,6 +460,7 @@ function formatMarketResponse(market) {
     ...m,
     total_volume: parseFloat(m.total_volume || 0),
     winning_outcome_ids,
+    is_trending: Boolean(m.is_trending),
     outcomes: (m.outcomes || []).map(o => ({
       ...o,
       probability: parseFloat(o.probability || 0),
@@ -689,9 +690,8 @@ app.get('/api/markets/trending', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
     const markets = await getAllMarketsFormatted({ status: 'active' });
-    const trending = markets
-      .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
-      .slice(0, limit);
+
+    const trending = markets.filter(m => m.is_trending).slice(0, limit);
     res.json(trending);
   } catch (error) {
     console.error('Trending markets error:', error);
@@ -798,7 +798,7 @@ app.get('/api/markets/:id', async (req, res) => {
 // POST create market
 app.post('/api/markets', async (req, res) => {
   try {
-    const { title, description = '', category, outcomes = [], image_url = '', search_keywords = '', close_date = null, resolution_date = null, market_type = 'binary' } = req.body;
+    const { title, description = '', category, outcomes = [], image_url = '', search_keywords = '', close_date = null, resolution_date = null, market_type = 'binary', is_trending = false } = req.body;
     if (!title || !category || !Array.isArray(outcomes) || outcomes.length < 2) {
       return res.status(400).json({ error: 'Invalid market payload' });
     }
@@ -813,7 +813,8 @@ app.post('/api/markets', async (req, res) => {
         total_volume: 0,
         image_url,
         winning_outcome_id: null,
-        search_keywords
+        search_keywords,
+        is_trending
       }, { transaction: t });
 
       let outcomeRecords = [];
@@ -885,7 +886,7 @@ app.post('/api/markets', async (req, res) => {
 // PUT update market
 app.put('/api/markets/:id', async (req, res) => {
   try {
-    const { close_date, resolution_date, title, status, outcomes, category, description, image_url } = req.body;
+    const { close_date, resolution_date, title, status, outcomes, category, description, image_url, is_trending } = req.body;
     const result = await sequelize.transaction(async (t) => {
       const market = await Market.findByPk(req.params.id, { transaction: t });
       if (!market) throw Object.assign(new Error('Market not found'), { status: 404 });
@@ -899,7 +900,8 @@ app.put('/api/markets/:id', async (req, res) => {
         ...(status !== undefined && { status }),
         ...(category !== undefined && { category }),
         ...(description !== undefined && { description }),
-        ...(image_url !== undefined && { image_url })
+        ...(image_url !== undefined && { image_url }),
+        ...(is_trending !== undefined && { is_trending })
       }, { transaction: t });
 
       if (outcomes && Array.isArray(outcomes)) {
@@ -2256,7 +2258,8 @@ async function seedMarketsFromJson() {
             close_date: m.close_date, resolution_date: m.resolution_date,
             market_type: m.market_type || 'binary', total_volume: m.total_volume || 0,
             image_url: m.image_url, winning_outcome_id: m.winning_outcome_id,
-            search_keywords: m.search_keywords
+            search_keywords: m.search_keywords,
+            is_trending: m.is_trending || false
           }, { transaction: t });
 
           if (m.outcomes && m.outcomes.length > 0) {

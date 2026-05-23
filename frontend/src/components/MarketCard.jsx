@@ -43,8 +43,8 @@ function CountdownTimer({ targetDate }) {
   if (!targetDate || !timeLeft) return null;
 
   return (
-    <span className={`flex items-center gap-1 text-[11px] font-medium bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700 shadow-sm ${isUrgent ? 'text-red-400' : 'text-slate-400'}`}>
-      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <span className={`flex items-center gap-0.5 sm:gap-1 text-[9px] sm:text-[11px] font-medium bg-slate-800/80 px-1.5 sm:px-2 py-0.5 rounded border border-slate-700 shadow-sm ${isUrgent ? 'text-red-400' : 'text-slate-400'}`}>
+      <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
       {timeLeft}
@@ -159,19 +159,19 @@ function MiniChart({ market, outcomes, isBinary }) {
   const legends = sortedOutcomes.slice(0, displayCount).map((outcome, idx) => {
     const color = colorPalette[idx % colorPalette.length];
     return (
-      <div key={outcome.id} className="flex items-center gap-1">
-        <span className="w-2 h-2 rounded-full" style={{ background: color.line }}></span>
-        <span className="text-xs" style={{ color: color.line }}>{normalizeOutcomeTitle(outcome.title)}</span>
-        <span className="text-xs text-slate-300">{Math.round(outcome.probability || 0)}¢</span>
+      <div key={outcome.id} className="flex items-center gap-0.5 sm:gap-1">
+        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0" style={{ background: color.line }}></span>
+        <span className="text-[9px] sm:text-xs truncate max-w-[40px] sm:max-w-[60px]" style={{ color: color.line }}>{normalizeOutcomeTitle(outcome.title)}</span>
+        <span className="text-[9px] sm:text-xs text-slate-300">{Math.round(outcome.probability || 0)}¢</span>
       </div>
     );
   });
 
   return (
     <div className="rounded-xl overflow-hidden bg-slate-800/30">
-      <div className="flex items-center justify-between px-3 py-2">
-        <span className="text-xs text-slate-500">{priceHistory.length >= 2 ? 'Price History' : 'Current'}</span>
-        <div className="flex flex-wrap gap-2 justify-end">
+      <div className="flex items-center justify-between px-2 py-1.5 sm:px-3 sm:py-2">
+        <span className="text-[9px] sm:text-xs text-slate-500">{priceHistory.length >= 2 ? 'Price History' : 'Current'}</span>
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-end">
           {legends}
         </div>
       </div>
@@ -215,7 +215,7 @@ export default function MarketCard({ market }) {
         {outcomes.slice(0, 2).map((outcome, idx) => (
           <button
             key={outcome.id}
-            className={`flex-1 relative overflow-hidden rounded-lg px-3 py-2 transition-all duration-200 border ${isResolved && winningOutcomeSet.has(outcome.id)
+            className={`flex-1 relative overflow-hidden rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 transition-all duration-200 border ${isResolved && winningOutcomeSet.has(outcome.id)
               ? 'bg-green-500/15 border-green-500'
               : isResolved
                 ? 'bg-slate-800/40 border-slate-700 opacity-70'
@@ -228,13 +228,13 @@ export default function MarketCard({ market }) {
               navigate(`/markets/${market.id}`);
             }}
           >
-            <div className="flex flex-col gap-1">
-              <span className="text-white font-medium text-xs text-center">{normalizeOutcomeTitle(outcome.title)}</span>
-              <span className={`text-base font-semibold text-center ${idx === 0 ? 'text-green-400' : 'text-red-400'}`}>
+            <div className="flex flex-col gap-0.5 sm:gap-1">
+              <span className="text-white font-medium text-[10px] sm:text-xs text-center truncate w-full">{normalizeOutcomeTitle(outcome.title)}</span>
+              <span className={`text-sm sm:text-base font-semibold text-center ${idx === 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {Math.round(outcome.probability || 0)}¢
               </span>
               {isResolved && winningOutcomeSet.has(outcome.id) && (
-                <span className="text-[10px] font-bold uppercase text-green-300">Won</span>
+                <span className="text-[8px] sm:text-[10px] font-bold uppercase text-green-300">Won</span>
               )}
             </div>
           </button>
@@ -252,7 +252,7 @@ export default function MarketCard({ market }) {
           return (
             <button
               key={outcome.id}
-              className={`w-[calc(50%-4px)] relative overflow-hidden rounded-lg px-3 py-2 transition-all duration-200 border ${isResolved && isWinner
+              className={`w-[calc(50%-4px)] relative overflow-hidden rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 transition-all duration-200 border ${isResolved && isWinner
                 ? 'bg-green-500/15 border-green-500'
                 : isResolved
                   ? 'bg-slate-800/40 border-slate-700 opacity-70'
@@ -263,17 +263,17 @@ export default function MarketCard({ market }) {
                 navigate(`/markets/${market.id}`);
               }}
             >
-              <span className="text-white font-medium text-xs truncate text-center w-full">{isMultiMultiple ? outcome.title.replace(/\s*\(Yes\)$/i, '') : normalizeOutcomeTitle(outcome.title)}</span>
-              <span className={`text-base font-semibold ${colors.text}`}>
+              <span className="text-white font-medium text-[10px] sm:text-xs truncate text-center w-full">{isMultiMultiple ? outcome.title.replace(/\s*\(Yes\)$/i, '') : normalizeOutcomeTitle(outcome.title)}</span>
+              <span className={`text-sm sm:text-base font-semibold ${colors.text}`}>
                 {Math.round(outcome.probability || 0)}¢
               </span>
               {isResolved && isWinner && (
-                <span className="text-[10px] font-bold uppercase text-green-300">Won</span>
+                <span className="text-[8px] sm:text-[10px] font-bold uppercase text-green-300">Won</span>
               )}
             </button>
           );
         })}
-        {hasMore && <p className="w-full text-xs text-slate-500 text-center mt-1">+{outcomes.length - 4} more options</p>}
+        {hasMore && <p className="w-full text-[10px] sm:text-xs text-slate-500 text-center mt-0.5 sm:mt-1">+{outcomes.length - 4} more options</p>}
       </div>
     );
   }
@@ -285,19 +285,19 @@ export default function MarketCard({ market }) {
       style={{ breakInside: 'avoid', marginBottom: '1.5rem' }}
     >
       <div className="[grid-area:1/1] bg-gradient-to-br from-yellow-500/0 to-yellow-600/0 group-hover:from-yellow-500/5 group-hover:to-yellow-600/5 transition-all duration-300"></div>
-      <div className="[grid-area:1/1] p-4 flex flex-col gap-2 z-10">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${CATEGORY_COLORS[market.category] || 'from-slate-500 to-slate-600'} text-white`}>
+      <div className="[grid-area:1/1] p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 z-10 h-full">
+        <div className="flex items-start justify-between gap-1">
+          <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+            <span className={`inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-xs font-semibold bg-gradient-to-r ${CATEGORY_COLORS[market.category] || 'from-slate-500 to-slate-600'} text-white`}>
               {market.category}
             </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border border-slate-700 text-slate-400">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 rounded-full text-[8px] sm:text-[10px] font-medium border border-slate-700 text-slate-400">
               <span>{typeLabel}</span>
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-medium flex items-center gap-1 ${isResolved ? 'text-yellow-400' : 'text-green-400'}`}>
-              <span className={`w-2 h-2 rounded-full inline-block ${isResolved ? 'bg-yellow-400' : 'bg-green-400 animate-pulse'}`}></span>
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            <span className={`text-[10px] sm:text-xs font-medium flex items-center gap-1 ${isResolved ? 'text-yellow-400' : 'text-green-400'}`}>
+              <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full inline-block ${isResolved ? 'bg-yellow-400' : 'bg-green-400 animate-pulse'}`}></span>
               {isResolved ? 'Resolved' : 'Live'}
             </span>
             {!isResolved && market.close_date && (
@@ -308,11 +308,11 @@ export default function MarketCard({ market }) {
 
         <MiniChart market={market} outcomes={outcomes} isBinary={isBinary} />
 
-        <h3 className="text-base font-semibold text-white mb-4 line-clamp-2 group-hover:text-yellow-400 transition-colors">
+        <h3 className="text-sm sm:text-base font-semibold text-white mb-1 sm:mb-2 line-clamp-2 group-hover:text-yellow-400 transition-colors leading-snug">
           {market.title}
         </h3>
 
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 sm:gap-2 mt-auto">
           {outcomeButtons}
         </div>
       </div>

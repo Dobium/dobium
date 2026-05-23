@@ -76,6 +76,10 @@ const Market = sequelize.define('Market', {
     validate: {
       isIn: [['binary', 'multi_single', 'multi_multiple']]
     }
+  },
+  is_trending: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 }, {
   tableName: 'markets',
@@ -89,4 +93,3 @@ const Market = sequelize.define('Market', {
 });
 
 module.exports = Market;
-

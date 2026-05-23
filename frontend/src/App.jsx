@@ -25,7 +25,7 @@ function AppRoutes() {
   // If not signed in, redirect to landing (but allow auth page)
   if (!session) {
     return (
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<AuthPage />} />
@@ -36,7 +36,7 @@ function AppRoutes() {
   }
 
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route path="/auth" element={<Navigate to="/" replace />} />
         <Route element={<Layout />}>

@@ -95,15 +95,19 @@ a {
 @media (max-width: 768px) {
   .bottom-nav {
     display: flex;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 70px;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: calc(70px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     background: #020617;
     border-top: 1px solid rgba(71, 85, 105, 0.40);
-    z-index: 100;
+    z-index: 2147483647 !important;
     gap: 0;
+    /* Forces hardware acceleration so the browser doesn't erase it on scroll */
+    transform: translateZ(0) !important;
+    -webkit-transform: translateZ(0) !important;
   }
 
   .bottom-nav-item {
@@ -281,6 +285,8 @@ a {
   position: relative;
   z-index: 1;
   min-height: 100vh;
+  min-height: 100dvh;
+  /* Syncs perfectly with dynamic mobile address bars */
 }
 
 @media (max-width: 1024px) {
@@ -304,7 +310,7 @@ a {
 
   .main-content {
     margin-left: 0;
-    margin-bottom: 70px;
+    margin-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
     padding-bottom: 0;
   }
 }
@@ -313,21 +319,26 @@ a {
    SEARCH BAR
    ======================================== */
 .search-input {
-  width: 180px;
   transition: width 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.search-input:hover,
-.search-input:focus {
-  width: 400px;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--accent-glow);
-}
+@media (min-width: 768px) {
+  .search-input {
+    width: 180px;
+  }
 
-.search-container:hover .search-input {
-  width: 400px;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--accent-glow);
+  .search-input:hover,
+  .search-input:focus {
+    width: 400px;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
+
+  .search-container:hover .search-input {
+    width: 400px;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
 }
 
 /* ========================================

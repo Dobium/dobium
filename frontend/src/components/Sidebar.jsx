@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import NotificationsPanel from './NotificationsPanel';
 
 export default function Sidebar() {
@@ -85,7 +86,7 @@ export default function Sidebar() {
 
   // Mobile Bottom Navigation
   if (isMobile) {
-    return (
+    const mobileNav = (
       <div className="bottom-nav">
         <NavLink to="/explore" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
           <svg fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -126,6 +127,8 @@ export default function Sidebar() {
         </button>
       </div>
     );
+
+    return typeof document !== 'undefined' ? createPortal(mobileNav, document.body) : mobileNav;
   }
 
   // Desktop Sidebar

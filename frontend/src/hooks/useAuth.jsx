@@ -37,9 +37,14 @@ export function AuthProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      // Send welcome email after email confirmation or first Google OAuth sign-in
+
       if (event === 'SIGNED_IN' && session?.user) {
-        triggerWelcomeEmail(session.user);
+        // Only trigger welcome email if the account was created in the last 2 minutes.
+        // This ensures it only sends on initial signup (like Google OAuth) and not on every login.
+        const isNewUser = new Date(session.user.created_at).getTime() > Date.now() - 120000;
+        if (isNewUser) {
+          triggerWelcomeEmail(session.user);
+        }
       }
     });
 
