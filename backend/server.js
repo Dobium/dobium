@@ -577,6 +577,27 @@ async function resolveMarketInstance(market, requestedOutcomeIds, options = {}) 
     const outcomeTitle = outcomeObj ? outcomeObj.title : 'Unknown Outcome';
 
     const pEntry = parseFloat(prediction.odds_at_prediction || 50) / 100;
+    const oddsPercent = parseFloat(prediction.odds_at_prediction || 50);
+
+    let feedback = "";
+    if (won) {
+      if (oddsPercent <= 30) {
+        feedback = "Amazing foresight! You caught an underdog early.";
+      } else if (oddsPercent >= 70) {
+        feedback = "Solid, safe bet that paid off.";
+      } else {
+        feedback = "Great call on a competitive market!";
+      }
+    } else {
+      if (oddsPercent <= 30) {
+        feedback = "It was a long shot anyway. Better luck next time!";
+      } else if (oddsPercent >= 70) {
+        feedback = "Ouch, tough break on a favorite. Better luck next time!";
+      } else {
+        feedback = "It could have gone either way. Better luck next time!";
+      }
+    }
+
     const stakeAmount = parseFloat(prediction.stake_amount || 0);
     let actualReturn = 0;
     if (won) {
@@ -624,17 +645,19 @@ async function resolveMarketInstance(market, requestedOutcomeIds, options = {}) 
       const html = buildResolutionHtml({
         username,
         marketTitle: market.title,
+        marketId: market.id,
         outcomeTitle,
         won,
         stake: stakeAmount,
         actualReturn,
         pnl,
-        newBalance: balanceInfo.buyingPower
+        newBalance: balanceInfo.buyingPower,
+        feedback
       });
       const subject = won ? `Prediction Won! 🎉 - ${market.title}` : `Prediction Lost 📉 - ${market.title}`;
       const text = won
-        ? `Your prediction won! Return: $${actualReturn.toFixed(2)} (Profit: +$${pnl.toFixed(2)}) | New Balance: $${balanceInfo.buyingPower.toFixed(2)}`
-        : `Your prediction lost. Return: $${actualReturn.toFixed(2)} (Loss: -$${Math.abs(pnl).toFixed(2)}) | New Balance: $${balanceInfo.buyingPower.toFixed(2)}`;
+        ? `Your prediction won! Return: $${actualReturn.toFixed(2)} (Profit: +$${pnl.toFixed(2)}) | New Balance: $${balanceInfo.buyingPower.toFixed(2)}\n\nFeedback: ${feedback}`
+        : `Your prediction lost. Return: $${actualReturn.toFixed(2)} (Loss: -$${Math.abs(pnl).toFixed(2)}) | New Balance: $${balanceInfo.buyingPower.toFixed(2)}\n\nFeedback: ${feedback}`;
       sendEmail({ to: user.email, subject, text, html }).catch(err => console.error('Failed to send resolution email:', err.message));
     }
 
@@ -642,9 +665,9 @@ async function resolveMarketInstance(market, requestedOutcomeIds, options = {}) 
       const notification = await Notification.create({
         id: nanoid(12),
         user_id: prediction.user_id,
-        type: 'prediction_won',
-        title: 'Prediction Won!',
-        message: `Your position in "${market.title}" won! You received a return of $${actualReturn.toFixed(2)}.`,
+        type: 'prediction_won_modal',
+        title: 'Prediction Won! 🎉',
+        message: `Your position in "${market.title}" won! You received a return of $${actualReturn.toFixed(2)}.\n\n${feedback}`,
         link: `/markets/${market.id}`,
         is_read: false,
         created_at: resolutionDate
@@ -654,9 +677,9 @@ async function resolveMarketInstance(market, requestedOutcomeIds, options = {}) 
       const notification = await Notification.create({
         id: nanoid(12),
         user_id: prediction.user_id,
-        type: 'prediction_lost',
-        title: 'Prediction Lost',
-        message: `Your position in "${market.title}" lost. You received a partial refund of $${actualReturn.toFixed(2)}.`,
+        type: 'prediction_lost_modal',
+        title: 'Prediction Lost 📉',
+        message: `Your position in "${market.title}" lost. You received a partial refund of $${actualReturn.toFixed(2)}.\n\n${feedback}`,
         link: `/markets/${market.id}`,
         is_read: false,
         created_at: resolutionDate
@@ -1439,13 +1462,23 @@ app.post('/api/positions/sell', async (req, res) => {
         }, { transaction: t });
       }
 
+      const netPnl = parseFloat((sellReturn - sell_amount).toFixed(2));
+      let feedback = "";
+      if (netPnl > 0) {
+        feedback = "Secured profit! Great job taking gains before resolution.";
+      } else if (netPnl < 0) {
+        feedback = "Smart move cutting losses. Capital preservation is key!";
+      } else {
+        feedback = "Position closed at break-even.";
+      }
+
       // Notify the user their position was successfully sold
       const notification = await Notification.create({
         id: nanoid(12),
         user_id: user_id,
         type: 'position_sold',
-        title: 'Position Sold',
-        message: `You sold your position in "${market.title}" for $${sellReturn.toFixed(2)}.`,
+        title: 'Position Sold 🤝',
+        message: `You sold your position in "${market.title}" for $${sellReturn.toFixed(2)}.\n\n${feedback}`,
         link: `/markets/${market.id}`,
         is_read: false,
         created_at: new Date()

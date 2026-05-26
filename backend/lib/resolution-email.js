@@ -15,13 +15,15 @@ function fmtDollar(val) {
   return '$' + parseFloat(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function buildResolutionHtml({ username, marketTitle, outcomeTitle, won, stake, actualReturn, pnl, newBalance }) {
+function buildResolutionHtml({ username, marketTitle, marketId, outcomeTitle, won, stake, actualReturn, pnl, newBalance, feedback }) {
   const year = new Date().getFullYear();
   const greeting = username ? `Hey ${escHtml(username)},` : 'Hey there,';
   const resultText = won ? 'Won' : 'Lost';
   const resultColor = won ? '#4ade80' : '#f87171';
   const icon = won ? '🎉' : '📉';
   const pnlText = pnl >= 0 ? `+${fmtDollar(pnl)}` : `-${fmtDollar(Math.abs(pnl))}`;
+
+  const marketLink = marketId ? `${PLATFORM_URL}/markets/${marketId}` : `${PLATFORM_URL}/`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -74,10 +76,18 @@ function buildResolutionHtml({ username, marketTitle, outcomeTitle, won, stake, 
               </td>
             </tr>
             ` : ''}
+            ${feedback ? `
+            <tr>
+              <td colspan="2" style="padding:16px;background:rgba(212,175,55,0.06);border-top:1px solid rgba(212,175,55,0.1);">
+                <p style="margin: 0; color: #d4af37; font-size: 13px; font-weight: 600; margin-bottom: 4px;">Trade Feedback 💡</p>
+                <p style="margin: 0; color: #cbd5e1; font-size: 13px; line-height: 1.5;">${escHtml(feedback)}</p>
+              </td>
+            </tr>
+            ` : ''}
           </table>
         </td></tr>
         <tr><td align="center" style="background:#071428;padding:12px 32px 36px;">
-          <a href="${PLATFORM_URL}/" style="display:inline-block;padding:14px 48px;background:linear-gradient(135deg,#b8952a 0%,#d4af37 50%,#e8c645 100%);color:#0a0f1e;font-size:14px;font-weight:900;text-decoration:none;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 20px rgba(212,175,55,0.3);">View Dashboard →</a>
+          <a href="${marketLink}" style="display:inline-block;padding:14px 48px;background:linear-gradient(135deg,#b8952a 0%,#d4af37 50%,#e8c645 100%);color:#0a0f1e;font-size:14px;font-weight:900;text-decoration:none;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 20px rgba(212,175,55,0.3);">View Market →</a>
         </td></tr>
         <tr><td align="center" style="padding:22px 32px 24px;background:#04101f;border-top:1px solid rgba(255,255,255,0.04);">
           <p style="margin:0 0 4px;font-size:11px;color:#334155;">© ${year} Dobium · All rights reserved.</p>

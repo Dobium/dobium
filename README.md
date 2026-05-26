@@ -44,10 +44,17 @@ dobium/
 └── server.js               # Legacy/JSON-based Express server
 ```
 
+## 🎮 Usage Guide
+
+1. **Sign Up**: Create an account using email or Google OAuth to receive your initial $10,000 in paper-trading funds.
+2. **Explore Markets**: Browse active events across various categories or check out the curated trending slideshow.
+3. **Place a Trade**: Predict 'Yes' or 'No' (or select from multiple outcomes). Your position's value will update dynamically as the market probability shifts.
+4. **Track & Manage**: Monitor your portfolio in real-time. Sell early to secure profits or cut losses, or hold your position until the event officially resolves.
+5. **Daily Digest**: Check your inbox every day at 12 PM for a personalized summary of your portfolio and active market movements.
+
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v18+)
 - PostgreSQL (Optional, but required for production features)
 - Rust (Optional, if you wish to recompile the pricing engine)
 

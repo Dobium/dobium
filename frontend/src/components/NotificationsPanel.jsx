@@ -91,8 +91,10 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     switch (type) {
       case 'market_new': return (<div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0"><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>);
       case 'market_resolved': return (<div className="w-10 h-10 rounded-full bg-slate-500/20 text-slate-400 flex items-center justify-center flex-shrink-0"><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>);
-      case 'prediction_won': return (<div className="w-10 h-10 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center flex-shrink-0">$</div>);
-      case 'prediction_lost': return (<div className="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center flex-shrink-0"><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></div>);
+      case 'prediction_won':
+      case 'prediction_won_modal': return (<div className="w-10 h-10 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center flex-shrink-0">$</div>);
+      case 'prediction_lost':
+      case 'prediction_lost_modal': return (<div className="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center flex-shrink-0"><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></div>);
       case 'prediction_placed': return (<div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0">🎯</div>);
       case 'position_sold': return (<div className="w-10 h-10 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center flex-shrink-0"><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>);
       case 'position_up_100':
@@ -165,7 +167,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                       <div key={notification.id} className="flex items-start gap-3 p-3 bg-slate-900/50 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors border border-slate-700/50" onClick={() => handleNotificationClick(notification)}>
                         {getIcon(notification.type)}
                         <div className="flex-1">
-                          <p className="text-sm text-slate-200">{notification.message}</p>
+                          <p className="text-sm text-slate-200 whitespace-pre-wrap">{notification.message}</p>
                           <span className="text-xs text-slate-500 mt-1 block">{formatTimeAgo(notification.created_at)}</span>
                         </div>
                         <div className="w-2 h-2 mt-2 rounded-full bg-yellow-500 flex-shrink-0"></div>
@@ -180,7 +182,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                       <div key={notification.id} className="flex items-start gap-3 p-3 hover:bg-slate-900/50 rounded-lg cursor-pointer transition-colors opacity-75 hover:opacity-100" onClick={() => handleNotificationClick(notification)}>
                         {getIcon(notification.type)}
                         <div>
-                          <p className="text-sm text-slate-300">{notification.message}</p>
+                          <p className="text-sm text-slate-300 whitespace-pre-wrap">{notification.message}</p>
                           <span className="text-xs text-slate-500 mt-1 block">{formatTimeAgo(notification.created_at)}</span>
                         </div>
                       </div>
