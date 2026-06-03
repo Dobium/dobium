@@ -1116,3 +1116,199 @@ a,
     height: 250px;
   }
 }
+
+/* ========================================
+   SPORTS MARKETS ADMIN PANEL
+   ======================================== */
+
+@keyframes sports-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* ── Sidebar ── */
+.sports-sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  background: rgba(7, 15, 30, 0.9);
+  border-right: 1px solid rgba(71, 85, 105, 0.25);
+  display: flex;
+  flex-direction: column;
+  min-height: 600px;
+}
+
+/* ── Event Card ── */
+.sports-event-card {
+  background: linear-gradient(135deg, rgba(13, 24, 41, 0.95), rgba(7, 16, 32, 0.95));
+  border: 1px solid rgba(71, 85, 105, 0.35);
+  border-radius: 14px;
+  padding: 18px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.18s, box-shadow 0.2s;
+  font-family: inherit;
+  width: 100%;
+}
+
+.sports-event-card:hover {
+  border-color: rgba(212, 175, 55, 0.45);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(212, 175, 55, 0.15);
+}
+
+/* ── Modal backdrop / card ── */
+.sports-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  padding: 20px;
+  animation: fadeInModal 0.18s ease-out;
+}
+
+.sports-modal-card {
+  background: linear-gradient(145deg, #0d1829, #070f1e);
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  border-radius: 18px;
+  padding: 26px;
+  width: 100%;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* ── Form controls ── */
+.sports-input {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  border-radius: 9px;
+  padding: 9px 12px;
+  color: #f1f5f9;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.sports-input:focus {
+  border-color: rgba(212, 175, 55, 0.6);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.08);
+}
+
+.sports-input option {
+  background: #0d1829;
+  color: #f1f5f9;
+}
+
+.sports-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+
+/* ── Buttons ── */
+.sports-btn-primary {
+  background: linear-gradient(135deg, #b8952a, #d4af37);
+  color: #0f172a;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.sports-btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.3);
+}
+
+.sports-btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sports-btn-secondary {
+  background: rgba(30, 41, 59, 0.8);
+  color: #94a3b8;
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.sports-btn-secondary:hover {
+  background: rgba(51, 65, 85, 0.8);
+  color: #f1f5f9;
+  border-color: rgba(100, 116, 139, 0.6);
+}
+
+.sports-icon-btn {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(71, 85, 105, 0.4);
+  border-radius: 8px;
+  color: #64748b;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.sports-icon-btn:hover {
+  color: #f1f5f9;
+  background: rgba(51, 65, 85, 0.8);
+}
+
+/* ── Radio card (binary resolution) ── */
+.sports-radio-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(71, 85, 105, 0.4);
+  border-radius: 11px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.sports-radio-card:hover {
+  border-color: rgba(212, 175, 55, 0.4);
+  background: rgba(212, 175, 55, 0.05);
+}
+
+.sports-radio-card.selected {
+  border-color: rgba(212, 175, 55, 0.6);
+  background: rgba(212, 175, 55, 0.08);
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.2);
+}
+
+/* ── Responsive collapse sidebar ── */
+@media (max-width: 700px) {
+  .sports-sidebar {
+    width: 56px;
+  }
+}

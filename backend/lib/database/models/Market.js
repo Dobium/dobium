@@ -17,7 +17,7 @@ const Market = sequelize.define('Market', {
     allowNull: false,
     validate: {
       notEmpty: true,
-      len: [10, 255]
+      len: [3, 255]
     }
   },
   description: {

@@ -130,7 +130,7 @@ function MiniChart({ market, outcomes, isBinary }) {
 
   const histories = sortedOutcomes.slice(0, displayCount).map(outcome => {
     let data;
-    if (priceHistory.length >= 2) {
+    if (priceHistory.length >= 2 && (market?.total_volume || 0) > 0) {
       // Use real price history — same source as the detail page chart
       data = priceHistory.map(snap => snap.prices?.[outcome.id] ?? outcome.probability ?? 50);
     } else {
@@ -161,7 +161,7 @@ function MiniChart({ market, outcomes, isBinary }) {
     return (
       <div key={outcome.id} className="flex items-center gap-0.5 sm:gap-1">
         <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0" style={{ background: color.line }}></span>
-        <span className="text-[9px] sm:text-xs truncate max-w-[40px] sm:max-w-[60px]" style={{ color: color.line }}>{normalizeOutcomeTitle(outcome.title)}</span>
+        <span className="text-[9px] sm:text-xs truncate max-w-[40px] sm:max-w-[60px]" style={{ color: color.line }}>{normalizeOutcomeTitle(outcome.title.replace(/\s*\(Yes\)$/i, ''))}</span>
         <span className="text-[9px] sm:text-xs text-slate-300">{Math.round(outcome.probability || 0)}¢</span>
       </div>
     );
@@ -190,10 +190,24 @@ export default function MarketCard({ market }) {
   const isMultiMultiple = marketType === 'multi_multiple' || marketType === 'multi_single';
 
   const rawOutcomes = market.outcomes || [];
-  const displaySourceOutcomes = isMultiMultiple ? rawOutcomes.filter(o => o.id.endsWith('_yes')) : rawOutcomes;
+  const hasYesNoPairs = rawOutcomes.some(o => o.id.endsWith('_yes'));
+  const displaySourceOutcomes = (isMultiMultiple && hasYesNoPairs) ? rawOutcomes.filter(o => o.id.endsWith('_yes')) : rawOutcomes;
 
-  // Sort outcomes highest → lowest probability
-  const outcomes = [...displaySourceOutcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0));
+  // Sort outcomes highest → lowest probability, or Yes/No for binary
+  const outcomes = [...displaySourceOutcomes];
+  if (isBinary && outcomes.length === 2) {
+    outcomes.sort((a, b) => {
+      const aTitle = a.title?.toLowerCase();
+      const bTitle = b.title?.toLowerCase();
+      if (aTitle === 'yes' || aTitle?.startsWith('over')) return -1;
+      if (bTitle === 'yes' || bTitle?.startsWith('over')) return 1;
+      if (aTitle === 'no' || aTitle?.startsWith('under')) return 1;
+      if (bTitle === 'no' || bTitle?.startsWith('under')) return -1;
+      return (b.probability || 0) - (a.probability || 0);
+    });
+  } else {
+    outcomes.sort((a, b) => (b.probability || 0) - (a.probability || 0));
+  }
   const typeLabel = isBinary ? 'Binary' : isMultiMultiple ? 'Multi-Independent' : 'Multi';
   const isResolved = market.status === 'resolved';
   const winningOutcomeIds = (() => {
@@ -207,6 +221,22 @@ export default function MarketCard({ market }) {
     }
   })();
   const winningOutcomeSet = new Set(winningOutcomeIds);
+
+  const sportsMeta = (() => {
+    if (market.category === 'sports' && market.description) {
+      try {
+        const parsed = JSON.parse(market.description);
+        if (parsed.is_sports) return parsed;
+      } catch (e) {
+        // Not JSON
+      }
+    }
+    return null;
+  })();
+
+  const homeLogo = sportsMeta?.home_logo;
+  const awayLogo = sportsMeta?.away_logo;
+  const eventImage = sportsMeta?.event_image || (!sportsMeta && market.image_url);
 
   let outcomeButtons;
   if (isBinary) {
@@ -296,21 +326,73 @@ export default function MarketCard({ market }) {
             </span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-            <span className={`text-[10px] sm:text-xs font-medium flex items-center gap-1 ${isResolved ? 'text-yellow-400' : 'text-green-400'}`}>
-              <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full inline-block ${isResolved ? 'bg-yellow-400' : 'bg-green-400 animate-pulse'}`}></span>
-              {isResolved ? 'Resolved' : 'Live'}
-            </span>
-            {!isResolved && market.close_date && (
+            {sportsMeta && sportsMeta.match_state ? (
+              <span className={`text-[10px] sm:text-xs font-bold flex items-center gap-1.5 px-2 py-0.5 rounded border ${sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time' ? 'bg-slate-800 text-slate-300 border-slate-700' :
+                sportsMeta.match_state === 'overtime' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                  sportsMeta.match_state === 'halftime' || sportsMeta.match_state === 'half-time' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
+                    sportsMeta.match_state === 'in_progress' || sportsMeta.match_state === 'live' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
+                      'bg-slate-800 text-slate-400 border-slate-700'
+                }`}>
+                {(sportsMeta.match_state === 'in_progress' || sportsMeta.match_state === 'live' || sportsMeta.match_state === 'overtime') && (
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full inline-block bg-current animate-pulse"></span>
+                )}
+                {sportsMeta.match_state === 'in_progress' && `Period ${sportsMeta.current_period || 1}`}
+                {sportsMeta.match_state === 'live' && 'Live'}
+                {(sportsMeta.match_state === 'halftime' || sportsMeta.match_state === 'half-time') && 'Half Time'}
+                {sportsMeta.match_state === 'overtime' && 'OVERTIME'}
+                {(sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time') && 'Final'}
+                {(sportsMeta.match_state === 'upcoming' || sportsMeta.match_state === 'pre-match') && 'Upcoming'}
+
+                {sportsMeta.clock_running && <span className="ml-1 opacity-70">⏱</span>}
+              </span>
+            ) : (
+              <span className={`text-[10px] sm:text-xs font-medium flex items-center gap-1 ${isResolved ? 'text-yellow-400' : 'text-green-400'}`}>
+                <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full inline-block ${isResolved ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
+                {isResolved ? 'Resolved' : 'Open'}
+              </span>
+            )}
+            {!isResolved && market.close_date && (!sportsMeta || sportsMeta.match_state === 'upcoming' || !sportsMeta.match_state) && (
               <CountdownTimer targetDate={market.close_date} />
             )}
           </div>
         </div>
+
+        {homeLogo && awayLogo && (
+          <div className="flex items-center justify-center gap-3 py-2 px-3 bg-slate-800/30 border border-slate-700/30 rounded-xl mb-1 mt-1">
+            <div className="flex items-center gap-2">
+              <img src={homeLogo} className="w-7 h-7 rounded-full object-cover border border-slate-650 bg-slate-950 shadow-sm" alt="Home" />
+              <span className="text-[10px] text-slate-300 font-bold max-w-[70px] truncate">{sportsMeta.home_team}</span>
+            </div>
+            <span className="text-[9px] text-yellow-500 font-black bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded">VS</span>
+            <div className="flex items-center gap-2">
+              <img src={awayLogo} className="w-7 h-7 rounded-full object-cover border border-slate-650 bg-slate-950 shadow-sm" alt="Away" />
+              <span className="text-[10px] text-slate-300 font-bold max-w-[70px] truncate">{sportsMeta.away_team}</span>
+            </div>
+          </div>
+        )}
+
+        {!homeLogo && eventImage && (
+          <div className="w-full h-24 rounded-xl overflow-hidden mt-1 mb-1 border border-slate-800 relative">
+            <img src={eventImage} className="w-full h-full object-cover" alt="Banner" />
+          </div>
+        )}
 
         <MiniChart market={market} outcomes={outcomes} isBinary={isBinary} />
 
         <h3 className="text-sm sm:text-base font-semibold text-white mb-1 sm:mb-2 line-clamp-2 group-hover:text-yellow-400 transition-colors leading-snug">
           {market.title}
         </h3>
+
+        {sportsMeta && (
+          <div className="flex flex-col gap-1 text-[10px] text-slate-400 mt-1 mb-2 bg-slate-950/20 p-2 rounded-lg border border-slate-800/50">
+            <div className="flex justify-between items-center">
+              <span>📅 Start:</span>
+              <span className="text-slate-300 font-semibold">
+                {sportsMeta.event_date ? new Date(sportsMeta.event_date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+              </span>
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-1.5 sm:gap-2 mt-auto">
           {outcomeButtons}

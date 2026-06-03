@@ -51,6 +51,8 @@ function buildDigestHtml({
   equityPoints,
   accuracyTrend = 0,
   activePositions = [],
+  leagueStanding = null,
+  lastLeagueResolution = null,
 }) {
   const year = new Date().getFullYear();
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -163,6 +165,55 @@ function buildDigestHtml({
           </table>
         </td></tr>` : '';
 
+  const leagueStandingHtml = leagueStanding ? `
+        <!-- League Standing -->
+        <tr><td style="background:#071428;padding:10px 32px 28px;">
+          <p style="margin:0 0 14px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#475569;">Your League Standing</p>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #1e3a5f;border-radius:12px;overflow:hidden;background:#0a1628;">
+            <tr>
+              <td style="padding:16px;">
+                <div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">${escHtml(leagueStanding.league_name || 'Forecast League')}</div>
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="font-size:12px;color:#94a3b8;">Rank</td>
+                    <td align="right" style="font-size:15px;font-weight:800;color:#d4af37;">${leagueStanding.rank ? '#' + leagueStanding.rank : 'Unranked'}</td>
+                  </tr>
+                  <tr>
+                    <td style="font-size:12px;color:#94a3b8;padding-top:6px;">Points</td>
+                    <td align="right" style="font-size:13px;font-weight:700;color:#f1f5f9;padding-top:6px;">${Number(leagueStanding.points || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                  </tr>
+                  <tr>
+                    <td style="font-size:12px;color:#94a3b8;padding-top:6px;">Open markets</td>
+                    <td align="right" style="font-size:13px;font-weight:700;color:#f1f5f9;padding-top:6px;">${leagueStanding.open_markets || 0}</td>
+                  </tr>
+                </table>
+                <div style="font-size:11px;color:#64748b;line-height:1.6;margin-top:10px;">Standings can change while markets are still open.</div>
+              </td>
+            </tr>
+          </table>
+        </td></tr>` : '';
+
+  const lastLeagueResolutionHtml = lastLeagueResolution ? `
+        <!-- Last League Resolution -->
+        <tr><td style="background:#071428;padding:0 32px 28px;">
+          <p style="margin:0 0 14px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#475569;">Last Resolution</p>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #1e3a5f;border-radius:12px;overflow:hidden;background:#0a1628;">
+            <tr>
+              <td style="padding:16px;">
+                <div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:6px;line-height:1.4;">${escHtml(lastLeagueResolution.market_title || 'Resolved market')}</div>
+                <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+                  Outcome: <strong style="color:#d4af37;">${escHtml(lastLeagueResolution.outcome || '')}</strong><br/>
+                  Entry probability: <strong style="color:#f1f5f9;">${Math.round(Number(lastLeagueResolution.probability || 0) * 100)}%</strong><br/>
+                  Timing tier: <strong style="color:#f1f5f9;">${escHtml(lastLeagueResolution.timing_tier || 'B')}</strong><br/>
+                  Called It: <strong style="color:${lastLeagueResolution.called_it ? '#4ade80' : '#94a3b8'};">${lastLeagueResolution.called_it ? 'Yes' : 'No'}</strong><br/>
+                  Points: <strong style="color:#d4af37;">${Number(lastLeagueResolution.points || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong>
+                  ${lastLeagueResolution.new_rank ? `<br/>New rank: <strong style="color:#f1f5f9;">#${lastLeagueResolution.new_rank}</strong>` : ''}
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td></tr>` : '';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -237,6 +288,10 @@ function buildDigestHtml({
         ${noTradesBanner}
 
         ${positionsHtml}
+
+        ${leagueStandingHtml}
+
+        ${lastLeagueResolutionHtml}
 
         <!-- CTA -->
         <tr><td align="center" style="background:#071428;padding:24px 32px 36px;">

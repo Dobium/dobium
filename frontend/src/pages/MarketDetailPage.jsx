@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMarket, useMarkets } from '../hooks/useMarkets';
 import { useAuth } from '../hooks/useAuth';
@@ -6,28 +6,79 @@ import { useWallet } from '../hooks/useWallet';
 import { api } from '../api/client';
 import { CATEGORY_COLORS, formatCurrency, formatDate } from '../store/storage';
 
-function PriceChart({ outcomes, priceHistory }) {
+function PriceChart({ outcomes, priceHistory, totalVolume }) {
   const width = 800;
   const height = 200;
   const padding = 20;
 
   const [hoverIdx, setHoverIdx] = useState(null);
   const svgRef = useRef(null);
+  const [selectedIds, setSelectedIds] = useState([]);
 
-  // Only chart the top 4 highest-probability outcomes to keep the chart readable
-  const chartOutcomes = [...outcomes]
-    .sort((a, b) => (b.probability || 0) - (a.probability || 0))
-    .slice(0, 4);
+  // Initialize selectedIds when outcomes list changes (e.g. new market loaded or refreshed)
+  useEffect(() => {
+    if (outcomes && outcomes.length > 0) {
+      const outcomesIds = outcomes.map(o => o.id);
+      // Check if current selectedIds are all valid in the new outcomes list
+      const hasValidSelection = selectedIds.length > 0 && selectedIds.every(id => outcomesIds.includes(id));
 
-  const dataLength = (priceHistory && priceHistory.length > 0)
+      if (!hasValidSelection) {
+        const initialSelected = [...outcomes]
+          .sort((a, b) => (b.probability || 0) - (a.probability || 0))
+          .slice(0, 4)
+          .map(o => o.id);
+        setSelectedIds(initialSelected);
+      }
+    }
+  }, [outcomes, selectedIds]);
+
+  // Helper to get a stable, distinct color for each outcome
+  const getOutcomeColor = (o) => {
+    if (outcomes.length === 2) {
+      if (o.title?.toLowerCase() === 'yes') return '#22c55e';
+      if (o.title?.toLowerCase() === 'no') return '#ef4444';
+    }
+    const idx = outcomes.findIndex(x => x.id === o.id);
+    const colors = [
+      '#3b82f6', // blue
+      '#f59e0b', // amber
+      '#8b5cf6', // purple
+      '#06b6d4', // cyan
+      '#ec4899', // pink
+      '#10b981', // emerald
+      '#f43f5e', // rose
+      '#84cc16', // lime
+      '#a855f7', // purple-bright
+      '#6366f1'  // indigo
+    ];
+    return colors[idx % colors.length] || '#3b82f6';
+  };
+
+  // Toggle selection state with max 4 outcomes, maintaining at least 1 outcome displayed
+  const handleToggle = (id) => {
+    if (selectedIds.includes(id)) {
+      if (selectedIds.length > 1) {
+        setSelectedIds(selectedIds.filter(x => x !== id));
+      }
+    } else {
+      if (selectedIds.length < 4) {
+        setSelectedIds([...selectedIds, id]);
+      }
+    }
+  };
+
+  // Only chart selected outcomes
+  const chartOutcomes = outcomes.filter(o => selectedIds.includes(o.id));
+
+  const dataLength = (priceHistory && priceHistory.length >= 2 && totalVolume > 0)
     ? Math.max(2, priceHistory.length + 1)
     : 2;
 
   // Use real price history or generate initial flat line if no history exists
-  const histories = chartOutcomes.map((o, idx) => {
+  const histories = chartOutcomes.map((o) => {
     let data;
 
-    if (priceHistory && priceHistory.length > 0) {
+    if (priceHistory && priceHistory.length >= 2 && totalVolume > 0) {
       // Extract price data for this outcome from history
       data = priceHistory.map(snapshot => snapshot.prices[o.id] ?? o.probability ?? 20);
 
@@ -42,16 +93,15 @@ function PriceChart({ outcomes, priceHistory }) {
       }
     } else {
       // No history yet - show flat line at current price
-      data = [o.probability || 20, o.probability || 20];
+      const currentProb = o.probability ?? 20;
+      data = [currentProb, currentProb];
     }
 
     return {
       id: o.id,
       title: o.title,
       data: data,
-      color: o.title?.toLowerCase() === 'yes' ? '#22c55e' :
-        o.title?.toLowerCase() === 'no' ? '#ef4444' :
-          ['#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899'][idx % 5]
+      color: getOutcomeColor(o)
     };
   });
 
@@ -168,15 +218,44 @@ function PriceChart({ outcomes, priceHistory }) {
         </div>
       )}
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-4 mt-4 justify-center">
-        {histories.map(h => (
-          <div key={h.id} className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full" style={{ background: h.color }}></span>
-            <span className="text-xs text-slate-400">{h.title}</span>
-            <span className="text-xs text-white font-medium">{Math.round(h.data[h.data.length - 1])}¢</span>
-          </div>
-        ))}
+      {/* Interactive Selectors / Legend */}
+      <div className="flex flex-wrap gap-2 mt-6 justify-center">
+        {outcomes.map((o) => {
+          const isSelected = selectedIds.includes(o.id);
+          const canSelect = selectedIds.length < 4;
+          const disabled = !isSelected && !canSelect;
+          const color = getOutcomeColor(o);
+
+          return (
+            <button
+              key={o.id}
+              disabled={disabled}
+              onClick={() => handleToggle(o.id)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 ${isSelected
+                ? 'text-white border-transparent'
+                : 'text-slate-400 hover:text-white border-slate-700/60 bg-slate-800/40 hover:bg-slate-800/80'
+                } ${disabled
+                  ? 'opacity-30 cursor-not-allowed border-slate-800 bg-transparent text-slate-500 hover:text-slate-500'
+                  : ''
+                }`}
+              style={{
+                borderColor: isSelected ? color : undefined,
+                backgroundColor: isSelected ? `${color}20` : undefined,
+              }}
+            >
+              <span
+                className="w-2.5 h-2.5 rounded-full transition-colors duration-200"
+                style={{
+                  backgroundColor: isSelected ? color : '#475569',
+                }}
+              />
+              <span className="truncate max-w-[120px]">{o.title}</span>
+              <span className={isSelected ? 'text-slate-300 font-medium' : 'text-slate-500 font-normal'}>
+                {Math.round(o.probability || 0)}%
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -206,6 +285,16 @@ export default function MarketDetailPage() {
   const navigate = useNavigate();
   const [selectedOutcome, setSelectedOutcome] = useState(null);
 
+  const sportsMeta = useMemo(() => {
+    if (market?.category === 'sports' && market?.description) {
+      try {
+        const parsed = JSON.parse(market.description);
+        if (parsed.is_sports) return parsed;
+      } catch (e) { }
+    }
+    return null;
+  }, [market]);
+
   // Sort outcomes highest → lowest probability so top picks are always first
   const sortedOutcomes = market?.outcomes
     ? [...market.outcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0))
@@ -233,6 +322,7 @@ export default function MarketDetailPage() {
   const [sellAmount, setSellAmount] = useState('');
   const [sellLoading, setSellLoading] = useState(false);
   const [sellMsg, setSellMsg] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const { balance: buyingPower, loading: buyingPowerLoading, refetch: refetchWallet } = useWallet();
 
   // Fetch user's positions for this market
@@ -275,6 +365,7 @@ export default function MarketDetailPage() {
   const outcomes = sortedOutcomes;   // sorted highest → lowest probability
   const marketType = market.market_type || 'binary';
   const isMultiMultiple = marketType === 'multi_multiple' || marketType === 'multi_single';
+  const hasYesNoPairs = outcomes.some(o => o.id.endsWith('_yes'));
   const yesOutcome = outcomes.find(o => o.title?.toLowerCase() === 'yes') || outcomes[0];
 
   const relatedMarkets = markets?.filter(m => m.id !== market?.id && m.status === 'active' && m.category === market?.category).slice(0, 3) || [];
@@ -358,6 +449,32 @@ export default function MarketDetailPage() {
     ? calculatePayoutBounds(parseFloat(stake), selectedOutcome.probability || 50)
     : null;
 
+  const displayDescription = (() => {
+    if (!market?.description) return '';
+    try {
+      const parsed = JSON.parse(market.description);
+      if (parsed.is_sports) {
+        const dateStr = parsed.event_date ? new Date(parsed.event_date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+        const isGame = (parsed.is_sports && (parsed.event_type || 'game') === 'game');
+        if (isGame) {
+          return `Sports Match: ${parsed.home_team || 'Home'} vs ${parsed.away_team || 'Away'} (${parsed.league || 'General'}). Scheduled for ${dateStr}.`;
+        } else {
+          const typeLabel = parsed.event_type === 'future' ? 'Future' : 'Award';
+          return `Sports ${typeLabel}: ${parsed.event_name || 'Event'} (${parsed.league || 'General'}). Scheduled for ${dateStr}.`;
+        }
+      }
+    } catch (e) {
+      // Not JSON
+    }
+    return market.description;
+  })();
+
+
+
+  const homeLogo = sportsMeta?.home_logo;
+  const awayLogo = sportsMeta?.away_logo;
+  const eventImage = sportsMeta?.event_image || (!sportsMeta && market?.image_url);
+
   return (
     <div className="max-w-7xl mx-auto p-6 lg:p-8">
       <button
@@ -368,23 +485,85 @@ export default function MarketDetailPage() {
         <span>Back</span>
       </button>
 
+      {homeLogo && awayLogo && (
+        <div className="flex items-center justify-center gap-6 py-6 px-8 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl mb-6 max-w-xl shadow-2xl">
+          <div className="flex flex-col items-center gap-2">
+            <img src={homeLogo} className="w-16 h-16 rounded-full object-cover border-2 border-slate-700 bg-slate-950 shadow-lg" alt="Home" />
+            <span className="text-sm text-white font-bold">{sportsMeta.home_team}</span>
+          </div>
+          <span className="text-xs text-yellow-500 font-extrabold bg-yellow-500/10 border border-yellow-500/20 px-3 py-1 rounded-lg">VS</span>
+          <div className="flex flex-col items-center gap-2">
+            <img src={awayLogo} className="w-16 h-16 rounded-full object-cover border-2 border-slate-700 bg-slate-950 shadow-lg" alt="Away" />
+            <span className="text-sm text-white font-bold">{sportsMeta.away_team}</span>
+          </div>
+        </div>
+      )}
+
+      {!homeLogo && eventImage && (
+        <div className="w-full h-48 sm:h-64 rounded-2xl overflow-hidden mb-6 border border-slate-800 shadow-xl relative">
+          <img src={eventImage} className="w-full h-full object-cover" alt="Banner" />
+        </div>
+      )}
+
+      {sportsMeta && (
+        <div className="mb-6 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl" style={{ textShadow: '0 0 10px rgba(212,175,55,0.3)' }}>
+              {sportsMeta.sport === 'basketball' ? '🏀' : sportsMeta.sport === 'soccer' ? '⚽' : sportsMeta.sport === 'football' ? '🏈' : sportsMeta.sport === 'baseball' ? '⚾' : sportsMeta.sport === 'tennis' ? '🎾' : '🏅'}
+            </span>
+            <div>
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Tournament / League</div>
+              <div className="text-sm sm:text-base text-white font-black">{sportsMeta.league || 'General'}</div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-4 sm:gap-8 border-t sm:border-t-0 border-slate-800/50 pt-3 sm:pt-0">
+            <div>
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">📅 Event Start (Locks Betting)</div>
+              <div className="text-xs sm:text-sm text-slate-200 font-semibold mt-0.5">
+                {sportsMeta.event_date ? new Date(sportsMeta.event_date).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-3">
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${CATEGORY_COLORS[market.category] || 'from-slate-500 to-slate-600'} text-white`}>
             {market.category}
           </span>
-          <span className={`flex items-center gap-1.5 text-xs font-medium ${market.status === 'active' ? 'text-green-400' : 'text-yellow-400'}`}>
-            <span className={`w-2 h-2 rounded-full ${market.status === 'active' ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`}></span>
-            {market.status === 'active' ? 'Open' : 'Resolved'}
-          </span>
+          {sportsMeta && sportsMeta.match_state ? (
+            <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded border ${sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time' ? 'bg-slate-800 text-slate-300 border-slate-700' :
+              sportsMeta.match_state === 'overtime' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                sportsMeta.match_state === 'halftime' || sportsMeta.match_state === 'half-time' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
+                  sportsMeta.match_state === 'in_progress' || sportsMeta.match_state === 'live' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
+                    'bg-slate-800 text-slate-400 border-slate-700'
+              }`}>
+              {(sportsMeta.match_state === 'in_progress' || sportsMeta.match_state === 'live' || sportsMeta.match_state === 'overtime') && (
+                <span className="w-1.5 h-1.5 rounded-full inline-block bg-current animate-pulse"></span>
+              )}
+              {sportsMeta.match_state === 'in_progress' && `Period ${sportsMeta.current_period || 1}`}
+              {sportsMeta.match_state === 'live' && 'Live'}
+              {(sportsMeta.match_state === 'halftime' || sportsMeta.match_state === 'half-time') && 'Half Time'}
+              {sportsMeta.match_state === 'overtime' && 'OVERTIME'}
+              {(sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time') && 'Final'}
+              {(sportsMeta.match_state === 'upcoming' || sportsMeta.match_state === 'pre-match') && 'Upcoming'}
+              {sportsMeta.clock_running && <span className="ml-1 opacity-70">⏱</span>}
+            </span>
+          ) : (
+            <span className={`flex items-center gap-1.5 text-xs font-medium ${market.status === 'active' ? 'text-green-400' : 'text-yellow-400'}`}>
+              <span className={`w-2 h-2 rounded-full ${market.status === 'active' ? 'bg-green-400' : 'bg-yellow-400'}`}></span>
+              {market.status === 'active' ? 'Open' : 'Resolved'}
+            </span>
+          )}
         </div>
         <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">{market.title}</h1>
-        <p className="text-slate-400 text-sm md:text-base">{market.description}</p>
+        <p className="text-slate-400 text-sm md:text-base">{displayDescription}</p>
         <div className="flex items-center gap-4 mt-4 text-sm text-slate-500">
           <span>Volume: ${(market.total_volume || 0).toLocaleString()}</span>
-          {market.close_date && <span>Closes: {formatDate(market.close_date)}</span>}
-          {market.resolution_date && <span>Resolved: {formatDate(market.resolution_date)}</span>}
+          {!sportsMeta && market.close_date && <span>Closes: {formatDate(market.close_date)}</span>}
+          {!sportsMeta && market.resolution_date && <span>Resolved: {formatDate(market.resolution_date)}</span>}
         </div>
       </div>
 
@@ -418,13 +597,33 @@ export default function MarketDetailPage() {
             ))}
           </div>
         </div>
-        <PriceChart outcomes={outcomes} priceHistory={market.price_history} />
+        <PriceChart
+          outcomes={(isMultiMultiple && hasYesNoPairs) ? outcomes.filter(o => o.id.endsWith('_yes')).map(o => ({ ...o, title: o.title.replace(/\s*\(Yes\)$/i, '') })) : outcomes}
+          priceHistory={market.price_history}
+          totalVolume={market.total_volume}
+        />
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left Column: Outcomes */}
         <div className="flex-1 min-w-0">
-          <h2 className="text-xl font-semibold text-white mb-4">Outcomes</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-white">Outcomes</h2>
+            {outcomes.length >= 10 && (
+              <div className="relative w-48 sm:w-64">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search outcomes..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700/50 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
+                />
+              </div>
+            )}
+          </div>
           {(() => {
             const renderOutcome = (o, displayTitleOverride = null) => {
               const displayTitle = displayTitleOverride || o.title;
@@ -607,10 +806,13 @@ export default function MarketDetailPage() {
               );
             };
 
-            if (isMultiMultiple) {
+            if (isMultiMultiple && hasYesNoPairs) {
               return (
                 <div className="space-y-6">
-                  {outcomes.filter(o => o.id.endsWith('_yes')).map(yes => {
+                  {outcomes.filter(o => o.id.endsWith('_yes')).filter(yes => {
+                    const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
+                    return baseTitle.toLowerCase().includes(searchQuery.toLowerCase());
+                  }).map(yes => {
                     const no = outcomes.find(o => o.id === yes.id.replace('_yes', '_no'));
                     if (!yes || !no) return null;
                     const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
@@ -628,7 +830,8 @@ export default function MarketDetailPage() {
               );
             }
 
-            return <div className="space-y-3">{outcomes.map(o => renderOutcome(o))}</div>;
+            const filteredOutcomes = outcomes.filter(o => o.title.toLowerCase().includes(searchQuery.toLowerCase()));
+            return <div className="space-y-3">{filteredOutcomes.map(o => renderOutcome(o))}</div>;
           })()}
         </div>
 
@@ -774,6 +977,6 @@ export default function MarketDetailPage() {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }

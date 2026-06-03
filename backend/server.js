@@ -22,11 +22,21 @@ const {
   Outcome,
   Prediction,
   PriceHistory,
+  LeaguePrediction,
+  PositionExit,
+  LeagueScore,
+  CalledItEntry,
+  MainEvent,
+  MainEventMarket,
+  ForecastLeague,
+  LeagueMember,
+  LeagueTimingWindow,
   initializeDatabase
 } = require('./lib/database/models');
 const { sendEmail } = require('./lib/email');
 const { buildResolutionHtml } = require('./lib/resolution-email');
 const { registerDailyDigestJob, getUserStats } = require('./jobs/daily-digest');
+const leagueService = require('./lib/leagueService');
 
 const Notification = sequelize.define('Notification', {
   id: {
@@ -455,6 +465,7 @@ function recomputeProbabilities(outcomes, totalVolume, marketType) {
     
     return priced;
   }
+  
   const n = outcomes.length;
   const denom = n * BASE_LIQUIDITY + totalVolume;
   const raw = outcomes.map(o => (BASE_LIQUIDITY + parseFloat(o.total_stake || 0)) / denom * 100);
@@ -554,8 +565,8 @@ function resolveOutcomeIds(market, requestedOutcomeIds) {
     throw Object.assign(new Error('winning_outcome_id or winning_outcome_ids is required'), { status: 400 });
   }
 
-  if (market.market_type !== 'multi_multiple' && ids.length > 1) {
-    throw Object.assign(new Error('Only multi-select markets can resolve with multiple winning outcomes'), { status: 400 });
+  if (market.market_type === 'binary' && ids.length > 1) {
+    throw Object.assign(new Error('Binary markets can only resolve with a single winning outcome'), { status: 400 });
   }
 
   const resolvedIds = ids.map((id) => {
@@ -573,45 +584,88 @@ function resolveOutcomeIds(market, requestedOutcomeIds) {
 
 async function resolveMarketInstance(market, requestedOutcomeIds, options = {}) {
   const transaction = options.transaction;
+  const partial = options.partial || false;
   const resolutionDate = options.resolutionDate ? new Date(options.resolutionDate) : new Date();
-  const winningOutcomeIds = resolveOutcomeIds(market, requestedOutcomeIds);
-  const winningSet = new Set(winningOutcomeIds);
+  
+  const newlyWinningIds = resolveOutcomeIds(market, requestedOutcomeIds);
+  
+  let existingWinningIds = [];
+  if (market.winning_outcome_id) {
+    try {
+      const parsed = JSON.parse(market.winning_outcome_id);
+      existingWinningIds = Array.isArray(parsed) ? parsed : [market.winning_outcome_id];
+    } catch {
+      existingWinningIds = [market.winning_outcome_id];
+    }
+  }
+  
+  const allWinningIds = [...new Set([...existingWinningIds, ...newlyWinningIds])];
+  const allWinningSet = new Set(allWinningIds);
+
+  const resolvedPrefixes = new Set();
+  newlyWinningIds.forEach(id => {
+    if (id.endsWith('_yes')) resolvedPrefixes.add(id.slice(0, -4));
+    if (id.endsWith('_no')) resolvedPrefixes.add(id.slice(0, -3));
+  });
+
+  const finalizedOutcomeIds = new Set();
+  if (partial) {
+    market.outcomes.forEach(o => {
+      let isFinalized = false;
+      for (const prefix of resolvedPrefixes) {
+        if (o.id === `${prefix}_yes` || o.id === `${prefix}_no`) {
+          isFinalized = true;
+          break;
+        }
+      }
+      if (isFinalized) finalizedOutcomeIds.add(o.id);
+    });
+  } else {
+    market.outcomes.forEach(o => finalizedOutcomeIds.add(o.id));
+  }
 
   await market.update({
-    status: 'resolved',
-    winning_outcome_id: serializeWinningOutcomeIds(winningOutcomeIds),
-    resolution_date: resolutionDate
+    status: partial ? 'active' : 'resolved',
+    winning_outcome_id: serializeWinningOutcomeIds(allWinningIds),
+    resolution_date: partial ? market.resolution_date : resolutionDate
   }, { transaction });
 
   for (const outcome of market.outcomes) {
-    await outcome.update({
-      probability: winningSet.has(outcome.id) ? 100 : 0
-    }, { transaction });
+    if (finalizedOutcomeIds.has(outcome.id)) {
+      await outcome.update({
+        probability: allWinningSet.has(outcome.id) ? 100 : 0
+      }, { transaction });
+    }
   }
 
   const predictions = await Prediction.findAll({
     where: { market_id: market.id, status: 'active' },
     transaction
   });
+  
+  const predictionsToResolve = predictions.filter(p => finalizedOutcomeIds.has(p.outcome_id));
 
   const users = await User.findAll({ transaction });
-  const resolutionNotifications = users.map(u => ({
-    id: nanoid(12),
-    user_id: u.id,
-    type: 'market_resolved',
-    title: 'Market Resolved',
-    message: `The market "${market.title}" has been resolved.`,
-    link: `/markets/${market.id}`,
-    is_read: false,
-    created_at: resolutionDate
-  }));
-  if (resolutionNotifications.length > 0) {
-    const created = await Notification.bulkCreate(resolutionNotifications, { transaction, returning: true });
-    created.forEach(n => broadcastNotification(n.toJSON()));
+  
+  if (!partial) {
+    const resolutionNotifications = users.map(u => ({
+      id: nanoid(12),
+      user_id: u.id,
+      type: 'market_resolved',
+      title: 'Market Resolved',
+      message: `The market "${market.title}" has been resolved.`,
+      link: `/markets/${market.id}`,
+      is_read: false,
+      created_at: resolutionDate
+    }));
+    if (resolutionNotifications.length > 0) {
+      const created = await Notification.bulkCreate(resolutionNotifications, { transaction, returning: true });
+      created.forEach(n => broadcastNotification(n.toJSON()));
+    }
   }
 
-  for (const prediction of predictions) {
-    const won = winningSet.has(prediction.outcome_id);
+  for (const prediction of predictionsToResolve) {
+    const won = allWinningSet.has(prediction.outcome_id);
     const outcomeObj = market.outcomes.find(o => o.id === prediction.outcome_id);
     const outcomeTitle = outcomeObj ? outcomeObj.title : 'Unknown Outcome';
 
@@ -691,34 +745,24 @@ async function resolveMarketInstance(market, requestedOutcomeIds, options = {}) 
         actualReturn,
         pnl,
         newBalance: balanceInfo.buyingPower,
-        feedback
+        isPartial: partial
       });
-      const subject = won ? `Prediction Won! 🎉 - ${market.title}` : `Prediction Lost 📉 - ${market.title}`;
-      const text = won
-        ? `Your prediction won! Return: $${actualReturn.toFixed(2)} (Profit: +$${pnl.toFixed(2)}) | New Balance: $${balanceInfo.buyingPower.toFixed(2)}\n\nFeedback: ${feedback}`
-        : `Your prediction lost. Return: $${actualReturn.toFixed(2)} (Loss: -$${Math.abs(pnl).toFixed(2)}) | New Balance: $${balanceInfo.buyingPower.toFixed(2)}\n\nFeedback: ${feedback}`;
-      sendEmail({ to: user.email, subject, text, html }).catch(err => console.error('Failed to send resolution email:', err.message));
+
+      await sendEmail({
+        to: user.email,
+        subject: won ? `You won! Market "${market.title}" resolved 💰` : `Market "${market.title}" resolved`,
+        text: `Your position on ${outcomeTitle} ${won ? 'won' : 'lost'}! Return: ${actualReturn.toFixed(2)}`,
+        html
+      });
     }
 
-    if (won) {
+    if (prediction.user_id && prediction.user_id !== 'demo_user') {
       const notification = await Notification.create({
         id: nanoid(12),
         user_id: prediction.user_id,
-        type: 'prediction_won_modal',
-        title: 'Prediction Won! 🎉',
-        message: `Your position in "${market.title}" won! You received a return of $${actualReturn.toFixed(2)}.\n\n${feedback}`,
-        link: `/markets/${market.id}`,
-        is_read: false,
-        created_at: resolutionDate
-      }, { transaction });
-      broadcastNotification(notification.toJSON());
-    } else {
-      const notification = await Notification.create({
-        id: nanoid(12),
-        user_id: prediction.user_id,
-        type: 'prediction_lost_modal',
-        title: 'Prediction Lost 📉',
-        message: `Your position in "${market.title}" lost. You received a partial refund of $${actualReturn.toFixed(2)}.\n\n${feedback}`,
+        type: won ? 'prediction_won' : 'prediction_lost',
+        title: won ? 'Prediction Won! 🏆' : 'Prediction Lost',
+        message: `Your position on "${outcomeTitle}" in "${market.title}" ${won ? 'won' : 'lost'}. ${feedback}`,
         link: `/markets/${market.id}`,
         is_read: false,
         created_at: resolutionDate
@@ -727,11 +771,14 @@ async function resolveMarketInstance(market, requestedOutcomeIds, options = {}) 
     }
   }
 
-  return {
-    market,
-    winningOutcomeIds
-  };
+  // Record a price history snapshot with the final resolved prices (100 or 0 for finalized ones)
+  const allOutcomes = await Outcome.findAll({ where: { market_id: market.id }, transaction });
+  const prices = Object.fromEntries(allOutcomes.map(o => [o.id, o.probability]));
+  await PriceHistory.create({ market_id: market.id, timestamp: new Date(), prices }, { transaction });
+
+  return { winningOutcomeIds: allWinningIds };
 }
+
 
 /**
  * Fetch all markets formatted for the frontend
@@ -741,9 +788,9 @@ async function getAllMarketsFormatted(whereClause = {}) {
     where: whereClause,
     include: [
       { model: Outcome, as: 'outcomes' },
-      { model: PriceHistory, as: 'price_history' }
+      { model: PriceHistory, as: 'price_history', separate: true, order: [['timestamp', 'ASC']] }
     ],
-    order: [['created_at', 'DESC'], [{ model: PriceHistory, as: 'price_history' }, 'timestamp', 'ASC']]
+    order: [['created_at', 'DESC']]
   });
   return markets.map(formatMarketResponse);
 }
@@ -836,6 +883,364 @@ async function checkPositionAlerts(marketId, newPrices, transaction) {
 }
 
 // ============================================================================
+// MAIN EVENTS & GLOBAL LEADERBOARD
+// ============================================================================
+
+app.get('/api/events', async (req, res) => {
+  try {
+    const events = await MainEvent.findAll({
+      where: { status: { [Op.in]: ['upcoming', 'active'] } },
+      order: [['event_date', 'ASC']]
+    });
+    res.json(events);
+  } catch (error) {
+    console.error('List events error:', error);
+    res.status(500).json({ error: 'Failed to fetch events' });
+  }
+});
+
+app.get('/api/leaderboard/global', async (req, res) => {
+  try {
+    const scores = await LeagueScore.findAll({
+      attributes: [
+        'user_id',
+        [Sequelize.fn('SUM', Sequelize.col('total_points')), 'global_points']
+      ],
+      include: [{ model: User, as: 'user', attributes: ['username'] }],
+      group: ['user_id', 'user.id', 'user.username'],
+      order: [[Sequelize.literal('global_points'), 'DESC']],
+      limit: 10
+    });
+    
+    const formatted = scores.map((s, index) => ({
+      rank: index + 1,
+      user_id: s.user_id,
+      username: s.user?.username || s.user_id.slice(0, 8),
+      total_points: s.getDataValue('global_points')
+    }));
+    
+    res.json(formatted);
+  } catch (error) {
+    console.error('Global leaderboard error:', error);
+    res.status(500).json({ error: 'Failed to fetch global leaderboard' });
+  }
+});
+
+// ============================================================================
+
+// ============================================================================
+// FORECAST LEAGUES ENDPOINTS
+// ============================================================================
+
+app.get('/api/leagues', async (req, res) => {
+  try {
+    const { user_id } = req.query;
+    if (user_id) {
+      const memberships = await LeagueMember.findAll({
+        where: { user_id },
+        include: [{
+          model: ForecastLeague,
+          as: 'league',
+          where: { event_id: { [Op.not]: null } }, // Ignore old leagues
+          include: [
+            { model: MainEvent, as: 'event' },
+            { model: LeagueMember, as: 'members' },
+            { model: LeagueScore, as: 'scores' },
+            { model: LeagueTimingWindow, as: 'timing_windows' }
+          ]
+        }],
+        order: [['joined_at', 'DESC']]
+      });
+      return res.json(memberships.map(membership => {
+        const league = membership.league?.toJSON ? membership.league.toJSON() : membership.league;
+        const score = (league?.scores || []).find(s => s.user_id === user_id);
+        return {
+          ...league,
+          member_count: league?.members?.length || 0,
+          my_rank: score?.league_rank || null,
+          my_points: parseFloat(score?.total_points || 0)
+        };
+      }).filter(Boolean));
+    }
+
+    const leagues = await ForecastLeague.findAll({
+      where: { event_id: { [Op.not]: null } }, // Ignore old leagues
+      include: [
+        { model: MainEvent, as: 'event' },
+        { model: LeagueMember, as: 'members' },
+        { model: LeagueTimingWindow, as: 'timing_windows' }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+    res.json(leagues.map(league => {
+      const json = league.toJSON();
+      return { ...json, member_count: json.members?.length || 0 };
+    }));
+  } catch (error) {
+    console.error('List leagues error:', error);
+    res.status(500).json({ error: 'Failed to fetch leagues' });
+  }
+});
+
+app.post('/api/leagues', async (req, res) => {
+  try {
+    const {
+      name,
+      admin_user_id,
+      user_id,
+      event_id,
+      timing_windows,
+      timing_overrides
+    } = req.body;
+    const adminUserId = admin_user_id || user_id;
+    if (!name || !adminUserId || !event_id) {
+      return res.status(400).json({ error: 'name, event_id, and admin_user_id are required' });
+    }
+
+    const admin = await User.findByPk(adminUserId);
+    if (!leagueService.isUsableUsername(admin, adminUserId)) {
+      return res.status(403).json({ error: 'Set a unique lowercase username before creating a league' });
+    }
+
+    const event = await MainEvent.findByPk(event_id);
+    if (!event) {
+      return res.status(404).json({ error: 'Main Event not found' });
+    }
+
+    const result = await sequelize.transaction(async (t) => {
+      const now = new Date();
+      
+      const leagueStatus = event.status === 'upcoming' ? 'lobby' : event.status;
+
+      const league = await ForecastLeague.create({
+        id: nanoid(12),
+        name,
+        admin_user_id: adminUserId,
+        event_id,
+        status: leagueStatus,
+        season_start: event.season_start,
+        season_end: event.season_end,
+        invite_code: nanoid(8).toUpperCase()
+      }, { transaction: t });
+
+      await LeagueMember.create({
+        id: nanoid(12),
+        league_id: league.id,
+        user_id: adminUserId,
+        joined_at: now
+      }, { transaction: t });
+      await leagueService.ensureLeagueScore(league.id, adminUserId, t);
+      const windows = await leagueService.createTimingWindows(
+        league,
+        timing_windows || timing_overrides || null,
+        t
+      );
+      return { league, windows };
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Create league error:', error);
+    res.status(error.status || 500).json({ error: error.message || 'Failed to create league' });
+  }
+});
+
+app.get('/api/leagues/:id', async (req, res) => {
+  try {
+    const { user_id } = req.query;
+    const league = await ForecastLeague.findByPk(req.params.id, {
+      include: [
+        { model: MainEvent, as: 'event', include: [{ model: MainEventMarket, as: 'event_markets' }] },
+        { model: LeagueMember, as: 'members', include: [{ model: User, as: 'user', attributes: ['username'] }] },
+        { model: LeagueTimingWindow, as: 'timing_windows' }
+      ]
+    });
+    if (!league) return res.status(404).json({ error: 'League not found' });
+
+    let predictions = [];
+    if (user_id) {
+      predictions = await LeaguePrediction.findAll({
+        where: { league_id: league.id, user_id }
+      });
+    }
+    res.json({ league, predictions });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/leagues/:id/leaderboard', async (req, res) => {
+  try {
+    const scores = await LeagueScore.findAll({
+      where: { league_id: req.params.id },
+      include: [{ model: User, as: 'user', attributes: ['username'] }],
+      order: [['league_rank', 'ASC']]
+    });
+    
+    const formatted = scores.map(s => ({
+      ...s.toJSON(),
+      username: s.user?.username || s.user_id.slice(0, 8)
+    }));
+    
+    res.json({ rows: formatted, open_markets: 0 }); // You can query open_markets if needed
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/leagues/join', async (req, res) => {
+  try {
+    const { user_id, invite_code } = req.body;
+    if (!user_id || !invite_code) return res.status(400).json({ error: 'Missing fields' });
+
+    const league = await ForecastLeague.findOne({ where: { invite_code: invite_code.toUpperCase() } });
+    if (!league) return res.status(404).json({ error: 'Invalid invite code' });
+
+    const user = await User.findByPk(user_id);
+    if (!leagueService.isUsableUsername(user, user_id)) {
+      return res.status(403).json({ error: 'Set username first' });
+    }
+
+    await sequelize.transaction(async (t) => {
+      await LeagueMember.findOrCreate({
+        where: { league_id: league.id, user_id },
+        defaults: { id: nanoid(12), league_id: league.id, user_id, joined_at: new Date() },
+        transaction: t
+      });
+      await leagueService.ensureLeagueScore(league.id, user_id, t);
+    });
+
+    res.json({ success: true, league });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/leagues/:id/join', async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const league = await ForecastLeague.findByPk(req.params.id);
+    if (!league) return res.status(404).json({ error: 'League not found' });
+    
+    await sequelize.transaction(async (t) => {
+      await LeagueMember.findOrCreate({
+        where: { league_id: league.id, user_id },
+        defaults: { id: nanoid(12), league_id: league.id, user_id, joined_at: new Date() },
+        transaction: t
+      });
+      await leagueService.ensureLeagueScore(league.id, user_id, t);
+    });
+    res.json({ success: true, league });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/leagues/:id/predictions', async (req, res) => {
+  try {
+    const { user_id, market_id, outcome_id, stake_amount, allocation_pct } = req.body;
+    const leagueId = req.params.id;
+
+    const result = await sequelize.transaction(async (t) => {
+      const league = await ForecastLeague.findByPk(leagueId, { transaction: t });
+      if (!league) throw Object.assign(new Error('League not found'), { status: 404 });
+
+      if (league.event_id) {
+        const isEventMarket = await MainEventMarket.findOne({
+          where: { event_id: league.event_id, market_id },
+          transaction: t
+        });
+        if (!isEventMarket) {
+          throw Object.assign(new Error('This market is not part of the league\'s event'), { status: 400 });
+        }
+      }
+
+      const market = await Market.findByPk(market_id, { include: [{ model: Outcome, as: 'outcomes' }], transaction: t });
+      if (!market) throw Object.assign(new Error('Market not found'), { status: 404 });
+      
+      const outcome = market.outcomes.find(o => o.id === outcome_id);
+      if (!outcome) throw Object.assign(new Error('Outcome not found'), { status: 404 });
+
+      // First, place the REAL prediction using the global logic
+      const realPrediction = await executePredictionPlacement({
+        market_id,
+        outcome_id,
+        stake_amount: stake_amount || 10,
+        odds_at_prediction: outcome.probability,
+        user_id
+      }, t);
+
+      const prediction = await LeaguePrediction.create({
+        id: nanoid(12),
+        league_id: leagueId,
+        user_id,
+        market_id,
+        outcome_id,
+        p_entry: outcome.probability,
+        stake_amount: stake_amount || 10,
+        allocation_pct: allocation_pct || null,
+        created_at: new Date(),
+        real_prediction_id: realPrediction.id
+      }, { transaction: t });
+
+      return prediction;
+    });
+
+    res.json(result);
+  } catch (error) {
+    res.status(error.status || 500).json({ error: error.message });
+  }
+});
+
+app.post('/api/leagues/:id/exit', async (req, res) => {
+  try {
+    const { predictionId, soldPct, pCurrent, user_id } = req.body;
+    await sequelize.transaction(async (t) => {
+      const prediction = await LeaguePrediction.findOne({
+        where: { id: predictionId, league_id: req.params.id, user_id },
+        transaction: t
+      });
+      if (!prediction) throw Object.assign(new Error('Prediction not found'), { status: 404 });
+      if (prediction.resolved) throw Object.assign(new Error('Already resolved'), { status: 400 });
+
+      const exitAmount = parseFloat(prediction.stake_amount) * (soldPct / 100);
+      
+      // Execute standard sell logic which will sync back to the LeaguePrediction
+      await executePositionSell({
+        market_id: prediction.market_id,
+        outcome_id: prediction.outcome_id,
+        user_id,
+        sell_amount: exitAmount
+      }, t);
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(error.status || 500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/leagues/:id/resolve', async (req, res) => {
+  try {
+    const { marketId, outcome } = req.body;
+    await leagueService.processLeagueMarketResolution(req.params.id, marketId, outcome);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/leagues/:id/close', async (req, res) => {
+  try {
+    const league = await ForecastLeague.findByPk(req.params.id);
+    if (!league) return res.status(404).json({ error: 'League not found' });
+    await league.update({ status: 'completed' });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 // LEAGUE STATS
 // ============================================================================
 
@@ -1030,14 +1435,18 @@ app.post('/api/markets', async (req, res) => {
             market_id: marketId,
             title: `${o.title} (Yes)`,
             probability: probYes,
-            total_stake: 0
+            total_stake: 0,
+            image_url: o.image_url || null,
+            icon: o.icon || null
           });
           outcomeRecords.push({
             id: `${marketId}_${baseId}_no`,
             market_id: marketId,
             title: `${o.title} (No)`,
             probability: probNo,
-            total_stake: 0
+            total_stake: 0,
+            image_url: o.image_url || null,
+            icon: o.icon || null
           });
         });
       } else {
@@ -1045,8 +1454,10 @@ app.post('/api/markets', async (req, res) => {
           id: `${marketId}_${o.id || nanoid(8)}`,
           market_id: marketId,
           title: o.title,
-          probability: typeof o.probability === 'number' ? o.probability : Math.round(100 / outcomes.length),
-          total_stake: 0
+          probability: 50,
+          total_stake: 0,
+          image_url: o.image_url || null,
+          icon: o.icon || null
         }));
       }
       await Outcome.bulkCreate(outcomeRecords, { transaction: t });
@@ -1107,12 +1518,51 @@ app.put('/api/markets/:id', async (req, res) => {
       }, { transaction: t });
 
       if (outcomes && Array.isArray(outcomes)) {
+        const incomingIds = outcomes.map(o => o.id);
+        const existingOutcomes = await Outcome.findAll({ where: { market_id: market.id }, transaction: t });
+
+        // Delete removed outcomes if they have no predictions
+        for (const eo of existingOutcomes) {
+          if (!incomingIds.includes(eo.id) && !eo.id.startsWith('new_')) {
+            const predsCount = await Prediction.count({ where: { outcome_id: eo.id }, transaction: t });
+            if (predsCount > 0) {
+              throw Object.assign(new Error(`Cannot remove outcome "${eo.title}" because it has active predictions.`), { status: 400 });
+            }
+            await eo.destroy({ transaction: t });
+          }
+        }
+
         for (const o of outcomes) {
           const outcome = await Outcome.findByPk(o.id, { transaction: t });
           if (outcome) {
             await outcome.update({
               ...(o.title !== undefined && { title: o.title }),
-              ...(o.probability !== undefined && { probability: o.probability })
+              ...(o.probability !== undefined && { probability: o.probability }),
+              ...(o.image_url !== undefined && { image_url: o.image_url }),
+              ...(o.icon !== undefined && { icon: o.icon })
+            }, { transaction: t });
+          } else if (o.id && String(o.id).startsWith('new_')) {
+            const baseId = o.id.replace('new_', '');
+            
+            let probYes = 0;
+            if (market.market_type === 'binary') probYes = 50;
+            else if (market.market_type === 'multi_multiple') probYes = 50;
+            else if (market.market_type === 'multi_single') {
+               const numBaseOutcomes = outcomes.length;
+               // in multi_single edit view, the length of outcomes sent from frontend is the number of individual pairs (e.g., 8 items for 4 options).
+               // So the base options count is outcomes.length / 2.
+               const baseOptionsCount = Math.max(1, Math.ceil(numBaseOutcomes / 2));
+               probYes = Math.round(100 / baseOptionsCount);
+            }
+
+            await Outcome.create({
+              id: `${market.id}_${baseId}`,
+              market_id: market.id,
+              title: o.title,
+              probability: probYes,
+              total_stake: 0,
+              image_url: o.image_url || null,
+              icon: o.icon || null
             }, { transaction: t });
           }
         }
@@ -1187,70 +1637,42 @@ app.get('/api/predictions', async (req, res) => {
   }
 });
 
-app.post('/api/predictions', async (req, res) => {
-  try {
-    const {
-      market_id,
-      outcome_id,
-      stake_amount,
-      odds_at_prediction,
-      user_id = null
-    } = req.body;
 
-    if (!market_id || !outcome_id || typeof stake_amount !== 'number' || typeof odds_at_prediction !== 'number') {
-      return res.status(400).json({ error: 'Invalid prediction payload' });
-    }
 
-    if (stake_amount <= 0) {
-      return res.status(400).json({ error: 'Stake amount must be greater than zero' });
-    }
+async function executePredictionPlacement({ market_id, outcome_id, stake_amount, odds_at_prediction, user_id }, t) {
+  // Validate market exists and is active
+  const market = await Market.findByPk(market_id, {
+    include: [{ model: Outcome, as: 'outcomes' }],
+    transaction: t
+  });
+  if (!market) throw Object.assign(new Error('Market not found'), { status: 404 });
+  if (market.status !== 'active') throw Object.assign(new Error('Market is not active'), { status: 400 });
 
-    // Ensure the user exists in the local DB (Supabase auth users may not be synced yet)
-    if (user_id) {
-      await User.findOrCreate({
-        where: { id: user_id },
-        defaults: {
-          id: user_id,
-          username: user_id.substring(0, 20),
-          email: `${user_id}@placeholder.com`
+  const outcome = market.outcomes.find(o => o.id === outcome_id);
+  if (!outcome) throw Object.assign(new Error('Outcome not found'), { status: 400 });
+
+  if (user_id && user_id !== 'demo_user') {
+    const balanceInfo = await calculateBalanceFromTransactions(user_id, t);
+    if (stake_amount > balanceInfo.balance) {
+      throw Object.assign(
+        new Error(`Insufficient buying power. Available: $${balanceInfo.balance.toFixed(2)}, Required: $${stake_amount.toFixed(2)}`),
+        {
+          status: 402,
+          details: {
+            available_balance: balanceInfo.balance,
+            active_stakes: balanceInfo.activePredictionStakes,
+            required: stake_amount
+          }
         }
-      });
+      );
     }
+  }
 
-    const result = await sequelize.transaction(async (t) => {
-      // Validate market exists and is active
-      const market = await Market.findByPk(market_id, {
-        include: [{ model: Outcome, as: 'outcomes' }],
-        transaction: t
-      });
-      if (!market) throw Object.assign(new Error('Market not found'), { status: 404 });
-      if (market.status !== 'active') throw Object.assign(new Error('Market is not active'), { status: 400 });
+  // Calculate potential return using S(1-p) formula
+  const p = odds_at_prediction / 100;
+  const potential_return = Number((stake_amount + stake_amount * (1 - p)).toFixed(2));
 
-      const outcome = market.outcomes.find(o => o.id === outcome_id);
-      if (!outcome) throw Object.assign(new Error('Outcome not found'), { status: 400 });
-
-      if (user_id && user_id !== 'demo_user') {
-        const balanceInfo = await calculateBalanceFromTransactions(user_id, t);
-        if (stake_amount > balanceInfo.balance) {
-          throw Object.assign(
-            new Error(`Insufficient buying power. Available: $${balanceInfo.balance.toFixed(2)}, Required: $${stake_amount.toFixed(2)}`),
-            {
-              status: 402,
-              details: {
-                available_balance: balanceInfo.balance,
-                active_stakes: balanceInfo.activePredictionStakes,
-                required: stake_amount
-              }
-            }
-          );
-        }
-      }
-
-      // Calculate potential return using S(1-p) formula
-      const p = odds_at_prediction / 100;
-      const potential_return = Number((stake_amount + stake_amount * (1 - p)).toFixed(2));
-
-      const prediction = await Prediction.create({
+  const prediction = await Prediction.create({
         id: nanoid(12),
         market_id,
         outcome_id,
@@ -1305,21 +1727,55 @@ app.post('/api/predictions', async (req, res) => {
         broadcastNotification(notification.toJSON());
       }
 
-      if (user_id && user_id !== 'demo_user') {
-        const balanceAfterTrade = await calculateBalanceFromTransactions(user_id, t);
-        if (balanceAfterTrade.rawBalance < 0) {
-          throw Object.assign(new Error('Trade would create negative buying power and was removed.'), {
-            status: 402,
-            details: {
-              available_balance: 0,
-              raw_balance: balanceAfterTrade.rawBalance,
-              removed_prediction_id: prediction.id
-            }
-          });
+  if (user_id && user_id !== 'demo_user') {
+    const balanceAfterTrade = await calculateBalanceFromTransactions(user_id, t);
+    if (balanceAfterTrade.rawBalance < 0) {
+      throw Object.assign(new Error('Trade would create negative buying power and was removed.'), {
+        status: 402,
+        details: {
+          available_balance: 0,
+          raw_balance: balanceAfterTrade.rawBalance,
+          removed_prediction_id: prediction.id
         }
-      }
+      });
+    }
+  }
 
-      return prediction;
+  return prediction;
+}
+
+app.post('/api/predictions', async (req, res) => {
+  try {
+    const {
+      market_id,
+      outcome_id,
+      stake_amount,
+      odds_at_prediction,
+      user_id = null
+    } = req.body;
+
+    if (!market_id || !outcome_id || typeof stake_amount !== 'number' || typeof odds_at_prediction !== 'number') {
+      return res.status(400).json({ error: 'Invalid prediction payload' });
+    }
+
+    if (stake_amount <= 0) {
+      return res.status(400).json({ error: 'Stake amount must be greater than zero' });
+    }
+
+    // Ensure the user exists in the local DB (Supabase auth users may not be synced yet)
+    if (user_id) {
+      await User.findOrCreate({
+        where: { id: user_id },
+        defaults: {
+          id: user_id,
+          username: user_id.substring(0, 20),
+          email: `${user_id}@placeholder.com`
+        }
+      });
+    }
+
+    const result = await sequelize.transaction(async (t) => {
+      return await executePredictionPlacement(req.body, t);
     });
 
     res.status(201).json(normalizePrediction(result));
@@ -1369,6 +1825,208 @@ function calculatePositionValue(stake, entryProb, currentProb) {
   return Number(Math.max(0, returnValue).toFixed(2));
 }
 
+
+
+async function executePositionSell({ market_id, outcome_id, user_id, sell_amount }, t) {
+  const market = await Market.findByPk(market_id, {
+    include: [{ model: Outcome, as: 'outcomes' }],
+    transaction: t
+  });
+  if (!market) throw Object.assign(new Error('Market not found'), { status: 404 });
+  if (market.status !== 'active') throw Object.assign(new Error('Cannot sell on a resolved market'), { status: 400 });
+
+  const outcome = market.outcomes.find(o => o.id === outcome_id);
+  if (!outcome) throw Object.assign(new Error('Outcome not found'), { status: 400 });
+
+  const currentProb = parseFloat(outcome.probability || 50);
+
+  let userAliases = [user_id];
+  let user = null;
+  try {
+    if (user_id.includes('@')) {
+      user = await User.findOne({ where: { email: user_id }, transaction: t });
+    } else {
+      user = await User.findOne({ where: { id: user_id }, transaction: t });
+    }
+  } catch (err) { }
+
+  if (user) {
+    userAliases.push(user.id);
+    if (user.email && user.email !== `${user_id}@placeholder.com`) userAliases.push(user.email);
+  }
+  userAliases = [...new Set(userAliases)];
+
+  const safeAliases = userAliases.filter(id => !id.includes('@'));
+  if (safeAliases.length === 0) safeAliases.push('00000000-0000-0000-0000-000000000000');
+
+  // Find all active predictions for this user/market/outcome
+  const userPositions = await Prediction.findAll({
+    where: { user_id: { [Op.in]: safeAliases }, market_id, outcome_id, status: 'active' },
+    order: [['created_at', 'ASC']],
+    transaction: t
+  });
+
+  const totalStake = userPositions.reduce((sum, p) => sum + parseFloat(p.stake_amount || 0), 0);
+
+  if (totalStake === 0) {
+    // Diagnostic: check if predictions exist with any status
+    const anyPreds = await Prediction.count({ where: { user_id, market_id, outcome_id }, transaction: t });
+    throw Object.assign(
+      new Error(`No active position to sell (found ${anyPreds} prediction(s) total for this user/market/outcome, 0 with status=active)`),
+      { status: 400 }
+    );
+  }
+  if (sell_amount > totalStake) throw Object.assign(new Error(`Cannot sell more than your position ($${totalStake.toFixed(2)})`), { status: 400 });
+
+  // Weighted average entry probability
+  const weightedOddsSum = userPositions.reduce((sum, p) => sum + parseFloat(p.odds_at_prediction || 50) * parseFloat(p.stake_amount || 0), 0);
+  const avgEntryProb = weightedOddsSum / totalStake;
+
+  const sellReturn = calculatePositionValue(sell_amount, avgEntryProb, currentProb);
+
+  // Reduce stakes across predictions (oldest first)
+  let remaining = sell_amount;
+  for (const p of userPositions) {
+    if (remaining <= 0) break;
+    const stake = parseFloat(p.stake_amount || 0);
+    if (stake <= remaining) {
+      remaining -= stake;
+      await p.update({
+        status: 'sold',
+        actual_return: calculatePositionValue(stake, avgEntryProb, currentProb),
+        sold_at: new Date()
+      }, { transaction: t });
+
+      // Sync LeaguePrediction if exists
+      const lp = await LeaguePrediction.findOne({ where: { real_prediction_id: p.id }, transaction: t });
+      if (lp) {
+        await lp.update({
+          position_status: 'exited',
+          p_exit: currentProb / 100,
+          actual_return: calculatePositionValue(stake, avgEntryProb, currentProb)
+        }, { transaction: t });
+      }
+    } else {
+      const splitStake = parseFloat(remaining.toFixed(2));
+      const splitReturn = calculatePositionValue(splitStake, avgEntryProb, currentProb);
+      await Prediction.create({
+        id: nanoid(12),
+        market_id: p.market_id,
+        outcome_id: p.outcome_id,
+        user_id: p.user_id,
+        stake_amount: splitStake,
+        odds_at_prediction: p.odds_at_prediction,
+        potential_return: parseFloat((splitStake + splitStake * (1 - (parseFloat(p.odds_at_prediction || 50) / 100))).toFixed(2)),
+        actual_return: splitReturn,
+        status: 'sold',
+        sold_at: new Date()
+      }, { transaction: t });
+
+      await p.update({
+        stake_amount: parseFloat((stake - splitStake).toFixed(2))
+      }, { transaction: t });
+      
+      // Sync LeaguePrediction if exists
+      const lp = await LeaguePrediction.findOne({ where: { real_prediction_id: p.id }, transaction: t });
+      if (lp) {
+        await lp.update({
+          stake_amount: parseFloat((stake - splitStake).toFixed(2))
+        }, { transaction: t });
+        
+        // Create a 'sold' LeaguePrediction for the points earned
+        await LeaguePrediction.create({
+          id: nanoid(12),
+          league_id: lp.league_id,
+          user_id: lp.user_id,
+          market_id: lp.market_id,
+          outcome_id: lp.outcome_id,
+          p_entry: lp.p_entry,
+          stake_amount: splitStake,
+          allocation_pct: lp.allocation_pct,
+          position_status: 'exited',
+          p_exit: currentProb / 100,
+          actual_return: splitReturn,
+          created_at: new Date(),
+          real_prediction_id: p.id // links to the original
+        }, { transaction: t });
+      }
+      remaining = 0;
+    }
+  }
+
+  // Update outcome total_stake and market total_volume
+  const newOutcomeStake = Math.max(0, parseFloat(outcome.total_stake || 0) - sell_amount);
+  await outcome.update({ total_stake: newOutcomeStake }, { transaction: t });
+
+  const newTotalVolume = Math.max(0, parseFloat(market.total_volume || 0) - sell_amount);
+  await market.update({ total_volume: newTotalVolume }, { transaction: t });
+
+  // Recompute probabilities
+  const allOutcomes = await Outcome.findAll({ where: { market_id }, transaction: t });
+  const outcomesData = allOutcomes.map(o => o.toJSON());
+  const pricedOutcomes = recomputeProbabilities(outcomesData, newTotalVolume, market.market_type);
+
+  for (const po of pricedOutcomes) {
+    await Outcome.update({ probability: po.probability }, { where: { id: po.id }, transaction: t });
+  }
+
+  // Record price history snapshot
+  const prices = Object.fromEntries(pricedOutcomes.map(o => [o.id, o.probability]));
+  await PriceHistory.create({ market_id, timestamp: new Date(), prices }, { transaction: t });
+
+  // Check if this sell-off shifted prices enough to alert other traders
+  await checkPositionAlerts(market_id, prices, t);
+
+  // Record sell return as a transaction (credit back to user's cash)
+  if (sellReturn > 0) {
+    await Transaction.create({
+      id: nanoid(12),
+      user_id: user_id,
+      type: 'deposit',
+      amount: sellReturn,
+      payment_method: 'sell_return',
+      status: 'completed',
+      completed_at: new Date()
+    }, { transaction: t });
+  }
+
+  const netPnl = parseFloat((sellReturn - sell_amount).toFixed(2));
+  let feedback = "";
+  if (netPnl > 0) {
+    feedback = "Secured profit! Great job taking gains before resolution.";
+  } else if (netPnl < 0) {
+    feedback = "Smart move cutting losses. Capital preservation is key!";
+  } else {
+    feedback = "Position closed at break-even.";
+  }
+
+  // Notify the user their position was successfully sold
+  if (user_id && user_id !== 'demo_user') {
+    const notification = await Notification.create({
+      id: nanoid(12),
+      user_id: user_id,
+      type: 'position_sold',
+      title: 'Position Sold 🤝',
+      message: `You sold your position in "${market.title}" for $${sellReturn.toFixed(2)}.\n\n${feedback}`,
+      link: `/markets/${market.id}`,
+      is_read: false,
+      created_at: new Date()
+    }, { transaction: t });
+    broadcastNotification(notification.toJSON());
+  }
+
+  const updatedMarket = await fetchMarketWithRelations(market_id, t);
+
+  return {
+    sell_amount,
+    sell_return: sellReturn,
+    net_pnl: parseFloat((sellReturn - sell_amount).toFixed(2)),
+    current_probability: currentProb,
+    avg_entry_probability: parseFloat(avgEntryProb.toFixed(2)),
+    market: formatMarketResponse(updatedMarket)
+  };
+}
+
 app.post('/api/positions/sell', async (req, res) => {
   try {
     const { market_id, outcome_id, user_id, sell_amount } = req.body;
@@ -1378,166 +2036,7 @@ app.post('/api/positions/sell', async (req, res) => {
     }
 
     const result = await sequelize.transaction(async (t) => {
-      const market = await Market.findByPk(market_id, {
-        include: [{ model: Outcome, as: 'outcomes' }],
-        transaction: t
-      });
-      if (!market) throw Object.assign(new Error('Market not found'), { status: 404 });
-      if (market.status !== 'active') throw Object.assign(new Error('Cannot sell on a resolved market'), { status: 400 });
-
-      const outcome = market.outcomes.find(o => o.id === outcome_id);
-      if (!outcome) throw Object.assign(new Error('Outcome not found'), { status: 400 });
-
-      const currentProb = parseFloat(outcome.probability || 50);
-
-      let userAliases = [user_id];
-      let user = null;
-      try {
-        if (user_id.includes('@')) {
-          user = await User.findOne({ where: { email: user_id }, transaction: t });
-        } else {
-          user = await User.findOne({ where: { id: user_id }, transaction: t });
-        }
-      } catch (err) { }
-
-      if (user) {
-        userAliases.push(user.id);
-        if (user.email && user.email !== `${user_id}@placeholder.com`) userAliases.push(user.email);
-      }
-      userAliases = [...new Set(userAliases)];
-
-      const safeAliases = userAliases.filter(id => !id.includes('@'));
-      if (safeAliases.length === 0) safeAliases.push('00000000-0000-0000-0000-000000000000');
-
-      // Find all active predictions for this user/market/outcome
-      const userPositions = await Prediction.findAll({
-        where: { user_id: { [Op.in]: safeAliases }, market_id, outcome_id, status: 'active' },
-        order: [['created_at', 'ASC']],
-        transaction: t
-      });
-
-      const totalStake = userPositions.reduce((sum, p) => sum + parseFloat(p.stake_amount || 0), 0);
-
-      if (totalStake === 0) {
-        // Diagnostic: check if predictions exist with any status
-        const anyPreds = await Prediction.count({ where: { user_id, market_id, outcome_id }, transaction: t });
-        throw Object.assign(
-          new Error(`No active position to sell (found ${anyPreds} prediction(s) total for this user/market/outcome, 0 with status=active)`),
-          { status: 400 }
-        );
-      }
-      if (sell_amount > totalStake) throw Object.assign(new Error(`Cannot sell more than your position ($${totalStake.toFixed(2)})`), { status: 400 });
-
-      // Weighted average entry probability
-      const weightedOddsSum = userPositions.reduce((sum, p) => sum + parseFloat(p.odds_at_prediction || 50) * parseFloat(p.stake_amount || 0), 0);
-      const avgEntryProb = weightedOddsSum / totalStake;
-
-      const sellReturn = calculatePositionValue(sell_amount, avgEntryProb, currentProb);
-
-      // Reduce stakes across predictions (oldest first)
-      let remaining = sell_amount;
-      for (const p of userPositions) {
-        if (remaining <= 0) break;
-        const stake = parseFloat(p.stake_amount || 0);
-        if (stake <= remaining) {
-          remaining -= stake;
-          await p.update({
-            status: 'sold',
-            actual_return: calculatePositionValue(stake, avgEntryProb, currentProb),
-            sold_at: new Date()
-          }, { transaction: t });
-        } else {
-          const splitStake = parseFloat(remaining.toFixed(2));
-          const splitReturn = calculatePositionValue(splitStake, avgEntryProb, currentProb);
-          await Prediction.create({
-            id: nanoid(12),
-            market_id: p.market_id,
-            outcome_id: p.outcome_id,
-            user_id: p.user_id,
-            stake_amount: splitStake,
-            odds_at_prediction: p.odds_at_prediction,
-            potential_return: parseFloat((splitStake + splitStake * (1 - (parseFloat(p.odds_at_prediction || 50) / 100))).toFixed(2)),
-            actual_return: splitReturn,
-            status: 'sold',
-            sold_at: new Date()
-          }, { transaction: t });
-
-          await p.update({
-            stake_amount: parseFloat((stake - splitStake).toFixed(2))
-          }, { transaction: t });
-          remaining = 0;
-        }
-      }
-
-      // Update outcome total_stake and market total_volume
-      const newOutcomeStake = Math.max(0, parseFloat(outcome.total_stake || 0) - sell_amount);
-      await outcome.update({ total_stake: newOutcomeStake }, { transaction: t });
-
-      const newTotalVolume = Math.max(0, parseFloat(market.total_volume || 0) - sell_amount);
-      await market.update({ total_volume: newTotalVolume }, { transaction: t });
-
-      // Recompute probabilities
-      const allOutcomes = await Outcome.findAll({ where: { market_id }, transaction: t });
-      const outcomesData = allOutcomes.map(o => o.toJSON());
-      const pricedOutcomes = recomputeProbabilities(outcomesData, newTotalVolume, market.market_type);
-
-      for (const po of pricedOutcomes) {
-        await Outcome.update({ probability: po.probability }, { where: { id: po.id }, transaction: t });
-      }
-
-      // Record price history snapshot
-      const prices = Object.fromEntries(pricedOutcomes.map(o => [o.id, o.probability]));
-      await PriceHistory.create({ market_id, timestamp: new Date(), prices }, { transaction: t });
-
-      // Check if this sell-off shifted prices enough to alert other traders
-      await checkPositionAlerts(market_id, prices, t);
-
-      // Record sell return as a transaction (credit back to user's cash)
-      if (sellReturn > 0) {
-        await Transaction.create({
-          id: nanoid(12),
-          user_id: user_id,
-          type: 'deposit',
-          amount: sellReturn,
-          payment_method: 'sell_return',
-          status: 'completed',
-          completed_at: new Date()
-        }, { transaction: t });
-      }
-
-      const netPnl = parseFloat((sellReturn - sell_amount).toFixed(2));
-      let feedback = "";
-      if (netPnl > 0) {
-        feedback = "Secured profit! Great job taking gains before resolution.";
-      } else if (netPnl < 0) {
-        feedback = "Smart move cutting losses. Capital preservation is key!";
-      } else {
-        feedback = "Position closed at break-even.";
-      }
-
-      // Notify the user their position was successfully sold
-      const notification = await Notification.create({
-        id: nanoid(12),
-        user_id: user_id,
-        type: 'position_sold',
-        title: 'Position Sold 🤝',
-        message: `You sold your position in "${market.title}" for $${sellReturn.toFixed(2)}.\n\n${feedback}`,
-        link: `/markets/${market.id}`,
-        is_read: false,
-        created_at: new Date()
-      }, { transaction: t });
-      broadcastNotification(notification.toJSON());
-
-      const updatedMarket = await fetchMarketWithRelations(market_id, t);
-
-      return {
-        sell_amount,
-        sell_return: sellReturn,
-        net_pnl: parseFloat((sellReturn - sell_amount).toFixed(2)),
-        current_probability: currentProb,
-        avg_entry_probability: parseFloat(avgEntryProb.toFixed(2)),
-        market: formatMarketResponse(updatedMarket)
-      };
+      return await executePositionSell({ market_id, outcome_id, user_id, sell_amount }, t);
     });
 
     res.json({ ok: true, ...result });
@@ -1554,7 +2053,7 @@ app.post('/api/positions/sell', async (req, res) => {
 
 app.post('/api/markets/:id/resolve', async (req, res) => {
   try {
-    const { winning_outcome_id, winning_outcome_ids } = req.body;
+    const { winning_outcome_id, winning_outcome_ids, partial } = req.body;
 
     const result = await sequelize.transaction(async (t) => {
       const market = await Market.findByPk(req.params.id, {
@@ -1566,7 +2065,7 @@ app.post('/api/markets/:id/resolve', async (req, res) => {
         throw new Error('Market not found');
       }
 
-      return resolveMarketInstance(market, winning_outcome_ids || winning_outcome_id, { transaction: t });
+      return resolveMarketInstance(market, winning_outcome_ids || winning_outcome_id, { transaction: t, partial });
     });
 
     const refreshed = await fetchMarketWithRelations(req.params.id);
@@ -1694,6 +2193,39 @@ app.get('/api/users/:id/balance', async (req, res) => {
   } catch (error) {
     console.error('Get balance error:', error);
     res.status(500).json({ error: 'Failed to fetch balance' });
+  }
+});
+
+app.get('/api/users/check-username', async (req, res) => {
+  try {
+    const { username } = req.query;
+    if (!username || !/^[a-z0-9_]{3,20}$/.test(username)) {
+      return res.json({ available: false });
+    }
+    const existing = await User.findOne({ where: { username } });
+    res.json({ available: !existing });
+  } catch (error) {
+    console.error('Check username error:', error);
+    res.status(500).json({ error: 'Failed to check username' });
+  }
+});
+
+app.put('/api/users/:id/username', async (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username || !/^[a-z0-9_]{3,20}$/.test(username)) {
+      return res.status(400).json({ error: 'Invalid username format' });
+    }
+    const existing = await User.findOne({ where: { username } });
+    if (existing && existing.id !== req.params.id) {
+      return res.status(409).json({ error: 'Username is already taken' });
+    }
+    await User.update({ username, username_set: true }, { where: { id: req.params.id } });
+    const user = await User.findByPk(req.params.id);
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error('Update username error:', error);
+    res.status(500).json({ error: 'Failed to update username' });
   }
 });
 
@@ -2427,6 +2959,120 @@ app.post('/api/admin/send-broadcast', async (req, res) => {
   } catch (error) {
     console.error('Broadcast error:', error);
     res.status(500).json({ error: 'Broadcast failed: ' + error.message });
+  }
+});
+
+
+// ============================================================================
+// ADMIN — MAIN EVENTS
+// ============================================================================
+
+const checkAdmin = (req, res, next) => {
+  const adminEmail = req.query.adminEmail || req.body.adminEmail;
+  if (adminEmail !== 'donotreply.dobium@gmail.com') {
+    return res.status(403).json({ error: 'Forbidden — admin access required' });
+  }
+  next();
+};
+
+app.get('/api/admin/events', checkAdmin, async (req, res) => {
+  try {
+    const events = await MainEvent.findAll({
+      order: [['created_at', 'DESC']],
+      include: [
+        { model: MainEventMarket, as: 'event_markets' }
+      ]
+    });
+    
+    // Compute stats
+    const eventsJson = await Promise.all(events.map(async e => {
+      const eJson = e.toJSON();
+      eJson.league_count = await ForecastLeague.count({ where: { event_id: e.id } });
+      eJson.market_count = eJson.event_markets?.length || 0;
+      return eJson;
+    }));
+    
+    res.json(eventsJson);
+  } catch (err) {
+    console.error('Admin GET events error:', err);
+    res.status(500).json({ error: 'Failed to fetch events' });
+  }
+});
+
+app.post('/api/admin/events', checkAdmin, async (req, res) => {
+  try {
+    const adminEmail = req.body.adminEmail || req.query.adminEmail;
+    const adminUser = await User.findOne({ where: { email: adminEmail } });
+    
+    if (!adminUser) {
+      return res.status(400).json({ error: 'Admin user not found in database' });
+    }
+
+    const event = await MainEvent.create({
+      id: nanoid(12),
+      ...req.body,
+      created_by: adminUser.id
+    });
+    res.status(201).json(event);
+  } catch (err) {
+    console.error('Admin POST event error:', err);
+    res.status(500).json({ error: 'Failed to create event' });
+  }
+});
+
+app.put('/api/admin/events/:id', checkAdmin, async (req, res) => {
+  try {
+    await MainEvent.update(req.body, { where: { id: req.params.id } });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Admin PUT event error:', err);
+    res.status(500).json({ error: 'Failed to update event' });
+  }
+});
+
+app.delete('/api/admin/events/:id', checkAdmin, async (req, res) => {
+  try {
+    await MainEvent.destroy({ where: { id: req.params.id } });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Admin DELETE event error:', err);
+    res.status(500).json({ error: 'Failed to delete event' });
+  }
+});
+
+app.post('/api/admin/events/:id/close', checkAdmin, async (req, res) => {
+  try {
+    await MainEvent.update({ status: 'completed' }, { where: { id: req.params.id } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to close event' });
+  }
+});
+
+app.post('/api/admin/events/:id/markets', checkAdmin, async (req, res) => {
+  try {
+    await MainEventMarket.create({
+      id: nanoid(12),
+      event_id: req.params.id,
+      market_id: req.body.market_id
+    });
+    res.status(201).json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to assign market' });
+  }
+});
+
+app.delete('/api/admin/events/:id/markets/:marketId', checkAdmin, async (req, res) => {
+  try {
+    await MainEventMarket.destroy({
+      where: {
+        event_id: req.params.id,
+        market_id: req.params.marketId
+      }
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to remove market' });
   }
 });
 

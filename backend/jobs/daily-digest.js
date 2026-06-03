@@ -17,6 +17,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { buildDigestHtml } = require('../lib/digest-email');
 const { sequelize, Market } = require('../lib/database/models');
 const { Op } = require('sequelize');
+const { getUserLeagueDigest } = require('../lib/leagueService');
 
 const ADMIN_EMAIL = process.env.EMAIL_USER || 'donotreply.dobium@gmail.com';
 const PLATFORM_URL = process.env.PLATFORM_URL || 'https://dobium.com';
@@ -371,12 +372,15 @@ async function executeDailyDigest(models, sendEmail) {
 
     try {
       const stats = await getUserStats(u.id, models);
+      const leagueDigest = await getUserLeagueDigest(u.id);
 
       const username = u.user_metadata?.name || u.user_metadata?.full_name || u.user_metadata?.username || u.email.split('@')[0];
 
       const html = buildDigestHtml({
         username,
-        ...stats
+        ...stats,
+        leagueStanding: leagueDigest.standing,
+        lastLeagueResolution: leagueDigest.last_resolution
       });
 
       await sendEmail({

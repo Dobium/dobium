@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import AdminUserDashboard from '../components/AdminUserDashboard';
+import AdminEventsDashboard from '../components/AdminEventsDashboard';
+import SportsDashboard from '../components/SportsDashboard';
 
 // Helper to properly format UTC database dates for the local datetime input
 const formatDateTimeLocal = (dateString) => {
@@ -17,6 +19,7 @@ export default function AdminDashboard() {
   const { session } = useAuth();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [activeTab, setActiveTab] = useState('general');
 
   // Email form state
   const [emailTo, setEmailTo] = useState('');
@@ -610,12 +613,69 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Admin Dashboard</h1>
-        <p className="text-slate-400 text-sm">Manage markets, users, and system settings.</p>
+    <div className="p-6 max-w-6xl mx-auto">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-1">Admin Dashboard</h1>
+          <p className="text-slate-400 text-sm">Manage markets, users, and system settings.</p>
+        </div>
+        <div className="flex bg-slate-800 rounded-lg p-1 gap-1 overflow-x-auto border border-slate-700">
+          {[
+            { id: 'general', label: 'General' },
+            { id: 'users', label: 'Users' },
+            { id: 'events', label: 'Events & Leagues' },
+            { id: 'sports', label: 'Sports' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
+                activeTab === tab.id 
+                  ? 'bg-amber-500 text-slate-900 shadow' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
+      
+            {activeTab === 'users' && (
+        <>
+{/* Registered Users — full-width */}
+      <div className="bg-slate-800 p-6 rounded-lg shadow-lg mt-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Registered Users ({users.length})</h2>
+        <div className="overflow-y-auto custom-scrollbar border border-slate-700 rounded bg-slate-900/50" style={{ maxHeight: 400 }}>
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-800/80 text-slate-400 sticky top-0">
+              <tr>
+                <th className="p-3 font-medium border-b border-slate-700 w-1/4">Username</th>
+                <th className="p-3 font-medium border-b border-slate-700 w-1/2">Email</th>
+                <th className="p-3 font-medium border-b border-slate-700 text-right w-1/4">Joined</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/50">
+              {users.map(u => (
+                <tr key={u.id} className="hover:bg-slate-800/30 transition-colors cursor-pointer" onClick={() => setViewingUser(u)}>
+                  <td className="p-3 text-slate-300 font-medium">{u.username}</td>
+                  <td className="p-3 text-slate-400">{u.email || 'N/A'}</td>
+                  <td className="p-3 text-slate-500 text-right whitespace-nowrap">{new Date(u.created_at || u.createdAt).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      
+        </>
+      )}
+{activeTab === 'events' && <AdminEventsDashboard adminEmail={session?.user?.email} />}
+      {activeTab === 'sports' && <SportsDashboard />}
+      {activeTab === 'general' && (
+        <>
       {/* Top Row: 3-col grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
 
@@ -787,31 +847,6 @@ export default function AdminDashboard() {
         </div>
 
 
-      </div>
-
-      {/* Registered Users — full-width */}
-      <div className="bg-slate-800 p-6 rounded-lg shadow-lg mt-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Registered Users ({users.length})</h2>
-        <div className="overflow-y-auto custom-scrollbar border border-slate-700 rounded bg-slate-900/50" style={{ maxHeight: 400 }}>
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-800/80 text-slate-400 sticky top-0">
-              <tr>
-                <th className="p-3 font-medium border-b border-slate-700 w-1/4">Username</th>
-                <th className="p-3 font-medium border-b border-slate-700 w-1/2">Email</th>
-                <th className="p-3 font-medium border-b border-slate-700 text-right w-1/4">Joined</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {users.map(u => (
-                <tr key={u.id} className="hover:bg-slate-800/30 transition-colors cursor-pointer" onClick={() => setViewingUser(u)}>
-                  <td className="p-3 text-slate-300 font-medium">{u.username}</td>
-                  <td className="p-3 text-slate-400">{u.email || 'N/A'}</td>
-                  <td className="p-3 text-slate-500 text-right whitespace-nowrap">{new Date(u.created_at || u.createdAt).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </div>
 
       {/* Market Creation Section */}
@@ -1668,6 +1703,8 @@ export default function AdminDashboard() {
         </div>
       )}
 
+          </>
+      )}
     </div>
   );
 }

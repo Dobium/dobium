@@ -6,6 +6,17 @@ export default {
   ],
   theme: {
     extend: {
+      colors: {
+        dobium: {
+          bg: '#020617',
+          panel: '#0f172a',
+          border: '#334155',
+          text: '#f8fafc',
+          'text-secondary': '#94a3b8',
+          accent: '#d4af37',
+          'accent-hover': '#e4bd3f',
+        }
+      },
       fontFamily: {
         serif: ['"DM Serif Text"', 'serif'],
         sans: ['Jost', 'sans-serif'],

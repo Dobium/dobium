@@ -286,8 +286,12 @@ export default function ActivityHistory({ predictions, markets, onBack }) {
                       return (
                         <tr>
                           <td colSpan="2" className="px-6 py-4 text-right font-semibold text-slate-400 uppercase tracking-wider text-[11px]">Total</td>
-                          <td className="px-6 py-4 text-right font-semibold text-white">{formatCurrency(totalCost)}</td>
-                          <td className="px-6 py-4 text-right font-semibold text-white">{formatCurrency(totalReturn)}</td>
+                          <td className="px-6 py-4 text-right font-semibold text-white">
+                            {formatCurrency(totalCost)}
+                          </td>
+                          <td className="px-6 py-4 text-right font-semibold text-white">
+                            {formatCurrency(totalReturn)}
+                          </td>
                           <td className="px-6 py-4 text-right">
                             <div className={`font-bold ${isPositive ? 'text-green-400' : isNegative ? 'text-red-400' : 'text-slate-400'}`}>
                               {isPositive ? '+' : isNegative ? '-' : ''}{formatCurrency(Math.abs(totalDiff))}

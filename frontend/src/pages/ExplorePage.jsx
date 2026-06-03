@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MarketCard from '../components/MarketCard';
 import { useMarkets } from '../hooks/useMarkets';
@@ -6,25 +6,28 @@ import { useMarkets } from '../hooks/useMarkets';
 function TrendingMiniChart({ market }) {
   const width = 400;
   const height = 100;
-  const outcomes = market.outcomes || [];
+  const rawOutcomes = market.outcomes || [];
   const priceHistory = market.price_history || [];
+  const isMultiMultiple = market.market_type === 'multi_multiple' || market.market_type === 'multi_single';
+  const hasYesNoPairs = rawOutcomes.some(o => o.id.endsWith('_yes'));
+  const displaySourceOutcomes = (isMultiMultiple && hasYesNoPairs) ? rawOutcomes.filter(o => o.id.endsWith('_yes')) : rawOutcomes;
 
-  const sortedOutcomes = [...outcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0));
+  const sortedOutcomes = [...displaySourceOutcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0));
 
   const trends = sortedOutcomes.slice(0, 4).map((o, idx) => {
     let data;
 
-    if (priceHistory.length > 0) {
+    if (priceHistory.length >= 2 && (market?.total_volume || 0) > 0) {
       // Use real price history
-      data = priceHistory.map(snapshot => snapshot.prices[o.id] || o.probability || 20);
+      data = priceHistory.map(snapshot => snapshot.prices[o.id] ?? o.probability ?? 20);
 
       // Ensure minimum 2 points
       if (data.length < 2) {
-        data = [o.probability || 20, o.probability || 20];
+        data = [o.probability ?? 20, o.probability ?? 20];
       }
     } else {
       // No history - flat line
-      data = [o.probability || 20, o.probability || 20];
+      data = [o.probability ?? 20, o.probability ?? 20];
     }
 
     return {
@@ -67,10 +70,35 @@ function TrendingMiniChart({ market }) {
   );
 }
 
-const CATEGORIES = ['all', 'politics', 'international', 'environment', 'climate', 'science', 'health', 'finance', 'technology'];
+const formatDescription = (desc) => {
+  if (!desc) return '';
+  try {
+    const parsed = JSON.parse(desc);
+    if (parsed.is_sports) {
+      const dateStr = parsed.event_date ? new Date(parsed.event_date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      const isGame = (parsed.event_type || 'game') === 'game';
+      if (isGame) {
+        return `Sports Match: ${parsed.home_team || 'Home'} vs ${parsed.away_team || 'Away'} (${parsed.league || 'General'}). Scheduled for ${dateStr}.`;
+      } else {
+        const typeLabel = parsed.event_type === 'future' ? 'Future' : 'Award';
+        return `Sports ${typeLabel}: ${parsed.event_name || 'Event'} (${parsed.league || 'General'}). Scheduled for ${dateStr}.`;
+      }
+    }
+  } catch (e) {
+    // Not JSON
+  }
+  return desc;
+};
 
 export default function ExplorePage() {
   const { markets, loading } = useMarkets();
+  const CATEGORIES = useMemo(() => {
+    const activeCategories = markets
+      .filter(m => m.status === 'active')
+      .map(m => m.category?.toLowerCase())
+      .filter(Boolean);
+    return [...new Set(['all', 'technology', 'sports', 'entertainment', ...activeCategories])];
+  }, [markets]);
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('All Markets');
   const [search, setSearch] = useState('');
@@ -181,65 +209,117 @@ export default function ExplorePage() {
           </div>
 
           <div className="relative overflow-hidden rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800">
-            {trending.length > 0 && trending[trendingIndex] && (
-              <div className="p-4 lg:p-6 animate-fadeIn">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-                  {/* Left: Info & Chart */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="inline-block text-[10px] lg:text-xs font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
-                        {trending[trendingIndex].category}
-                      </span>
-                      <span className="flex items-center gap-1.5 text-[10px] lg:text-xs text-green-400 font-medium">
-                        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                        Live
-                      </span>
-                    </div>
-                    <h3 className="text-lg lg:text-2xl font-bold text-white mb-2 lg:mb-3 cursor-pointer hover:text-yellow-400 transition-colors" onClick={() => navigate(`/markets/${trending[trendingIndex].id}`)}>
-                      {trending[trendingIndex].title}
-                    </h3>
-                    <p className="text-slate-400 text-xs lg:text-sm mb-3 lg:mb-4 line-clamp-2 lg:line-clamp-none">{trending[trendingIndex].description}</p>
+            {trending.length > 0 && trending[trendingIndex] && (() => {
+              const trendingMarket = trending[trendingIndex];
+              const parsedMeta = (() => {
+                if (trendingMarket.category === 'sports' && trendingMarket.description) {
+                  try {
+                    const p = JSON.parse(trendingMarket.description);
+                    if (p.is_sports) return p;
+                  } catch (e) { }
+                }
+                return null;
+              })();
+              const bannerImage = parsedMeta?.event_image || (!parsedMeta && trendingMarket.image_url);
+              const homeLogo = parsedMeta?.home_logo;
+              const awayLogo = parsedMeta?.away_logo;
 
-                    {/* Mini Chart */}
-                    <div className="bg-slate-800/30 rounded-xl p-3 lg:p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] lg:text-xs text-slate-400">30-Day Trend</span>
+              return (
+                <div className="p-4 lg:p-6 animate-fadeIn">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                    {/* Left: Info & Chart */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="inline-block text-[10px] lg:text-xs font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
+                          {trendingMarket.category}
+                        </span>
+                        {(parsedMeta?.match_state === 'live' || parsedMeta?.match_state === 'in_progress') && (
+                          <span className="flex items-center gap-1.5 text-[10px] lg:text-xs text-green-400 font-medium">
+                            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                            Live
+                          </span>
+                        )}
                       </div>
-                      <TrendingMiniChart market={trending[trendingIndex]} />
-                    </div>
-                  </div>
 
-                  {/* Right: Outcome Buttons */}
-                  <div className="flex flex-col justify-center">
-                    <h4 className="text-xs lg:text-sm font-semibold text-slate-400 mb-2 lg:mb-3">Trade Outcomes</h4>
-                    <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
-                      {[...(trending[trendingIndex].outcomes || [])]
-                        .sort((a, b) => (b.probability || 0) - (a.probability || 0))
-                        .slice(0, 4)
-                        .map((outcome, idx) => {
-                          const isYes = outcome.title?.toLowerCase() === 'yes';
-                          const isNo = outcome.title?.toLowerCase() === 'no';
-                          const colorClass = isYes ? 'bg-green-500/10 border-green-500/50 hover:border-green-500 text-green-400' : isNo ? 'bg-red-500/10 border-red-500/50 hover:border-red-500 text-red-400' : 'bg-blue-500/10 border-blue-500/50 hover:border-blue-500 text-blue-400';
+                      {homeLogo && awayLogo && (
+                        <div className="flex items-center gap-3 mb-3 bg-slate-800/20 border border-slate-700/30 p-2 rounded-xl w-fit">
+                          <img src={homeLogo} className="w-8 h-8 rounded-full object-cover border border-slate-600 bg-slate-950" alt="Home" />
+                          <span className="text-xs text-slate-355 font-bold">{parsedMeta.home_team}</span>
+                          <span className="text-[9px] text-yellow-500 font-black px-1.5 py-0.5 bg-yellow-500/10 border border-yellow-500/20 rounded">VS</span>
+                          <img src={awayLogo} className="w-8 h-8 rounded-full object-cover border border-slate-600 bg-slate-950" alt="Away" />
+                          <span className="text-xs text-slate-355 font-bold">{parsedMeta.away_team}</span>
+                        </div>
+                      )}
 
-                          return (
-                            <button
-                              key={outcome.id}
-                              onClick={() => navigate(`/markets/${trending[trendingIndex].id}`)}
-                              className={`w-full flex items-center justify-between px-3 py-2.5 lg:px-4 lg:py-3 rounded-lg border transition-all ${colorClass}`}
-                            >
-                              <span className="text-white font-medium text-xs lg:text-sm truncate pr-2 text-left">{outcome.title}</span>
-                              <span className="text-sm lg:text-lg font-bold shrink-0">{Math.round(outcome.probability || 0)}¢</span>
-                            </button>
-                          );
-                        })}
+                      {!homeLogo && bannerImage && (
+                        <div className="w-full h-28 rounded-xl overflow-hidden mb-3 border border-slate-850">
+                          <img src={bannerImage} className="w-full h-full object-cover" alt="Trending Banner" />
+                        </div>
+                      )}
+
+                      <h3 className="text-lg lg:text-2xl font-bold text-white mb-2 lg:mb-3 cursor-pointer hover:text-yellow-400 transition-colors" onClick={() => navigate(`/markets/${trendingMarket.id}`)}>
+                        {trendingMarket.title}
+                      </h3>
+                      <p className="text-slate-400 text-xs lg:text-sm mb-3 lg:mb-4 line-clamp-2 lg:line-clamp-none">{formatDescription(trendingMarket.description)}</p>
+
+                      {/* Mini Chart */}
+                      <div className="bg-slate-800/30 rounded-xl p-3 lg:p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] lg:text-xs text-slate-400">30-Day Trend</span>
+                        </div>
+                        <TrendingMiniChart market={trendingMarket} />
+                      </div>
                     </div>
-                    {trending[trendingIndex].outcomes?.length > 4 && (
-                      <p className="text-xs text-slate-500 text-center mt-2">+{trending[trendingIndex].outcomes.length - 4} more options</p>
-                    )}
+
+                    {/* Right: Outcome Buttons */}
+                    <div className="flex flex-col justify-center">
+                      <h4 className="text-xs lg:text-sm font-semibold text-slate-400 mb-2 lg:mb-3">Trade Outcomes</h4>
+                      <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
+                        {(() => {
+                          const rawOutcomes = trendingMarket.outcomes || [];
+                          const isMultiMultiple = trendingMarket.market_type === 'multi_multiple' || trendingMarket.market_type === 'multi_single';
+                          const hasYesNoPairs = rawOutcomes.some(o => o.id.endsWith('_yes'));
+                          const marketOutcomes = (isMultiMultiple && hasYesNoPairs) ? rawOutcomes.filter(o => o.id.endsWith('_yes')) : [...rawOutcomes];
+                          
+                          if (trendingMarket.market_type === 'binary' && marketOutcomes.length === 2) {
+                            marketOutcomes.sort((a, b) => {
+                              const aTitle = a.title?.toLowerCase();
+                              const bTitle = b.title?.toLowerCase();
+                              if (aTitle === 'yes' || aTitle?.startsWith('over')) return -1;
+                              if (bTitle === 'yes' || bTitle?.startsWith('over')) return 1;
+                              if (aTitle === 'no' || aTitle?.startsWith('under')) return 1;
+                              if (bTitle === 'no' || bTitle?.startsWith('under')) return -1;
+                              return (b.probability || 0) - (a.probability || 0);
+                            });
+                          } else {
+                            marketOutcomes.sort((a, b) => (b.probability || 0) - (a.probability || 0));
+                          }
+                          return marketOutcomes.slice(0, 4).map((outcome, idx) => {
+                            const isYes = outcome.title?.toLowerCase() === 'yes';
+                            const isNo = outcome.title?.toLowerCase() === 'no';
+                            const colorClass = isYes ? 'bg-green-500/10 border-green-500/50 hover:border-green-500 text-green-400' : isNo ? 'bg-red-500/10 border-red-500/50 hover:border-red-500 text-red-400' : 'bg-blue-500/10 border-blue-500/50 hover:border-blue-500 text-blue-400';
+
+                            return (
+                              <button
+                                key={outcome.id}
+                                onClick={() => navigate(`/markets/${trendingMarket.id}`)}
+                                className={`w-full flex items-center justify-between px-3 py-2.5 lg:px-4 lg:py-3 rounded-lg border transition-all ${colorClass}`}
+                              >
+                                <span className="text-white font-medium text-xs lg:text-sm truncate pr-2 text-left">{isMultiMultiple ? outcome.title.replace(/\s*\(Yes\)$/i, '') : outcome.title}</span>
+                                <span className="text-sm lg:text-lg font-bold shrink-0">{Math.round(outcome.probability || 0)}¢</span>
+                              </button>
+                            );
+                          });
+                        })()}
+                      </div>
+                      {trendingMarket.outcomes?.length > 4 && (
+                        <p className="text-xs text-slate-500 text-center mt-2">+{trendingMarket.outcomes.length - 4} more options</p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       )}

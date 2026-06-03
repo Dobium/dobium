@@ -24,17 +24,22 @@ const sequelize = new Sequelize(rawUrl, {
   dialect: 'postgres',
   logging: false,
   pool: {
-    max: 2,       // Limit to 1 or 2 connections per serverless instance
+    max: 10,      // Allow more concurrent connections for standard operation
     min: 0,
     acquire: 30000,
-    idle: 0       // Close connections immediately when they finish
+    idle: 10000,  // Keep connections alive briefly (10s) to allow reuse, then close
+    evict: 1000   // Clean up idle connections every second
   },
-  dialectOptions: isRemote ? {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false
-    }
-  } : {}
+  dialectOptions: {
+    ...(isRemote ? {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    } : {}),
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000 // Send keep-alive packets after 10s of inactivity
+  }
 });
 
 // Test connection

@@ -7,6 +7,9 @@ import MarketDetailPage from './pages/MarketDetailPage';
 import NewsPage from './pages/NewsPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminDashboard from './pages/AdminDashboard';
+import LeaguesPage from './pages/LeaguesPage';
+import LeagueDetailPage from './pages/LeagueDetailPage';
+import UserProfilePage from './pages/UserProfilePage';
 
 
 function AppRoutes() {
@@ -30,6 +33,9 @@ function AppRoutes() {
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/portfolio" element={<Navigate to="/" replace />} />
           <Route path="/markets/:id" element={<MarketDetailPage />} />
+          <Route path="/leagues" element={<LeaguesPage />} />
+          <Route path="/leagues/:id" element={<LeagueDetailPage />} />
+          <Route path="/profile/:id" element={<UserProfilePage />} />
           <Route path="/news" element={<NewsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
