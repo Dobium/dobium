@@ -399,12 +399,12 @@ const BASE_LIQUIDITY = 200;
 function recomputeProbabilities(outcomes, totalVolume, marketType) {
   if (marketType === 'multi_multiple') {
     const priced = [];
-    for (let i = 0; i < outcomes.length; i += 2) {
-      const yes = outcomes[i];
-      const no = outcomes[i + 1];
-      if (!yes || !no) {
-        if (yes) priced.push(yes);
-        continue;
+    const yesOutcomes = outcomes.filter(o => o.id.endsWith('_yes'));
+    yesOutcomes.forEach(yes => {
+      const no = outcomes.find(o => o.id === yes.id.replace('_yes', '_no'));
+      if (!no) {
+        priced.push(yes);
+        return;
       }
       const total = parseFloat(yes.total_stake || 0) + parseFloat(no.total_stake || 0);
       const denom = 2 * BASE_LIQUIDITY + total;
@@ -413,7 +413,46 @@ function recomputeProbabilities(outcomes, totalVolume, marketType) {
 
       priced.push({ ...yes, probability: parseFloat(pYes.toFixed(2)) });
       priced.push({ ...no, probability: parseFloat(pNo.toFixed(2)) });
-    }
+    });
+    return priced;
+  } else if (marketType === 'multi_single') {
+    const priced = [];
+    const numBaseOptions = outcomes.length / 2;
+    
+    const yesOutcomes = outcomes.filter(o => o.id.endsWith('_yes'));
+    const pairs = [];
+    let totalNoStake = 0;
+    yesOutcomes.forEach(yes => {
+      const no = outcomes.find(o => o.id === yes.id.replace('_yes', '_no'));
+      if (!no) {
+        priced.push(yes);
+        return;
+      }
+      const yStake = parseFloat(yes.total_stake || 0);
+      const nStake = parseFloat(no.total_stake || 0);
+      pairs.push({ yes, no, yStake, nStake });
+      totalNoStake += nStake;
+    });
+    
+    const effectiveYesStakes = pairs.map(p => {
+      const distributedNoStake = numBaseOptions > 1 ? (totalNoStake - p.nStake) / (numBaseOptions - 1) : 0;
+      return p.yStake + distributedNoStake;
+    });
+    
+    const sumEffectiveYesStake = effectiveYesStakes.reduce((a, b) => a + b, 0);
+    const denom = numBaseOptions * BASE_LIQUIDITY + sumEffectiveYesStake;
+    
+    const rawYesProbs = effectiveYesStakes.map(effStake => (BASE_LIQUIDITY + effStake) / denom * 100);
+    const sumRawYes = rawYesProbs.reduce((a, b) => a + b, 0);
+    
+    pairs.forEach((p, i) => {
+      const pYes = rawYesProbs[i] + (i === pairs.length - 1 ? 100 - sumRawYes : 0);
+      const pNo = 100 - pYes;
+      
+      priced.push({ ...p.yes, probability: parseFloat(pYes.toFixed(2)) });
+      priced.push({ ...p.no, probability: parseFloat(pNo.toFixed(2)) });
+    });
+    
     return priced;
   }
   const n = outcomes.length;
@@ -977,10 +1016,14 @@ app.post('/api/markets', async (req, res) => {
       }, { transaction: t });
 
       let outcomeRecords = [];
-      if (market_type === 'multi_multiple') {
+      if (market_type === 'multi_multiple' || market_type === 'multi_single') {
+        const isSingle = market_type === 'multi_single';
         outcomes.forEach(o => {
           const baseId = o.id || nanoid(8);
-          const probYes = typeof o.probability === 'number' ? o.probability : 50;
+          let probYes = 50;
+          if (isSingle) probYes = typeof o.probability === 'number' ? o.probability : Math.round(100 / outcomes.length);
+          else probYes = typeof o.probability === 'number' ? o.probability : 50;
+          
           const probNo = 100 - probYes;
           outcomeRecords.push({
             id: `${marketId}_${baseId}_yes`,

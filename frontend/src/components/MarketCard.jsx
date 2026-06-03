@@ -187,7 +187,7 @@ export default function MarketCard({ market }) {
   const navigate = useNavigate();
   const marketType = market.market_type || 'binary';
   const isBinary = marketType === 'binary';
-  const isMultiMultiple = marketType === 'multi_multiple';
+  const isMultiMultiple = marketType === 'multi_multiple' || marketType === 'multi_single';
 
   const rawOutcomes = market.outcomes || [];
   const displaySourceOutcomes = isMultiMultiple ? rawOutcomes.filter(o => o.id.endsWith('_yes')) : rawOutcomes;

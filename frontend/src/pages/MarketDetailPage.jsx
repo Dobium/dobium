@@ -274,7 +274,7 @@ export default function MarketDetailPage() {
   const accentColor = CATEGORY_COLORS[market.category] || '#6366f1';
   const outcomes = sortedOutcomes;   // sorted highest → lowest probability
   const marketType = market.market_type || 'binary';
-  const isMultiMultiple = marketType === 'multi_multiple';
+  const isMultiMultiple = marketType === 'multi_multiple' || marketType === 'multi_single';
   const yesOutcome = outcomes.find(o => o.title?.toLowerCase() === 'yes') || outcomes[0];
 
   const relatedMarkets = markets?.filter(m => m.id !== market?.id && m.status === 'active' && m.category === market?.category).slice(0, 3) || [];
@@ -610,9 +610,8 @@ export default function MarketDetailPage() {
             if (isMultiMultiple) {
               return (
                 <div className="space-y-6">
-                  {Array.from({ length: Math.ceil(market.outcomes.length / 2) }).map((_, i) => {
-                    const yes = market.outcomes[i * 2];
-                    const no = market.outcomes[i * 2 + 1];
+                  {outcomes.filter(o => o.id.endsWith('_yes')).map(yes => {
+                    const no = outcomes.find(o => o.id === yes.id.replace('_yes', '_no'));
                     if (!yes || !no) return null;
                     const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
                     return (
