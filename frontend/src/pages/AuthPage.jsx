@@ -59,11 +59,11 @@ export default function AuthPage() {
 
         {view === 'login' && (
           <>
-            <h1 className="auth-title">Welcome back</h1>
+            <h1 className="auth-title font-serif font-extrabold text-white text-2xl md:text-3xl text-center mb-1">Welcome back</h1>
             <p className="auth-subtitle">Sign in to your account</p>
 
             {/* Google — primary CTA */}
-            <button className="btn-google" onClick={handleGoogle} disabled={loading}>
+            <button className="btn-google font-sans font-medium" onClick={handleGoogle} disabled={loading}>
               <GoogleIcon />
               <span>Continue with Google</span>
             </button>
@@ -102,7 +102,7 @@ export default function AuthPage() {
               </button>
               {error && <p className="form-error">{error}</p>}
               {info && <p style={{ fontSize: 12, color: 'var(--green)' }}>{info}</p>}
-              <button id="loginSubmit" className="btn btn-primary btn-full" type="submit" disabled={loading}>
+              <button id="loginSubmit" className="btn btn-primary btn-full font-sans font-medium" type="submit" disabled={loading}>
                 {loading ? 'Signing in…' : 'Sign in'}
               </button>
             </form>
@@ -115,7 +115,7 @@ export default function AuthPage() {
 
         {view === 'signup' && (
           <>
-            <h1 className="auth-title">Create account</h1>
+            <h1 className="auth-title font-serif font-extrabold text-white text-2xl md:text-3xl text-center mb-1">Create account</h1>
             <p className="auth-subtitle">Join Samsa Prediction Markets</p>
 
             {/* Google — primary CTA */}
@@ -145,7 +145,7 @@ export default function AuthPage() {
               </div>
               {error && <p className="form-error">{error}</p>}
               {info && <p style={{ fontSize: 12, color: 'var(--green)' }}>{info}</p>}
-              <button id="signupSubmit" className="btn btn-primary btn-full" type="submit" disabled={loading}>
+              <button id="signupSubmit" className="btn btn-primary btn-full font-sans font-medium" type="submit" disabled={loading}>
                 {loading ? 'Creating account…' : 'Create account'}
               </button>
             </form>

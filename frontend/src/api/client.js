@@ -49,7 +49,7 @@ export const api = {
 
   // Main Events & Leaderboards
   getEvents: () => request('/events'),
-  getGlobalLeaderboard: () => request('/leaderboard/global'),
+  getGlobalLeaderboard: (limit = 10) => request(`/leaderboard/global?limit=${limit}`),
 
   // Forecast Leagues
   getLeagues: (userId) => request(`/leagues${userId ? `?user_id=${userId}` : ''}`),

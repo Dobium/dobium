@@ -10,6 +10,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import LeaguesPage from './pages/LeaguesPage';
 import LeagueDetailPage from './pages/LeagueDetailPage';
 import UserProfilePage from './pages/UserProfilePage';
+import GlobalLeaderboardPage from './pages/GlobalLeaderboardPage';
 
 
 function AppRoutes() {
@@ -34,6 +35,7 @@ function AppRoutes() {
           <Route path="/portfolio" element={<Navigate to="/" replace />} />
           <Route path="/markets/:id" element={<MarketDetailPage />} />
           <Route path="/leagues" element={<LeaguesPage />} />
+          <Route path="/leagues/leaderboard" element={<GlobalLeaderboardPage />} />
           <Route path="/leagues/:id" element={<LeagueDetailPage />} />
           <Route path="/profile/:id" element={<UserProfilePage />} />
           <Route path="/news" element={<NewsPage />} />

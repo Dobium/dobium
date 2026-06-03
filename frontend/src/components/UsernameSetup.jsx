@@ -9,8 +9,15 @@ function normalize(value) {
     .slice(0, 20);
 }
 
-export default function UsernameSetup({ user, open = true, onComplete, onClose }) {
-  const [value, setValue] = useState('');
+export default function UsernameSetup({ user, initialValue = '', open = true, onComplete, onClose }) {
+  const [value, setValue] = useState(initialValue);
+  
+  // Update value if initialValue changes while modal is closed
+  useEffect(() => {
+    if (!open && initialValue) {
+      setValue(initialValue);
+    }
+  }, [open, initialValue]);
   const [checking, setChecking] = useState(false);
   const [available, setAvailable] = useState(null);
   const [message, setMessage] = useState('');
@@ -21,6 +28,12 @@ export default function UsernameSetup({ user, open = true, onComplete, onClose }
   useEffect(() => {
     if (!open || !valid) {
       setAvailable(null);
+      return undefined;
+    }
+
+    if (value === initialValue) {
+      setAvailable(true);
+      setMessage('Current username');
       return undefined;
     }
 
@@ -39,7 +52,7 @@ export default function UsernameSetup({ user, open = true, onComplete, onClose }
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [open, valid, value]);
+  }, [open, valid, value, initialValue]);
 
   if (!open) return null;
 
@@ -63,7 +76,7 @@ export default function UsernameSetup({ user, open = true, onComplete, onClose }
       <form onSubmit={handleSubmit} className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-950 p-6 shadow-2xl">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-white">Choose Username</h2>
+            <h2 className="text-xl font-serif font-bold text-white">Choose Username</h2>
             <p className="mt-1 text-sm text-slate-400">3-20 lowercase characters.</p>
           </div>
           {onClose && (

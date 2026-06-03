@@ -173,7 +173,7 @@ export default function ExplorePage() {
       {trending.length > 0 && (
         <div className="mb-6 lg:mb-10">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl lg:text-2xl font-bold text-white flex items-center gap-2">
+            <h2 className="text-xl lg:text-2xl font-serif font-bold text-white flex items-center gap-2">
               <span style={{ color: 'rgb(212, 175, 55)' }}>
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round"
@@ -257,7 +257,7 @@ export default function ExplorePage() {
                         </div>
                       )}
 
-                      <h3 className="text-lg lg:text-2xl font-bold text-white mb-2 lg:mb-3 cursor-pointer hover:text-yellow-400 transition-colors" onClick={() => navigate(`/markets/${trendingMarket.id}`)}>
+                      <h3 className="text-lg lg:text-2xl font-serif font-bold text-white mb-2 lg:mb-3 cursor-pointer hover:text-yellow-400 transition-colors" onClick={() => navigate(`/markets/${trendingMarket.id}`)}>
                         {trendingMarket.title}
                       </h3>
                       <p className="text-slate-400 text-xs lg:text-sm mb-3 lg:mb-4 line-clamp-2 lg:line-clamp-none">{formatDescription(trendingMarket.description)}</p>
@@ -326,7 +326,7 @@ export default function ExplorePage() {
 
       {/* All Markets Section */}
       <div className="mb-4 lg:mb-6">
-        <h2 className="text-xl lg:text-2xl font-bold text-white flex items-center gap-2">
+        <h2 className="text-xl lg:text-2xl font-serif font-bold text-white flex items-center gap-2">
           <span style={{ color: 'rgb(212, 175, 55)' }}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round"
@@ -342,7 +342,7 @@ export default function ExplorePage() {
           <div className="w-8 h-8 border-3 border-slate-700 border-t-yellow-400 rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-auto">
+        <div className="columns-1 md:columns-2 lg:columns-3 gap-6">
           {filtered.map(m => <MarketCard key={m.id} market={m} />)}
         </div>
       )}

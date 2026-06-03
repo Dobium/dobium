@@ -616,7 +616,7 @@ export default function AdminDashboard() {
     <div className="p-6 max-w-6xl mx-auto">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Admin Dashboard</h1>
+          <h1 className="text-2xl font-serif font-bold text-white mb-1">Admin Dashboard</h1>
           <p className="text-slate-400 text-sm">Manage markets, users, and system settings.</p>
         </div>
         <div className="flex bg-slate-800 rounded-lg p-1 gap-1 overflow-x-auto border border-slate-700">

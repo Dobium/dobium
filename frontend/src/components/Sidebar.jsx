@@ -116,9 +116,7 @@ export default function Sidebar() {
 
         {session && (
           <NavLink to="/leagues" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
-            <svg fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3.375 3.375 0 01-3.375-3.375V13.5h-1.25v1.875A3.375 3.375 0 017.5 18.75m9 0h1.125A1.875 1.875 0 0019.5 16.875V6.75h-15v10.125a1.875 1.875 0 001.875 1.875H7.5m0 0V21m9-2.25V21M6 6.75V4.875C6 3.84 6.84 3 7.875 3h8.25C17.16 3 18 3.84 18 4.875V6.75M4.5 8.25H3.75A1.875 1.875 0 001.875 10.125v1.5A3.375 3.375 0 005.25 15h.75m12-6.75h.75a1.875 1.875 0 011.875 1.875v1.5A3.375 3.375 0 0117.25 15h-.75" />
-            </svg>
+            <span className="material-symbols-outlined text-[24px]">trophy</span>
             <span>Leagues</span>
           </NavLink>
         )}
@@ -199,9 +197,7 @@ export default function Sidebar() {
             {session && (
               <NavLink to="/leagues" className={({ isActive }) => `sidebar-item${isActive ? ' active' : ''}`}>
                 <div className="sidebar-item-icon">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3.375 3.375 0 01-3.375-3.375V13.5h-1.25v1.875A3.375 3.375 0 017.5 18.75m9 0h1.125A1.875 1.875 0 0019.5 16.875V6.75h-15v10.125a1.875 1.875 0 001.875 1.875H7.5m0 0V21m9-2.25V21M6 6.75V4.875C6 3.84 6.84 3 7.875 3h8.25C17.16 3 18 3.84 18 4.875V6.75M4.5 8.25H3.75A1.875 1.875 0 001.875 10.125v1.5A3.375 3.375 0 005.25 15h.75m12-6.75h.75a1.875 1.875 0 011.875 1.875v1.5A3.375 3.375 0 0117.25 15h-.75" />
-                  </svg>
+                  <span className="material-symbols-outlined text-[24px]">trophy</span>
                 </div>
                 {!isNotificationsOpen && <span className="sidebar-item-text">Leagues</span>}
               </NavLink>

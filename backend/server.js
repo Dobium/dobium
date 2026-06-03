@@ -776,6 +776,14 @@ async function resolveMarketInstance(market, requestedOutcomeIds, options = {}) 
   const prices = Object.fromEntries(allOutcomes.map(o => [o.id, o.probability]));
   await PriceHistory.create({ market_id: market.id, timestamp: new Date(), prices }, { transaction });
 
+  // Update global scores for all involved users
+  const involvedUserIds = [...new Set(predictions.map(p => p.user_id))];
+  for (const uid of involvedUserIds) {
+    if (uid && uid !== 'demo_user') {
+      updateGlobalScore(uid).catch(err => console.error('Error updating global score on resolve:', err));
+    }
+  }
+
   return { winningOutcomeIds: allWinningIds };
 }
 
@@ -878,7 +886,7 @@ async function checkPositionAlerts(marketId, newPrices, transaction) {
       created.forEach(n => broadcastNotification(n.toJSON()));
     }
   } catch (err) {
-    console.error('Error checking position alerts:', err);
+        console.error('Error checking position alerts:', err);
   }
 }
 
@@ -901,23 +909,23 @@ app.get('/api/events', async (req, res) => {
 
 app.get('/api/leaderboard/global', async (req, res) => {
   try {
-    const scores = await LeagueScore.findAll({
-      attributes: [
-        'user_id',
-        [Sequelize.fn('SUM', Sequelize.col('total_points')), 'global_points']
-      ],
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const { GlobalScore, User } = require('./lib/database/models');
+    
+    const scores = await GlobalScore.findAll({
       include: [{ model: User, as: 'user', attributes: ['username'] }],
-      group: ['user_id', 'user.id', 'user.username'],
-      order: [[Sequelize.literal('global_points'), 'DESC']],
-      limit: 10
+      order: [['global_rank', 'ASC']],
+      limit: limit
     });
     
-    const formatted = scores.map((s, index) => ({
-      rank: index + 1,
-      user_id: s.user_id,
-      username: s.user?.username || s.user_id.slice(0, 8),
-      total_points: s.getDataValue('global_points')
-    }));
+    const formatted = scores.map(s => {
+      const json = s.toJSON();
+      return {
+        ...json,
+        username: json.user?.username || json.user_id.slice(0, 8),
+        league_rank: json.global_rank // map global_rank to league_rank so the frontend LeagueLeaderboard component works seamlessly
+      };
+    });
     
     res.json(formatted);
   } catch (error) {
@@ -925,8 +933,6 @@ app.get('/api/leaderboard/global', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch global leaderboard' });
   }
 });
-
-// ============================================================================
 
 // ============================================================================
 // FORECAST LEAGUES ENDPOINTS

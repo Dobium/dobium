@@ -20,6 +20,7 @@ const LeagueScore = require('./LeagueScore');
 const CalledItEntry = require('./CalledItEntry');
 const MainEvent = require('./MainEvent');
 const MainEventMarket = require('./MainEventMarket');
+const GlobalScore = require('./GlobalScore');
 
 // ============================================================================
 // DEFINE RELATIONSHIPS
@@ -84,6 +85,9 @@ ForecastLeague.hasMany(LeagueScore, { foreignKey: 'league_id', as: 'scores', onD
 LeagueScore.belongsTo(ForecastLeague, { foreignKey: 'league_id', as: 'league' });
 User.hasMany(LeagueScore, { foreignKey: 'user_id', as: 'league_scores' });
 LeagueScore.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+User.hasOne(GlobalScore, { foreignKey: 'user_id', as: 'global_score' });
+GlobalScore.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
 ForecastLeague.hasMany(CalledItEntry, { foreignKey: 'league_id', as: 'called_it_entries', onDelete: 'CASCADE' });
 CalledItEntry.belongsTo(ForecastLeague, { foreignKey: 'league_id', as: 'league' });
@@ -153,5 +157,6 @@ module.exports = {
   CalledItEntry,
   MainEvent,
   MainEventMarket,
+  GlobalScore,
   initializeDatabase
 };

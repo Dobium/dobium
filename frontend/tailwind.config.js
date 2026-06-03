@@ -18,8 +18,8 @@ export default {
         }
       },
       fontFamily: {
-        serif: ['"DM Serif Text"', 'serif'],
-        sans: ['Jost', 'sans-serif'],
+        serif: ['"Cabinet Grotesk"', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
       },
     },
   },

@@ -77,7 +77,7 @@ export default function PaperTradingDisclaimer() {
         }
 
         .disclaimer-title {
-          font-family: "DM Serif Text", serif;
+          font-family: "Cabinet Grotesk", sans-serif;
           font-size: 20px;
           font-weight: 700;
           color: #f1f5f9;

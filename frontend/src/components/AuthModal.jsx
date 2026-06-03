@@ -126,7 +126,7 @@ export default function AuthModal() {
 
           {view === 'login' && (
             <>
-              <h1 className="text-2xl font-bold text-white text-center mb-1">Welcome back</h1>
+              <h1 className="text-2xl font-serif font-extrabold text-white text-center mb-1">Welcome back</h1>
               <p className="text-slate-400 text-sm text-center mb-6">Sign in to your account</p>
 
               <button className="flex items-center justify-center gap-3 w-full py-2.5 rounded-xl bg-white text-slate-900 font-semibold hover:bg-slate-100 transition-colors mb-4" onClick={handleGoogle} disabled={loading}>
@@ -167,7 +167,7 @@ export default function AuthModal() {
 
           {view === 'signup' && (
             <>
-              <h1 className="text-2xl font-bold text-white text-center mb-1">Create account</h1>
+              <h1 className="text-2xl font-serif font-bold text-white text-center mb-1">Create account</h1>
               <p className="text-slate-400 text-sm text-center mb-6">Join Dobium Prediction Markets</p>
 
               <button className="flex items-center justify-center gap-3 w-full py-2.5 rounded-xl bg-white text-slate-900 font-semibold hover:bg-slate-100 transition-colors mb-4" onClick={handleGoogle} disabled={loading}>
@@ -216,12 +216,12 @@ export default function AuthModal() {
           {view === 'confirm' && (
             <div className="text-center">
               <div className="text-5xl mb-4">✉️</div>
-              <h1 className="text-2xl font-bold text-white mb-2">Check your email</h1>
-              <p className="text-slate-400 text-sm mb-4">We sent a confirmation link to</p>
-              <p className="text-yellow-500 font-semibold bg-yellow-500/10 py-2 rounded-lg mb-6">{email || session?.user?.email}</p>
-              <p className="text-slate-400 text-sm mb-6">Click the link in that email to confirm your account. You must verify your email before accessing the platform.</p>
+              <h1 className="text-2xl font-serif font-extrabold text-white mb-2">Check your email</h1>
+              <p className="text-slate-400 text-sm mb-4 font-sans font-medium">We sent a confirmation link to</p>
+              <p className="text-yellow-500 font-sans font-medium bg-yellow-500/10 py-2 rounded-lg mb-6">{email || session?.user?.email}</p>
+              <p className="text-slate-400 text-sm mb-6 font-sans font-medium">Click the link in that email to confirm your account. You must verify your email before accessing the platform.</p>
               {!session && (
-                <button className="w-full bg-slate-800 text-white font-bold py-2.5 rounded-xl transition-all hover:bg-slate-700" onClick={() => { clearNewSignup(); setView('login'); }}>
+                <button className="w-full bg-slate-800 text-white font-sans font-medium py-2.5 rounded-xl transition-all hover:bg-slate-700" onClick={() => { clearNewSignup(); setView('login'); }}>
                   Back to sign in
                 </button>
               )}
@@ -230,7 +230,7 @@ export default function AuthModal() {
 
           {view === 'reset' && (
             <>
-              <h1 className="text-2xl font-bold text-white text-center mb-1">Reset password</h1>
+              <h1 className="text-2xl font-serif font-bold text-white text-center mb-1">Reset password</h1>
               <p className="text-slate-400 text-sm text-center mb-6">We'll send you a reset link</p>
               <form onSubmit={handleReset} className="flex flex-col gap-3">
                 <div>
@@ -256,7 +256,7 @@ export default function AuthModal() {
             {slides.map((slide, idx) => (
               <div key={idx} className={`absolute inset-0 transition-opacity duration-500 ease-in-out flex flex-col justify-center ${idx === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
                 <div className="text-4xl md:text-5xl mb-4 md:mb-6">{slide.icon}</div>
-                <h2 className="text-xl md:text-2xl font-bold text-white mb-2 md:mb-3">{slide.title}</h2>
+                <h2 className="text-xl md:text-2xl font-serif font-bold text-white mb-2 md:mb-3">{slide.title}</h2>
                 <p className="text-slate-400 text-sm mb-3 md:mb-5 leading-relaxed">{slide.description}</p>
                 <div className="text-yellow-500 text-xs font-semibold uppercase tracking-wider">{slide.highlight}</div>
               </div>

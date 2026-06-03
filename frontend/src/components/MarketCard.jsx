@@ -193,8 +193,35 @@ export default function MarketCard({ market }) {
   const hasYesNoPairs = rawOutcomes.some(o => o.id.endsWith('_yes'));
   const displaySourceOutcomes = (isMultiMultiple && hasYesNoPairs) ? rawOutcomes.filter(o => o.id.endsWith('_yes')) : rawOutcomes;
 
+  const isResolved = market.status === 'resolved';
+  const winningOutcomeIds = (() => {
+    if (Array.isArray(market.winning_outcome_ids)) return market.winning_outcome_ids;
+    if (!market.winning_outcome_id) return [];
+    try {
+      const parsed = JSON.parse(market.winning_outcome_id);
+      return Array.isArray(parsed) ? parsed : [market.winning_outcome_id];
+    } catch {
+      return [market.winning_outcome_id];
+    }
+  })();
+  const winningOutcomeSet = new Set(winningOutcomeIds);
+
+  const isOutcomeResolved = (outcomeId) => {
+    if (winningOutcomeSet.has(outcomeId)) return true;
+    if (outcomeId.endsWith('_yes') && winningOutcomeSet.has(outcomeId.replace('_yes', '_no'))) return true;
+    if (outcomeId.endsWith('_no') && winningOutcomeSet.has(outcomeId.replace('_no', '_yes'))) return true;
+    return false;
+  };
+
+  const isPartiallyResolved = market.status === 'active' && winningOutcomeIds.length > 0;
+
+  let finalDisplayOutcomes = displaySourceOutcomes;
+  if (isPartiallyResolved) {
+    finalDisplayOutcomes = displaySourceOutcomes.filter(o => !isOutcomeResolved(o.id));
+  }
+
   // Sort outcomes highest → lowest probability, or Yes/No for binary
-  const outcomes = [...displaySourceOutcomes];
+  const outcomes = [...finalDisplayOutcomes];
   if (isBinary && outcomes.length === 2) {
     outcomes.sort((a, b) => {
       const aTitle = a.title?.toLowerCase();
@@ -209,18 +236,6 @@ export default function MarketCard({ market }) {
     outcomes.sort((a, b) => (b.probability || 0) - (a.probability || 0));
   }
   const typeLabel = isBinary ? 'Binary' : isMultiMultiple ? 'Multi-Independent' : 'Multi';
-  const isResolved = market.status === 'resolved';
-  const winningOutcomeIds = (() => {
-    if (Array.isArray(market.winning_outcome_ids)) return market.winning_outcome_ids;
-    if (!market.winning_outcome_id) return [];
-    try {
-      const parsed = JSON.parse(market.winning_outcome_id);
-      return Array.isArray(parsed) ? parsed : [market.winning_outcome_id];
-    } catch {
-      return [market.winning_outcome_id];
-    }
-  })();
-  const winningOutcomeSet = new Set(winningOutcomeIds);
 
   const sportsMeta = (() => {
     if (market.category === 'sports' && market.description) {
@@ -259,8 +274,8 @@ export default function MarketCard({ market }) {
             }}
           >
             <div className="flex flex-col gap-0.5 sm:gap-1">
-              <span className="text-white font-medium text-[10px] sm:text-xs text-center truncate w-full">{normalizeOutcomeTitle(outcome.title)}</span>
-              <span className={`text-sm sm:text-base font-semibold text-center ${idx === 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <span className="text-white font-serif font-medium text-[10px] sm:text-xs text-center truncate w-full">{normalizeOutcomeTitle(outcome.title)}</span>
+              <span className={`text-sm sm:text-base font-serif font-bold text-center ${idx === 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {Math.round(outcome.probability || 0)}¢
               </span>
               {isResolved && winningOutcomeSet.has(outcome.id) && (
@@ -293,8 +308,8 @@ export default function MarketCard({ market }) {
                 navigate(`/markets/${market.id}`);
               }}
             >
-              <span className="text-white font-medium text-[10px] sm:text-xs truncate text-center w-full">{isMultiMultiple ? outcome.title.replace(/\s*\(Yes\)$/i, '') : normalizeOutcomeTitle(outcome.title)}</span>
-              <span className={`text-sm sm:text-base font-semibold ${colors.text}`}>
+              <span className="text-white font-serif font-medium text-[10px] sm:text-xs truncate text-center w-full">{isMultiMultiple ? outcome.title.replace(/\s*\(Yes\)$/i, '') : normalizeOutcomeTitle(outcome.title)}</span>
+              <span className={`text-sm sm:text-base font-serif font-bold ${colors.text}`}>
                 {Math.round(outcome.probability || 0)}¢
               </span>
               {isResolved && isWinner && (
@@ -379,7 +394,7 @@ export default function MarketCard({ market }) {
 
         <MiniChart market={market} outcomes={outcomes} isBinary={isBinary} />
 
-        <h3 className="text-sm sm:text-base font-semibold text-white mb-1 sm:mb-2 line-clamp-2 group-hover:text-yellow-400 transition-colors leading-snug">
+        <h3 className="text-sm sm:text-base font-serif font-bold text-white mb-1 sm:mb-2 line-clamp-2 group-hover:text-yellow-400 transition-colors leading-snug">
           {market.title}
         </h3>
 

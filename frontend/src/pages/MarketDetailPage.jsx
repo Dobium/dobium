@@ -312,6 +312,14 @@ export default function MarketDetailPage() {
   })();
   const winningOutcomeSet = new Set(winningOutcomeIds);
   const winningOutcomes = sortedOutcomes.filter(o => winningOutcomeSet.has(o.id));
+
+  const isOutcomeResolved = (outcomeId) => {
+    if (winningOutcomeSet.has(outcomeId)) return true;
+    if (outcomeId.endsWith('_yes') && winningOutcomeSet.has(outcomeId.replace('_yes', '_no'))) return true;
+    if (outcomeId.endsWith('_no') && winningOutcomeSet.has(outcomeId.replace('_no', '_yes'))) return true;
+    return false;
+  };
+  const isPartiallyResolved = market?.status === 'active' && winningOutcomeIds.length > 0;
   const [stake, setStake] = useState('');
   const [tradeLoading, setTradeLoading] = useState(false);
   const [tradeMsg, setTradeMsg] = useState('');
@@ -552,13 +560,13 @@ export default function MarketDetailPage() {
               {sportsMeta.clock_running && <span className="ml-1 opacity-70">⏱</span>}
             </span>
           ) : (
-            <span className={`flex items-center gap-1.5 text-xs font-medium ${market.status === 'active' ? 'text-green-400' : 'text-yellow-400'}`}>
-              <span className={`w-2 h-2 rounded-full ${market.status === 'active' ? 'bg-green-400' : 'bg-yellow-400'}`}></span>
-              {market.status === 'active' ? 'Open' : 'Resolved'}
+            <span className={`flex items-center gap-1.5 text-xs font-medium ${market.status === 'resolved' ? 'text-yellow-400' : 'text-green-400'}`}>
+              <span className={`w-2 h-2 rounded-full ${market.status === 'resolved' ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
+              {market.status === 'resolved' ? 'Resolved' : 'Open'}
             </span>
           )}
         </div>
-        <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">{market.title}</h1>
+        <h1 className="text-2xl md:text-3xl font-serif font-bold text-white mb-2">{market.title}</h1>
         <p className="text-slate-400 text-sm md:text-base">{displayDescription}</p>
         <div className="flex items-center gap-4 mt-4 text-sm text-slate-500">
           <span>Volume: ${(market.total_volume || 0).toLocaleString()}</span>
@@ -585,7 +593,7 @@ export default function MarketDetailPage() {
       {/* Price Chart */}
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Price History</h2>
+          <h2 className="text-lg font-serif font-bold text-white">Price History</h2>
           <div className="flex gap-2">
             {['1D', '1W', '1M', 'ALL'].map(range => (
               <button
@@ -608,7 +616,7 @@ export default function MarketDetailPage() {
         {/* Left Column: Outcomes */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-white">Outcomes</h2>
+            <h2 className="text-xl font-serif font-bold text-white">Outcomes</h2>
             {outcomes.length >= 10 && (
               <div className="relative w-48 sm:w-64">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -631,6 +639,13 @@ export default function MarketDetailPage() {
               const isNo = displayTitle?.toLowerCase() === 'no' || o.title?.toLowerCase().endsWith('(no)');
               const isSelected = selectedOutcome?.id === o.id;
               const isWinner = winningOutcomeSet.has(o.id);
+              const isResolvedOutcome = isOutcomeResolved(o.id) || market.status === 'resolved';
+
+              const userResolvedPreds = resolvedPositions.filter(p => p.outcome_id === o.id);
+              let userWinStatus = null;
+              if (userResolvedPreds.length > 0) {
+                userWinStatus = userResolvedPreds.some(p => p.status === 'won') ? 'won' : 'lost';
+              }
 
               let colorClasses = 'border-slate-700 hover:border-slate-600';
               let textColorClass = 'text-slate-300';
@@ -649,7 +664,7 @@ export default function MarketDetailPage() {
                 textColorClass = 'text-yellow-400';
                 barColorClass = 'bg-yellow-500';
               }
-              if (market.status === 'resolved') {
+              if (isResolvedOutcome) {
                 colorClasses = isWinner ? 'border-green-500 bg-green-500/10' : 'border-slate-800 opacity-70';
                 textColorClass = isWinner ? 'text-green-400' : 'text-slate-500';
                 barColorClass = isWinner ? 'bg-green-500' : 'bg-slate-700';
@@ -660,16 +675,25 @@ export default function MarketDetailPage() {
                   key={o.id}
                   className={`bg-slate-900/50 border ${colorClasses} rounded-xl p-4 transition-all cursor-pointer ${isSelected ? 'ring-2 ring-yellow-500' : ''
                     }`}
-                  onClick={() => market.status === 'active' && setSelectedOutcome(o)}
+                  onClick={() => market.status === 'active' && !isResolvedOutcome && setSelectedOutcome(o)}
                 >
                   <div className="flex justify-between items-center mb-3">
-                    <span className="flex items-center gap-2 text-white font-medium">
+                    <span className="flex items-center gap-2 text-white font-serif font-medium text-lg">
                       {displayTitle}
-                      {market.status === 'resolved' && isWinner && (
+                      {isResolvedOutcome && isWinner && (
                         <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-green-300">Won</span>
                       )}
+                      {isResolvedOutcome && !isWinner && (
+                        <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">Lost</span>
+                      )}
+                      {userWinStatus === 'won' && (
+                        <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-green-300 ml-1">You Won</span>
+                      )}
+                      {userWinStatus === 'lost' && (
+                        <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-red-300 ml-1">You Lost</span>
+                      )}
                     </span>
-                    <span className={`text-2xl font-bold ${textColorClass}`}>
+                    <span className={`text-2xl font-serif font-bold ${textColorClass}`}>
                       {(o.probability || 0).toFixed(2)}%
                     </span>
                   </div>
@@ -806,32 +830,53 @@ export default function MarketDetailPage() {
               );
             };
 
-            if (isMultiMultiple && hasYesNoPairs) {
-              return (
-                <div className="space-y-6">
-                  {outcomes.filter(o => o.id.endsWith('_yes')).filter(yes => {
-                    const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
-                    return baseTitle.toLowerCase().includes(searchQuery.toLowerCase());
-                  }).map(yes => {
-                    const no = outcomes.find(o => o.id === yes.id.replace('_yes', '_no'));
-                    if (!yes || !no) return null;
-                    const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
-                    return (
-                      <div key={yes.id} className="bg-slate-900/40 rounded-xl p-4 border border-slate-700/50">
-                        <h3 className="text-lg font-semibold text-white mb-3 pl-1">{baseTitle}</h3>
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          <div className="flex-1">{renderOutcome(yes, 'Yes')}</div>
-                          <div className="flex-1">{renderOutcome(no, 'No')}</div>
+            const renderOutcomesBlock = (outcomesToRender) => {
+              if (isMultiMultiple && hasYesNoPairs) {
+                return (
+                  <div className="space-y-6">
+                    {outcomesToRender.filter(o => o.id.endsWith('_yes')).filter(yes => {
+                      const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
+                      return baseTitle.toLowerCase().includes(searchQuery.toLowerCase());
+                    }).map(yes => {
+                      const no = outcomesToRender.find(o => o.id === yes.id.replace('_yes', '_no'));
+                      if (!yes || !no) return null;
+                      const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
+                      return (
+                        <div key={yes.id} className="bg-slate-900/40 rounded-xl p-4 border border-slate-700/50">
+                          <h3 className="text-lg font-serif font-bold text-white mb-3 pl-1">{baseTitle}</h3>
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <div className="flex-1">{renderOutcome(yes, 'Yes')}</div>
+                            <div className="flex-1">{renderOutcome(no, 'No')}</div>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            }
+                      );
+                    })}
+                  </div>
+                );
+              }
+              const filteredOutcomes = outcomesToRender.filter(o => o.title.toLowerCase().includes(searchQuery.toLowerCase()));
+              return <div className="space-y-3">{filteredOutcomes.map(o => renderOutcome(o))}</div>;
+            };
 
-            const filteredOutcomes = outcomes.filter(o => o.title.toLowerCase().includes(searchQuery.toLowerCase()));
-            return <div className="space-y-3">{filteredOutcomes.map(o => renderOutcome(o))}</div>;
+            const unresolvedOutcomesList = outcomes.filter(o => !isOutcomeResolved(o.id));
+            const resolvedOutcomesList = outcomes.filter(o => isOutcomeResolved(o.id));
+
+            return (
+              <div className="space-y-8">
+                {unresolvedOutcomesList.length > 0 && (
+                  <div>
+                    {isPartiallyResolved && <h3 className="text-sm font-serif font-bold text-slate-400 uppercase tracking-wider mb-4">Open Options</h3>}
+                    {renderOutcomesBlock(unresolvedOutcomesList)}
+                  </div>
+                )}
+                {resolvedOutcomesList.length > 0 && (
+                  <div className={unresolvedOutcomesList.length > 0 ? 'pt-6 border-t border-slate-800' : ''}>
+                    <h3 className="text-sm font-serif font-bold text-slate-400 uppercase tracking-wider mb-4">Resolved Options</h3>
+                    {renderOutcomesBlock(resolvedOutcomesList)}
+                  </div>
+                )}
+              </div>
+            );
           })()}
         </div>
 
@@ -839,7 +884,7 @@ export default function MarketDetailPage() {
         {market.status === 'active' && (
           <div className="w-full lg:w-96">
             <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-6 sticky top-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Place Prediction</h2>
+              <h2 className="text-xl font-serif font-bold text-white mb-4">Place Prediction</h2>
 
               {!selectedOutcome ? (
                 <div className="text-center py-8">
@@ -854,7 +899,7 @@ export default function MarketDetailPage() {
                 <form onSubmit={handleTrade} className="space-y-4">
                   <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
                     <p className="text-slate-400 text-xs mb-1">Betting on</p>
-                    <p className="text-white font-semibold">{selectedOutcome.title}</p>
+                    <p className="text-white font-serif font-semibold text-lg">{selectedOutcome.title}</p>
                     <p className="text-yellow-400 text-sm mt-1">
                       {selectedOutcome.probability ?? 50}% probability
                     </p>

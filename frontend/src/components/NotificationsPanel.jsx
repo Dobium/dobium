@@ -125,7 +125,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
       >
         <div className="flex flex-col h-full">
           <div className="px-6 py-5 border-b border-slate-800 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-white">Notifications</h2>
+            <h2 className="text-xl font-serif font-bold text-white">Notifications</h2>
             <div className="flex gap-3 items-center">
               {newNotifications.length > 0 && (
                 <button
