@@ -1,6 +1,6 @@
-# 🎲 Dobium: Prediction Markets
+# 🎲 Dobium: Trade on Entertainment
 
-Dobium is a modern, fully data-driven prediction market platform that allows users to trade on the outcomes of real-world events across sports, technology, finance, politics, and more using virtual currency.
+Dobium is a modern, fully data-driven prediction market platform that allows users to trade on the Entertainment
 
 Trade on what you believe, track your portfolio, and watch probabilities dynamically shift based on real-time market sentiment—all completely risk-free.
 
