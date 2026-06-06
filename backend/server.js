@@ -1502,6 +1502,23 @@ app.post('/api/markets', async (req, res) => {
   }
 });
 
+// PUT update market order
+app.put('/api/admin/markets/reorder', async (req, res) => {
+  try {
+    const { updates } = req.body;
+    if (!Array.isArray(updates)) return res.status(400).json({ error: 'Expected updates array' });
+    await sequelize.transaction(async (t) => {
+      for (const update of updates) {
+        await Market.update({ display_order: update.display_order }, { where: { id: update.id }, transaction: t });
+      }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Market reorder error:', error);
+    res.status(500).json({ error: 'Failed to reorder markets' });
+  }
+});
+
 // PUT update market
 app.put('/api/markets/:id', async (req, res) => {
   try {
@@ -2784,9 +2801,22 @@ app.post('/api/admin/send-email', async (req, res) => {
 const BROADCAST_CAMPAIGNS = {};
 
 // ── Custom campaign HTML builder ──────────────────────────────────────────────
-function buildCustomBroadcastHtml({ heading, heroIcon = '✦', body, callout, questions, ctaLabel, ctaUrl, username, subject, platformUrl }) {
+function buildCustomBroadcastHtml({ heading, heroIcon = '✦', body, callout, questions, newsUpdates, ctaLabel, ctaUrl, username, subject, platformUrl }) {
   const year = new Date().getFullYear();
-  const safeBody = (body || '').replace(/\n/g, '<br/>');
+  const actualName = username ? username : 'there';
+  const finalBody = (body || '').replace(/\{user\}/gi, actualName);
+  const safeBody = finalBody.replace(/\n/g, '<br/>');
+
+  let newsHtml = '';
+  if (newsUpdates && newsUpdates.length > 0) {
+    const ns = newsUpdates.map(n => `
+      <div style="margin-top:24px; border-left:2px solid #d4af37; padding-left:16px;">
+        <h3 style="margin:0 0 6px;font-family:'Cabinet Grotesk', 'Inter', Arial, sans-serif;font-size:16px;color:#f1f5f9;font-weight:700;">${n.headline}</h3>
+        <p style="margin:0;font-family:'Inter',Arial,Helvetica,sans-serif;font-size:14px;color:#94a3b8;line-height:1.6;">${(n.content || '').replace(/\n/g, '<br/>')}</p>
+      </div>
+    `).join('');
+    newsHtml = `<div style="margin-top:20px;">${ns}</div>`;
+  }
 
   let questionsHtml = '';
   if (questions && questions.length > 0) {
@@ -2799,8 +2829,8 @@ function buildCustomBroadcastHtml({ heading, heroIcon = '✦', body, callout, qu
                 <div style="width:28px;height:28px;border-radius:6px;background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.3);text-align:center;line-height:28px;font-size:14px;">${q.emoji || '📌'}</div>
               </td>
               <td style="padding-left:10px;">
-                <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#d4af37;margin-bottom:2px;">${q.label}</div>
-                <div style="font-size:13px;color:#cbd5e1;line-height:1.5;">${q.question}</div>
+                <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#d4af37;margin-bottom:2px;">${q.label}</div>
+                <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#cbd5e1;line-height:1.5;">${q.question}</div>
               </td>
             </tr>
           </table>
@@ -2814,8 +2844,19 @@ function buildCustomBroadcastHtml({ heading, heroIcon = '✦', body, callout, qu
     </td></tr>`;
   }
 
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>${subject || 'A message from Dobium'}</title></head>
-<body style="margin:0;padding:0;background-color:#0a0f1e;font-family:Arial,Helvetica,sans-serif;width:100%;-webkit-text-size-adjust:100%;">
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>${subject || 'A message from Dobium'}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f%5B%5D=cabinet-grotesk@800,700,900&display=swap" rel="stylesheet">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  @import url('https://api.fontshare.com/v2/css?f%5B%5D=cabinet-grotesk@800,700,900&display=swap');
+  h1, h2, h3 { font-family: 'Cabinet Grotesk', 'Inter', Arial, sans-serif !important; }
+  body, p, a, div, td { font-family: 'Inter', Arial, Helvetica, sans-serif; }
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#0a0f1e;font-family:'Inter',Arial,Helvetica,sans-serif;width:100%;-webkit-text-size-adjust:100%;">
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0f1e;padding:5% 3%;">
     <tr><td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;border:1px solid rgba(212,175,55,0.2);box-shadow:0 0 48px rgba(212,175,55,0.06);">
@@ -2825,27 +2866,26 @@ function buildCustomBroadcastHtml({ heading, heroIcon = '✦', body, callout, qu
         </td></tr>
         <tr><td align="center" style="padding:36px 5% 32px;background:linear-gradient(160deg,#0c1e40 0%,#071428 60%,#04101f 100%);">
           <div style="width:52px;height:52px;border-radius:14px;background:rgba(212,175,55,0.1);border:1.5px solid rgba(212,175,55,0.4);margin:0 auto 18px;text-align:center;line-height:52px;font-size:24px;">${heroIcon}</div>
-          <h1 style="margin:0 0 6px;font-size:22px;font-weight:900;color:#f1f5f9;line-height:1.25;letter-spacing:-0.3px;">${heading || 'A message from Dobium'}</h1>
-          <p style="margin:0;font-size:12px;color:#475569;line-height:1.5;">${subject || ''}</p>
+          <h1 style="margin:0 0 6px;font-family:'Cabinet Grotesk', 'Inter', Arial, sans-serif;font-size:22px;font-weight:900;color:#f1f5f9;line-height:1.25;letter-spacing:-0.3px;">${heading || 'A message from Dobium'}</h1>
         </td></tr>
         <tr><td style="background:#0a1628;padding:24px 5%;border-top:1px solid rgba(212,175,55,0.1);border-bottom:1px solid rgba(212,175,55,0.1);">
-          ${username ? `<p style="margin:0 0 10px;font-size:15px;font-weight:600;color:#f1f5f9;">Hi ${username},</p>` : ''}
-          <p style="margin:0;font-size:14px;color:#94a3b8;line-height:1.85;">${safeBody}</p>
+          <p style="margin:0;font-family:'Inter',Arial,Helvetica,sans-serif;font-size:14px;color:#94a3b8;line-height:1.85;">${safeBody}</p>
+          ${newsHtml}
         </td></tr>
         ${callout ? `<tr><td style="background:#071428;padding:18px 5%;">
           <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
             <td style="border-left:3px solid #d4af37;background:rgba(212,175,55,0.06);border-radius:0 8px 8px 0;padding:12px 16px;">
-              <p style="margin:0;font-size:13px;color:#a78040;line-height:1.6;">${callout}</p>
+              <p style="margin:0;font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#a78040;line-height:1.6;">${callout}</p>
             </td>
           </tr></table>
         </td></tr>` : ''}
     ${questionsHtml}
         ${ctaLabel && ctaUrl ? `<tr><td align="center" style="background:#071428;padding:28px 5% 36px;">
-          <a href="${ctaUrl}" style="display:inline-block;padding:14px 10%;background:linear-gradient(135deg,#b8952a 0%,#d4af37 50%,#e8c645 100%);color:#0a0f1e;font-size:14px;font-weight:900;text-decoration:none;border-radius:10px;box-shadow:0 4px 20px rgba(212,175,55,0.3);max-width:100%;box-sizing:border-box;">${ctaLabel}</a>
+          <a href="${ctaUrl}" style="display:inline-block;font-family:'Inter',Arial,Helvetica,sans-serif;padding:14px 10%;background:linear-gradient(135deg,#b8952a 0%,#d4af37 50%,#e8c645 100%);color:#0a0f1e;font-size:14px;font-weight:900;text-decoration:none;border-radius:10px;box-shadow:0 4px 20px rgba(212,175,55,0.3);max-width:100%;box-sizing:border-box;">${ctaLabel}</a>
         </td></tr>` : ''}
         <tr><td align="center" style="padding:22px 5% 24px;background:#04101f;border-top:1px solid rgba(255,255,255,0.04);">
-          <p style="margin:0 0 4px;font-size:11px;color:#334155;">© ${year} Dobium &middot; All rights reserved.</p>
-          <p style="margin:0;font-size:10px;color:#1e293b;line-height:1.6;">You received this because you are a registered user of Dobium Prediction Markets.</p>
+          <p style="margin:0 0 4px;font-family:'Inter',Arial,Helvetica,sans-serif;font-size:11px;color:#334155;">© ${year} Dobium &middot; All rights reserved.</p>
+          <p style="margin:0;font-family:'Inter',Arial,Helvetica,sans-serif;font-size:10px;color:#1e293b;line-height:1.6;">You received this because you are a registered user of Dobium Prediction Markets.</p>
         </td></tr>
         <tr><td style="height:3px;background:linear-gradient(90deg,#7a5c10,#b8952a,#d4af37,#f0cc6a,#d4af37,#b8952a,#7a5c10);font-size:0;line-height:0;">&nbsp;</td></tr>
       </table>
@@ -2859,14 +2899,14 @@ function buildCustomBroadcastHtml({ heading, heroIcon = '✦', body, callout, qu
  * Body:
  *   Preset:  { campaignId, adminEmail, dryRun? }
  *   Custom:  { campaignId: 'custom', adminEmail, dryRun?,
- *              subject, heading, heroIcon, body, callout, ctaLabel, ctaUrl }
+ *              subject, heading, heroIcon, body, callout, questions, newsUpdates, ctaLabel, ctaUrl }
  */
 app.post('/api/admin/send-broadcast', async (req, res) => {
   try {
     const {
       campaignId, adminEmail, dryRun = true,
       // Custom campaign fields
-      subject, heading, heroIcon, body: bodyText, callout, questions, ctaLabel, ctaUrl
+      subject, heading, heroIcon, body: bodyText, callout, questions, newsUpdates, ctaLabel, ctaUrl, externalEmails
     } = req.body;
 
     if (adminEmail !== 'donotreply.dobium@gmail.com') {
@@ -2886,13 +2926,18 @@ app.post('/api/admin/send-broadcast', async (req, res) => {
         name: subject,
         subject,
         buildHtml: (username) => buildCustomBroadcastHtml({
-          heading, heroIcon, body: bodyText, callout, questions, ctaLabel,
+          heading, heroIcon, body: bodyText, callout, questions, newsUpdates, ctaLabel,
           ctaUrl: ctaUrl || platformUrl,
           username, subject, platformUrl
         }),
-        buildText: () => {
+        buildText: (username) => {
+          const actualName = username ? username : 'there';
           let text = `${heading ? heading + '\n\n' : ''}${bodyText}`;
+          text = text.replace(/\{user\}/gi, actualName);
           if (callout) text += '\n\n' + callout;
+          if (newsUpdates && newsUpdates.length > 0) {
+            text += '\n\n' + newsUpdates.map(n => `--- ${n.headline} ---\n${n.content}`).join('\n\n');
+          }
           if (questions && questions.length > 0) {
             text += '\n\n' + questions.map(q => `  ${q.emoji || '📌'} ${q.label} — ${q.question}`).join('\n');
           }
@@ -2923,13 +2968,22 @@ app.post('/api/admin/send-broadcast', async (req, res) => {
     const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (error) return res.status(500).json({ error: 'Failed to fetch users: ' + error.message });
 
+    const localUsers = await User.findAll({ attributes: ['email', 'username'] });
+    const localUserMap = new Map();
+    localUsers.forEach(u => {
+      if (u.email) localUserMap.set(u.email.toLowerCase(), u.username);
+    });
+
     const SKIP = new Set(['donotreply.dobium@gmail.com', 'peepeeeepooopoo@gmail.com', 'hebdhdbdbsbhbbbhhdhdhsh@gmail.com']);
     const recipients = data.users
       .filter(u => u.email && !SKIP.has(u.email))
-      .map(u => ({
-        email: u.email,
-        username: u.user_metadata?.name || u.user_metadata?.full_name || null
-      }));
+      .map(u => {
+        const localUsername = localUserMap.get(u.email.toLowerCase());
+        return {
+          email: u.email,
+          username: localUsername || u.user_metadata?.username || u.user_metadata?.name || u.user_metadata?.full_name || u.email.split('@')[0]
+        };
+      });
 
     // ── Dry-run ─────────────────────────────────────────────────────────────
     if (dryRun) {
@@ -2950,7 +3004,7 @@ app.post('/api/admin/send-broadcast', async (req, res) => {
         await sendEmail({
           to: recipient.email,
           subject: campaign.subject,
-          text: campaign.buildText(),
+          text: campaign.buildText(recipient.username),
           html: campaign.buildHtml(recipient.username, platformUrl)
         });
         results.sent++;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { resizeImageFile } from '../lib/imageResizer';
 import AdminUserDashboard from '../components/AdminUserDashboard';
 import AdminEventsDashboard from '../components/AdminEventsDashboard';
 import SportsDashboard from '../components/SportsDashboard';
@@ -41,7 +42,7 @@ export default function AdminDashboard() {
 
   // Market Creation state
   const [marketTitle, setMarketTitle] = useState('');
-  const [marketCategory, setMarketCategory] = useState('technology');
+  const [marketCategory, setMarketCategory] = useState('');
   const [marketType, setMarketType] = useState('binary');
   const [marketCloseDate, setMarketCloseDate] = useState('');
   const [marketIsTrending, setMarketIsTrending] = useState(false);
@@ -55,6 +56,59 @@ export default function AdminDashboard() {
   const [resolveSelections, setResolveSelections] = useState({});
   const [resolveLoading, setResolveLoading] = useState(false);
   const [resolveMessage, setResolveMessage] = useState('');
+
+
+  // Layout Management state
+  const [layoutMarkets, setLayoutMarkets] = useState([]);
+  const [savingLayout, setSavingLayout] = useState(false);
+  const [layoutMessage, setLayoutMessage] = useState('');
+
+  useEffect(() => {
+    const sorted = [...activeMarkets].sort((a, b) => {
+      if ((b.display_order || 0) !== (a.display_order || 0)) {
+        return (b.display_order || 0) - (a.display_order || 0);
+      }
+      return (b.total_volume || 0) - (a.total_volume || 0);
+    });
+    setLayoutMarkets(sorted);
+  }, [activeMarkets]);
+
+  const moveLayoutMarket = (index, direction) => {
+    if (direction === -1 && index === 0) return;
+    if (direction === 1 && index === layoutMarkets.length - 1) return;
+    const newLayout = [...layoutMarkets];
+    const temp = newLayout[index];
+    newLayout[index] = newLayout[index + direction];
+    newLayout[index + direction] = temp;
+    setLayoutMarkets(newLayout);
+    setLayoutMessage('');
+  };
+
+  const handleSaveLayout = async () => {
+    setSavingLayout(true);
+    setLayoutMessage('');
+    try {
+      const updates = layoutMarkets.map((m, idx) => ({
+        id: m.id,
+        display_order: layoutMarkets.length - idx
+      }));
+      const res = await fetch(`${API_URL}/api/admin/markets/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates })
+      });
+      if (res.ok) {
+        setLayoutMessage('Layout saved successfully!');
+        fetchMarkets();
+      } else {
+        const data = await res.json();
+        setLayoutMessage(`Error: ${data.error}`);
+      }
+    } catch (e) {
+      setLayoutMessage('Failed to save layout.');
+    }
+    setSavingLayout(false);
+  };
 
   // Market Edit state
   const [editingMarket, setEditingMarket] = useState(null);
@@ -90,11 +144,13 @@ export default function AdminDashboard() {
   const [customSubject, setCustomSubject] = useState('');
   const [customHeading, setCustomHeading] = useState('');
   const [customHeroIcon, setCustomHeroIcon] = useState('✦');
-  const [customBody, setCustomBody] = useState('');
+  const [customBody, setCustomBody] = useState('Hey {user},\n\nHere are some new updates and features coming up on Dobium:');
   const [customCallout, setCustomCallout] = useState('');
   const [customQuestions, setCustomQuestions] = useState([]);
-  const [customCtaLabel, setCustomCtaLabel] = useState('');
-  const [customCtaUrl, setCustomCtaUrl] = useState('');
+  const [customNews, setCustomNews] = useState([]);
+  const [customCtaLabel, setCustomCtaLabel] = useState('Start Trading →');
+  const [customCtaUrl, setCustomCtaUrl] = useState('https://dobium.com');
+  const [customExternalEmails, setCustomExternalEmails] = useState('');
 
   // Daily Digest Preview state
   const [digestPreviewHtml, setDigestPreviewHtml] = useState(null);
@@ -255,6 +311,20 @@ export default function AdminDashboard() {
     setCustomQuestions(newQ);
   };
 
+  const handleAddNews = () => {
+    setCustomNews([...customNews, { headline: '', content: '' }]);
+  };
+
+  const handleRemoveNews = (idx) => {
+    setCustomNews(customNews.filter((_, i) => i !== idx));
+  };
+
+  const handleChangeNews = (idx, field, value) => {
+    const newN = [...customNews];
+    newN[idx][field] = value;
+    setCustomNews(newN);
+  };
+
   const handleCustomPreview = () => {
     handleBroadcastPreview('custom', {
       subject: customSubject,
@@ -263,8 +333,10 @@ export default function AdminDashboard() {
       body: customBody,
       callout: customCallout,
       questions: customQuestions.filter(q => q.label || q.question),
+      newsUpdates: customNews.filter(n => n.headline || n.content),
       ctaLabel: customCtaLabel,
       ctaUrl: customCtaUrl,
+      externalEmails: customExternalEmails,
     });
   };
 
@@ -352,9 +424,11 @@ export default function AdminDashboard() {
   };
 
   const handleOutcomeChange = (index, field, value) => {
-    const newOutcomes = [...marketOutcomes];
-    newOutcomes[index][field] = value;
-    setMarketOutcomes(newOutcomes);
+    setMarketOutcomes(prev => {
+      const newOutcomes = [...prev];
+      newOutcomes[index] = { ...newOutcomes[index], [field]: value };
+      return newOutcomes;
+    });
   };
 
   const addOutcome = () => {
@@ -373,7 +447,8 @@ export default function AdminDashboard() {
     try {
       const formattedOutcomes = marketOutcomes.map(o => ({
         title: o.title,
-        probability: parseFloat(o.probability) || 0
+        probability: parseFloat(o.probability) || 0,
+        image_url: o.image_url || null
       }));
 
       const res = await fetch(`${API_URL}/api/markets`, {
@@ -558,9 +633,11 @@ export default function AdminDashboard() {
   };
 
   const handleEditOutcomeChange = (index, field, value) => {
-    const newOutcomes = [...editingMarket.outcomes];
-    newOutcomes[index] = { ...newOutcomes[index], [field]: value };
-    setEditingMarket(prev => ({ ...prev, outcomes: newOutcomes }));
+    setEditingMarket(prev => {
+      const newOutcomes = [...prev.outcomes];
+      newOutcomes[index] = { ...newOutcomes[index], [field]: value };
+      return { ...prev, outcomes: newOutcomes };
+    });
   };
 
   const handleUpdateMarket = async (e) => {
@@ -582,7 +659,8 @@ export default function AdminDashboard() {
           outcomes: editingMarket.outcomes.map(o => ({
             id: o.id,
             title: o.title,
-            probability: parseFloat(o.probability)
+            probability: parseFloat(o.probability),
+            image_url: o.image_url || null
           }))
         })
       });
@@ -815,7 +893,6 @@ export default function AdminDashboard() {
                       <span style={{ color: "#d4af37", fontSize: 16 }}>✦</span>
                     </div>
                     <div style={{ color: "#f1f5f9", fontWeight: 700, fontSize: 15, lineHeight: 1.3 }}>{emailHeading || 'A message from Dobium'}</div>
-                    <div style={{ color: "#64748b", fontSize: 11, marginTop: 4 }}>{emailSubject || 'Subject line will appear here'}</div>
                   </div>
                   {/* Body */}
                   <div style={{ background: "#ffffff", padding: "18px 24px" }}>
@@ -841,7 +918,6 @@ export default function AdminDashboard() {
                   <div style={{ height: 3, background: "linear-gradient(90deg,#b8952a,#d4af37,#f0cc6a,#d4af37,#b8952a)" }} />
                 </div>
               </div>
-
             </div>
           </div>
         </div>
@@ -868,22 +944,20 @@ export default function AdminDashboard() {
             <div className="flex gap-4">
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-1 text-slate-400">Category</label>
-                <select
+                <input
+                  type="text"
+                  list="market-categories"
+                  placeholder="Type or select a category"
                   className="w-full bg-slate-900/50 border border-slate-700 rounded p-2 text-white outline-none focus:border-amber-400 transition-colors"
                   value={marketCategory}
                   onChange={(e) => setMarketCategory(e.target.value)}
-                >
-                  <option value="technology">Technology</option>
-                  <option value="politics">Politics</option>
-                  <option value="sports">Sports</option>
-                  <option value="entertainment">Entertainment</option>
-                  <option value="finance">Finance</option>
-                  <option value="crypto">Crypto</option>
-                  <option value="science">Science</option>
-                  <option value="health">Health</option>
-                  <option value="environment">Environment</option>
-                  <option value="international">International</option>
-                </select>
+                  required
+                />
+                <datalist id="market-categories">
+                  {[...new Set(activeMarkets.map(m => m.category?.toLowerCase()).filter(Boolean))].map(cat => (
+                    <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                  ))}
+                </datalist>
               </div>
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-1 text-slate-400">Type</label>
@@ -937,6 +1011,36 @@ export default function AdminDashboard() {
             <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar pr-2 flex-1">
               {marketOutcomes.map((outcome, index) => (
                 <div key={index} className="flex gap-2 items-center bg-slate-900/30 p-2 rounded border border-slate-700/50">
+                  <label className="shrink-0 w-9 h-9 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center cursor-pointer overflow-hidden group hover:border-amber-400 transition-colors" title="Upload Outcome Image">
+                    {outcome.image_url ? (
+                      <img src={outcome.image_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xs text-slate-500 group-hover:text-amber-400">🖼️</span>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          try {
+                            const dataUrl = await resizeImageFile(file, 128, 128);
+                            handleOutcomeChange(index, 'image_url', dataUrl);
+                          } catch (err) {
+                            alert(err.message);
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+                  <input
+                    type="url"
+                    className="w-32 lg:w-48 bg-slate-900/50 border border-slate-700 rounded p-2 text-white outline-none focus:border-amber-400 transition-colors text-sm"
+                    placeholder="Image URL..."
+                    value={outcome.image_url || ''}
+                    onChange={(e) => handleOutcomeChange(index, 'image_url', e.target.value)}
+                  />
                   <input
                     type="text"
                     className="flex-1 bg-slate-900/50 border border-slate-700 rounded p-2 text-white outline-none focus:border-amber-400 transition-colors text-sm"
@@ -1024,6 +1128,70 @@ export default function AdminDashboard() {
           ))}
           {currentTrending.length === 0 && (
             <div className="col-span-5 text-center py-8 text-slate-500 text-sm">No pinned markets. Pin markets from the list below to show them in the trending slideshow!</div>
+          )}
+        </div>
+      </div>
+
+
+      {/* Explore Page Layout Section */}
+      <div className="bg-slate-800 p-6 rounded-lg shadow-lg mt-6">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl font-semibold text-white">Explore Page Layout</h2>
+            <p className="text-slate-400 text-sm mt-1">Visually arrange the order of active markets on the Explore page.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {layoutMessage && (
+              <span className={`text-sm font-medium ${layoutMessage.includes('Error') || layoutMessage.includes('Failed') ? 'text-red-400' : 'text-green-400'}`}>
+                {layoutMessage}
+              </span>
+            )}
+            <button 
+              onClick={handleSaveLayout}
+              disabled={savingLayout || layoutMarkets.length === 0}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {savingLayout ? (
+                <><div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"/> Saving...</>
+              ) : 'Save Layout Order'}
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+          {layoutMarkets.length === 0 ? (
+            <p className="text-slate-500 text-sm">No active markets to arrange.</p>
+          ) : (
+            layoutMarkets.map((m, idx) => (
+              <div key={m.id} className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 hover:border-slate-600 transition-colors">
+                <div className="flex flex-col gap-1">
+                  <button 
+                    onClick={() => moveLayoutMarket(idx, -1)}
+                    disabled={idx === 0}
+                    className="p-1 text-slate-400 hover:text-white disabled:opacity-30 disabled:hover:text-slate-400 bg-slate-800 hover:bg-slate-700 rounded transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+                  </button>
+                  <button 
+                    onClick={() => moveLayoutMarket(idx, 1)}
+                    disabled={idx === layoutMarkets.length - 1}
+                    className="p-1 text-slate-400 hover:text-white disabled:opacity-30 disabled:hover:text-slate-400 bg-slate-800 hover:bg-slate-700 rounded transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </button>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500 w-6">#{idx + 1}</span>
+                    <h4 className="text-white font-medium truncate">{m.title}</h4>
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1 flex gap-3">
+                    <span className="uppercase text-amber-500/80">{m.category}</span>
+                    <span>Vol: ${(m.total_volume || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>
@@ -1162,15 +1330,182 @@ export default function AdminDashboard() {
               <div className="mt-4">
                 <label className="block text-sm font-medium mb-2 text-slate-400">Outcomes</label>
                 <div className="space-y-2">
-                  {editingMarket.outcomes.map((o, idx) => (
-                    <div key={o.id} className="flex gap-2 items-center bg-slate-900/30 p-2 rounded border border-slate-700/50">
-                      <input type="text" value={o.title} onChange={e => handleEditOutcomeChange(idx, 'title', e.target.value)} className="flex-1 bg-slate-800/50 border border-slate-700 rounded p-2 text-white text-sm outline-none focus:border-blue-400 transition-colors" required />
-                      <div className="relative w-24">
-                        <input type="number" step="0.1" value={o.probability} onChange={e => handleEditOutcomeChange(idx, 'probability', e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 rounded p-2 pr-6 text-white text-sm outline-none focus:border-blue-400 transition-colors" required />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-sm">%</span>
-                      </div>
-                    </div>
-                  ))}
+                  {(() => {
+                    const groupedPairs = {};
+                    const ungrouped = [];
+                    let hasAnyPairs = false;
+
+                    editingMarket.outcomes.forEach((o, originalIndex) => {
+                      const match = o.title.match(/^(.*?)\s*\((Yes|No)\)$/i);
+                      if (match) {
+                        hasAnyPairs = true;
+                        const baseTitle = match[1].trim();
+                        const type = match[2].toLowerCase(); // 'yes' or 'no'
+                        if (!groupedPairs[baseTitle]) {
+                          groupedPairs[baseTitle] = { baseTitle };
+                        }
+                        groupedPairs[baseTitle][type] = { ...o, originalIndex };
+                      } else {
+                        ungrouped.push({ ...o, originalIndex });
+                      }
+                    });
+
+                    if (hasAnyPairs) {
+                      return (
+                        <>
+                          {Object.values(groupedPairs).map(pair => {
+                            const yesOut = pair.yes;
+                            const noOut = pair.no;
+                            const baseTitle = pair.baseTitle;
+                            const mainOut = yesOut || noOut;
+                            if (!mainOut) return null;
+
+                            return (
+                              <div key={`pair-${mainOut.id}`} className="bg-slate-900/30 p-3 rounded border border-slate-700/50 space-y-3">
+                                <div className="flex items-center gap-3">
+                                  <label className="shrink-0 w-9 h-9 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center cursor-pointer overflow-hidden group hover:border-blue-400 transition-colors" title="Upload Outcome Image">
+                                    {mainOut.image_url ? (
+                                      <img src={mainOut.image_url} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <span className="text-xs text-slate-500 group-hover:text-blue-400">🖼️</span>
+                                    )}
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={async (e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                          try {
+                                            const dataUrl = await resizeImageFile(file, 128, 128);
+                                            if (yesOut) handleEditOutcomeChange(yesOut.originalIndex, 'image_url', dataUrl);
+                                            if (noOut) handleEditOutcomeChange(noOut.originalIndex, 'image_url', dataUrl);
+                                          } catch (err) { alert(err.message); }
+                                        }
+                                      }}
+                                    />
+                                  </label>
+                                  <input 
+                                    type="url" 
+                                    value={mainOut.image_url || ''} 
+                                    onChange={e => {
+                                      if (yesOut) handleEditOutcomeChange(yesOut.originalIndex, 'image_url', e.target.value);
+                                      if (noOut) handleEditOutcomeChange(noOut.originalIndex, 'image_url', e.target.value);
+                                    }} 
+                                    className="w-32 lg:w-48 bg-slate-800/50 border border-slate-700 rounded p-2 text-white text-sm outline-none focus:border-blue-400 transition-colors" 
+                                    placeholder="Image URL..."
+                                  />
+                                  <input 
+                                    type="text" 
+                                    value={baseTitle} 
+                                    onChange={e => {
+                                      if (yesOut) handleEditOutcomeChange(yesOut.originalIndex, 'title', `${e.target.value} (Yes)`);
+                                      if (noOut) handleEditOutcomeChange(noOut.originalIndex, 'title', `${e.target.value} (No)`);
+                                    }} 
+                                    className="flex-1 bg-slate-800/50 border border-slate-700 rounded p-2 text-white text-sm outline-none focus:border-blue-400 transition-colors" 
+                                    required 
+                                    placeholder="Outcome Title"
+                                  />
+                                </div>
+                                
+                                <div className="flex items-center gap-4 pl-12">
+                                  <div className="flex-1 flex items-center gap-2">
+                                    <span className="text-xs font-semibold text-green-400 uppercase w-8">Yes</span>
+                                    {yesOut ? (
+                                      <div className="relative flex-1">
+                                        <input type="number" step="0.1" value={yesOut.probability} onChange={e => handleEditOutcomeChange(yesOut.originalIndex, 'probability', e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 rounded p-1.5 pr-6 text-white text-sm outline-none focus:border-green-400 transition-colors" required />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs">%</span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex-1 text-xs text-slate-500 italic">Missing</div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 flex items-center gap-2">
+                                    <span className="text-xs font-semibold text-red-400 uppercase w-6">No</span>
+                                    {noOut ? (
+                                      <div className="relative flex-1">
+                                        <input type="number" step="0.1" value={noOut.probability} onChange={e => handleEditOutcomeChange(noOut.originalIndex, 'probability', e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 rounded p-1.5 pr-6 text-white text-sm outline-none focus:border-red-400 transition-colors" required />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs">%</span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex-1 text-xs text-slate-500 italic">Missing</div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {ungrouped.map(item => (
+                            <div key={item.id} className="flex gap-2 items-center bg-slate-900/30 p-2 rounded border border-slate-700/50">
+                              <label className="shrink-0 w-9 h-9 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center cursor-pointer overflow-hidden group hover:border-blue-400 transition-colors" title="Upload Outcome Image">
+                                {item.image_url ? (
+                                  <img src={item.image_url} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-xs text-slate-500 group-hover:text-blue-400">🖼️</span>
+                                )}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                      try {
+                                        const dataUrl = await resizeImageFile(file, 128, 128);
+                                        handleEditOutcomeChange(item.originalIndex, 'image_url', dataUrl);
+                                      } catch (err) {
+                                        alert(err.message);
+                                      }
+                                    }
+                                  }}
+                                />
+                              </label>
+                              <input type="url" value={item.image_url || ''} onChange={e => handleEditOutcomeChange(item.originalIndex, 'image_url', e.target.value)} className="w-32 lg:w-48 bg-slate-800/50 border border-slate-700 rounded p-2 text-white text-sm outline-none focus:border-blue-400 transition-colors" placeholder="Image URL..." />
+                              <input type="text" value={item.title} onChange={e => handleEditOutcomeChange(item.originalIndex, 'title', e.target.value)} className="flex-1 bg-slate-800/50 border border-slate-700 rounded p-2 text-white text-sm outline-none focus:border-blue-400 transition-colors" required />
+                              <div className="relative w-24">
+                                <input type="number" step="0.1" value={item.probability} onChange={e => handleEditOutcomeChange(item.originalIndex, 'probability', e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 rounded p-2 pr-6 text-white text-sm outline-none focus:border-blue-400 transition-colors" required />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-sm">%</span>
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      );
+                    } else {
+                      return editingMarket.outcomes.map((o, idx) => (
+                        <div key={o.id} className="flex gap-2 items-center bg-slate-900/30 p-2 rounded border border-slate-700/50">
+                          <label className="shrink-0 w-9 h-9 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center cursor-pointer overflow-hidden group hover:border-blue-400 transition-colors" title="Upload Outcome Image">
+                            {o.image_url ? (
+                              <img src={o.image_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-xs text-slate-500 group-hover:text-blue-400">🖼️</span>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                  try {
+                                    const dataUrl = await resizeImageFile(file, 128, 128);
+                                    handleEditOutcomeChange(idx, 'image_url', dataUrl);
+                                  } catch (err) {
+                                    alert(err.message);
+                                  }
+                                }
+                              }}
+                            />
+                          </label>
+                          <input type="url" value={o.image_url || ''} onChange={e => handleEditOutcomeChange(idx, 'image_url', e.target.value)} className="w-32 lg:w-48 bg-slate-800/50 border border-slate-700 rounded p-2 text-white text-sm outline-none focus:border-blue-400 transition-colors" placeholder="Image URL..." />
+                          <input type="text" value={o.title} onChange={e => handleEditOutcomeChange(idx, 'title', e.target.value)} className="flex-1 bg-slate-800/50 border border-slate-700 rounded p-2 text-white text-sm outline-none focus:border-blue-400 transition-colors" required />
+                          <div className="relative w-24">
+                            <input type="number" step="0.1" value={o.probability} onChange={e => handleEditOutcomeChange(idx, 'probability', e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 rounded p-2 pr-6 text-white text-sm outline-none focus:border-blue-400 transition-colors" required />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-sm">%</span>
+                          </div>
+                        </div>
+                      ));
+                    }
+                  })()}
                 </div>
               </div>
 
@@ -1437,6 +1772,56 @@ export default function AdminDashboard() {
                 />
               </div>
 
+              {/* News & Updates */}
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                    News & Updates <span className="text-slate-600 normal-case font-normal">(optional)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddNews}
+                    className="text-xs text-amber-400 hover:text-amber-300 font-semibold transition-colors"
+                  >
+                    + Add News
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {customNews.map((n, idx) => (
+                    <div key={idx} className="flex gap-3 items-start bg-slate-900/40 p-3 rounded-lg border border-slate-700/50">
+                      <div className="flex-1 space-y-2">
+                        <input
+                          type="text"
+                          value={n.headline}
+                          onChange={e => handleChangeNews(idx, 'headline', e.target.value)}
+                          placeholder="Headline (e.g. New Platform Features)"
+                          className="w-full bg-slate-900/60 border border-slate-700 rounded-md px-3 py-2 text-white text-sm outline-none focus:border-amber-400 transition-colors"
+                        />
+                        <textarea
+                          value={n.content}
+                          onChange={e => handleChangeNews(idx, 'content', e.target.value)}
+                          placeholder="News content..."
+                          rows={3}
+                          className="w-full bg-slate-900/60 border border-slate-700 rounded-md px-3 py-2 text-white text-sm outline-none focus:border-amber-400 resize-none transition-colors"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveNews(idx)}
+                        className="text-red-400 hover:text-red-300 p-2 flex items-center justify-center rounded transition-colors mt-0.5"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  {customNews.length === 0 && (
+                    <div className="text-center py-4 border border-dashed border-slate-700 rounded-lg text-slate-500 text-xs">
+                      No news added. Click + Add News to feature updates.
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Market Questions */}
               <div>
                 <div className="flex justify-between items-center mb-1.5">
@@ -1520,6 +1905,20 @@ export default function AdminDashboard() {
                     className="w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-amber-400 transition-colors"
                   />
                 </div>
+              </div>
+
+              {/* External Emails */}
+              <div>
+                <label className="block text-xs font-semibold mb-1.5 text-slate-400 uppercase tracking-wide">
+                  External Recipients <span className="text-slate-600 normal-case font-normal">(comma separated, optional)</span>
+                </label>
+                <textarea
+                  value={customExternalEmails}
+                  onChange={e => setCustomExternalEmails(e.target.value)}
+                  placeholder="e.g. investor@fund.com, partner@company.com"
+                  rows={2}
+                  className="w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-amber-400 transition-colors resize-none"
+                />
               </div>
 
               <button

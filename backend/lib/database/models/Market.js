@@ -26,15 +26,7 @@ const Market = sequelize.define('Market', {
   },
   category: {
     type: DataTypes.STRING(50),
-    allowNull: false,
-    validate: {
-      isIn: [[
-        'politics', 'sports', 'crypto', 'technology',
-        'finance', 'entertainment', 'international',
-        'climate', 'science', 'health', 'environment',
-        'arts_and_culture'
-      ]]
-    }
+    allowNull: false
   },
   status: {
     type: DataTypes.STRING(20),
@@ -80,6 +72,10 @@ const Market = sequelize.define('Market', {
   is_trending: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  display_order: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
   }
 }, {
   tableName: 'markets',

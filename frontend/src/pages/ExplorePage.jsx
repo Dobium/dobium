@@ -97,7 +97,7 @@ export default function ExplorePage() {
       .filter(m => m.status === 'active')
       .map(m => m.category?.toLowerCase())
       .filter(Boolean);
-    return [...new Set(['all', 'technology', 'sports', 'entertainment', ...activeCategories])];
+    return [...new Set(['all', ...activeCategories])];
   }, [markets]);
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('All Markets');
@@ -117,6 +117,11 @@ export default function ExplorePage() {
 
     // Otherwise, only show active markets
     return categoryMatch && searchMatch && m.status === 'active';
+  }).sort((a, b) => {
+    if ((b.display_order || 0) !== (a.display_order || 0)) {
+      return (b.display_order || 0) - (a.display_order || 0);
+    }
+    return (b.total_volume || 0) - (a.total_volume || 0);
   });
 
   useEffect(() => {

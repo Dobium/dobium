@@ -6,66 +6,41 @@ import { useWallet } from '../hooks/useWallet';
 import { api } from '../api/client';
 import { CATEGORY_COLORS, formatCurrency, formatDate } from '../store/storage';
 
-function PriceChart({ outcomes, priceHistory, totalVolume }) {
+export function getOutcomeColor(o, outcomes) {
+  if (!outcomes || outcomes.length === 0) return '#3b82f6';
+  if (outcomes.length === 2) {
+    const t = o && o.title ? o.title.toLowerCase() : '';
+    if (t === 'yes') return '#22c55e';
+    if (t === 'no') return '#ef4444';
+  }
+  const idx = outcomes.findIndex(function (x) { return x.id === o.id; });
+  const colors = [
+    '#3b82f6',
+    '#f59e0b',
+    '#8b5cf6',
+    '#06b6d4',
+    '#ec4899',
+    '#10b981',
+    '#f43f5e',
+    '#84cc16',
+    '#a855f7',
+    '#6366f1'
+  ];
+  return colors[idx % colors.length] || '#3b82f6';
+}
+
+function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds }) {
   const width = 800;
-  const height = 200;
+  const height = 300;
   const padding = 20;
 
   const [hoverIdx, setHoverIdx] = useState(null);
   const svgRef = useRef(null);
-  const [selectedIds, setSelectedIds] = useState([]);
 
-  // Initialize selectedIds when outcomes list changes (e.g. new market loaded or refreshed)
-  useEffect(() => {
-    if (outcomes && outcomes.length > 0) {
-      const outcomesIds = outcomes.map(o => o.id);
-      // Check if current selectedIds are all valid in the new outcomes list
-      const hasValidSelection = selectedIds.length > 0 && selectedIds.every(id => outcomesIds.includes(id));
 
-      if (!hasValidSelection) {
-        const initialSelected = [...outcomes]
-          .sort((a, b) => (b.probability || 0) - (a.probability || 0))
-          .slice(0, 4)
-          .map(o => o.id);
-        setSelectedIds(initialSelected);
-      }
-    }
-  }, [outcomes, selectedIds]);
 
-  // Helper to get a stable, distinct color for each outcome
-  const getOutcomeColor = (o) => {
-    if (outcomes.length === 2) {
-      if (o.title?.toLowerCase() === 'yes') return '#22c55e';
-      if (o.title?.toLowerCase() === 'no') return '#ef4444';
-    }
-    const idx = outcomes.findIndex(x => x.id === o.id);
-    const colors = [
-      '#3b82f6', // blue
-      '#f59e0b', // amber
-      '#8b5cf6', // purple
-      '#06b6d4', // cyan
-      '#ec4899', // pink
-      '#10b981', // emerald
-      '#f43f5e', // rose
-      '#84cc16', // lime
-      '#a855f7', // purple-bright
-      '#6366f1'  // indigo
-    ];
-    return colors[idx % colors.length] || '#3b82f6';
-  };
 
-  // Toggle selection state with max 4 outcomes, maintaining at least 1 outcome displayed
-  const handleToggle = (id) => {
-    if (selectedIds.includes(id)) {
-      if (selectedIds.length > 1) {
-        setSelectedIds(selectedIds.filter(x => x !== id));
-      }
-    } else {
-      if (selectedIds.length < 4) {
-        setSelectedIds([...selectedIds, id]);
-      }
-    }
-  };
+
 
   // Only chart selected outcomes
   const chartOutcomes = outcomes.filter(o => selectedIds.includes(o.id));
@@ -101,7 +76,7 @@ function PriceChart({ outcomes, priceHistory, totalVolume }) {
       id: o.id,
       title: o.title,
       data: data,
-      color: getOutcomeColor(o)
+      color: getOutcomeColor(o, outcomes)
     };
   });
 
@@ -218,45 +193,22 @@ function PriceChart({ outcomes, priceHistory, totalVolume }) {
         </div>
       )}
 
-      {/* Interactive Selectors / Legend */}
-      <div className="flex flex-wrap gap-2 mt-6 justify-center">
-        {outcomes.map((o) => {
-          const isSelected = selectedIds.includes(o.id);
-          const canSelect = selectedIds.length < 4;
-          const disabled = !isSelected && !canSelect;
-          const color = getOutcomeColor(o);
+      {/* Legend Keys */}
+      {selectedIds.length > 0 && (
+        <div className="mt-5 flex flex-wrap justify-center gap-5">
+          {outcomes.filter(o => selectedIds.includes(o.id)).map(o => {
+            const color = getOutcomeColor(o, outcomes);
+            return (
+              <div key={o.id} className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-sm border border-slate-700" style={{ backgroundColor: color }}></span>
+                <span className="text-xs text-slate-300 font-medium">{o.title}</span>
+                <span className="text-xs font-bold" style={{ color }}>{Math.round(o.probability || 0)}%</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-          return (
-            <button
-              key={o.id}
-              disabled={disabled}
-              onClick={() => handleToggle(o.id)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 ${isSelected
-                ? 'text-white border-transparent'
-                : 'text-slate-400 hover:text-white border-slate-700/60 bg-slate-800/40 hover:bg-slate-800/80'
-                } ${disabled
-                  ? 'opacity-30 cursor-not-allowed border-slate-800 bg-transparent text-slate-500 hover:text-slate-500'
-                  : ''
-                }`}
-              style={{
-                borderColor: isSelected ? color : undefined,
-                backgroundColor: isSelected ? `${color}20` : undefined,
-              }}
-            >
-              <span
-                className="w-2.5 h-2.5 rounded-full transition-colors duration-200"
-                style={{
-                  backgroundColor: isSelected ? color : '#475569',
-                }}
-              />
-              <span className="truncate max-w-[120px]">{o.title}</span>
-              <span className={isSelected ? 'text-slate-300 font-medium' : 'text-slate-500 font-normal'}>
-                {Math.round(o.probability || 0)}%
-              </span>
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -333,6 +285,48 @@ export default function MarketDetailPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const { balance: buyingPower, loading: buyingPowerLoading, refetch: refetchWallet } = useWallet();
 
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [isChartDropdownOpen, setIsChartDropdownOpen] = useState(false);
+  const [positionSlideIdx, setPositionSlideIdx] = useState(0);
+  const chartDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (chartDropdownRef.current && !chartDropdownRef.current.contains(event.target)) {
+        setIsChartDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const localOutcomes = market?.outcomes
+      ? [...market.outcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0))
+      : [];
+
+    if (localOutcomes && localOutcomes.length > 0 && selectedIds.length === 0) {
+      const marketType = market?.market_type || 'binary';
+      const isMultiMultiple = marketType === 'multi_multiple' || marketType === 'multi_single';
+      const hasYesNoPairs = localOutcomes.some(o => o.id?.endsWith('_yes'));
+      const chartOutcomes = (isMultiMultiple && hasYesNoPairs) ? localOutcomes.filter(o => o.id?.endsWith('_yes')) : localOutcomes;
+      const top2 = [...chartOutcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0)).slice(0, 4).map(o => o.id);
+      setSelectedIds(top2);
+    }
+  }, [market, selectedIds.length]);
+
+  const handleToggle = (id) => {
+    if (selectedIds.includes(id)) {
+      if (selectedIds.length > 1) {
+        setSelectedIds(selectedIds.filter(x => x !== id));
+      }
+    } else {
+      if (selectedIds.length < 4) {
+        setSelectedIds([...selectedIds, id]);
+      }
+    }
+  };
+
   // Fetch user's positions for this market
   useEffect(() => {
     if (!market?.id) return;
@@ -374,6 +368,7 @@ export default function MarketDetailPage() {
   const marketType = market.market_type || 'binary';
   const isMultiMultiple = marketType === 'multi_multiple' || marketType === 'multi_single';
   const hasYesNoPairs = outcomes.some(o => o.id.endsWith('_yes'));
+  const chartOutcomes = (isMultiMultiple && hasYesNoPairs) ? outcomes.filter(o => o.id.endsWith('_yes')).map(o => ({ ...o, title: o.title.replace(/\s*\(Yes\)$/i, '') })) : outcomes;
   const yesOutcome = outcomes.find(o => o.title?.toLowerCase() === 'yes') || outcomes[0];
 
   const relatedMarkets = markets?.filter(m => m.id !== market?.id && m.status === 'active' && m.category === market?.category).slice(0, 3) || [];
@@ -484,137 +479,292 @@ export default function MarketDetailPage() {
   const eventImage = sportsMeta?.event_image || (!sportsMeta && market?.image_url);
 
   return (
-    <div className="max-w-7xl mx-auto p-6 lg:p-8">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-6 flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
-      >
-        <span>←</span>
-        <span>Back</span>
-      </button>
-
-      {homeLogo && awayLogo && (
-        <div className="flex items-center justify-center gap-6 py-6 px-8 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl mb-6 max-w-xl shadow-2xl">
-          <div className="flex flex-col items-center gap-2">
-            <img src={homeLogo} className="w-16 h-16 rounded-full object-cover border-2 border-slate-700 bg-slate-950 shadow-lg" alt="Home" />
-            <span className="text-sm text-white font-bold">{sportsMeta.home_team}</span>
-          </div>
-          <span className="text-xs text-yellow-500 font-extrabold bg-yellow-500/10 border border-yellow-500/20 px-3 py-1 rounded-lg">VS</span>
-          <div className="flex flex-col items-center gap-2">
-            <img src={awayLogo} className="w-16 h-16 rounded-full object-cover border-2 border-slate-700 bg-slate-950 shadow-lg" alt="Away" />
-            <span className="text-sm text-white font-bold">{sportsMeta.away_team}</span>
-          </div>
-        </div>
-      )}
-
-      {!homeLogo && eventImage && (
-        <div className="w-full h-48 sm:h-64 rounded-2xl overflow-hidden mb-6 border border-slate-800 shadow-xl relative">
-          <img src={eventImage} className="w-full h-full object-cover" alt="Banner" />
-        </div>
-      )}
-
-      {sportsMeta && (
-        <div className="mb-6 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl" style={{ textShadow: '0 0 10px rgba(212,175,55,0.3)' }}>
-              {sportsMeta.sport === 'basketball' ? '🏀' : sportsMeta.sport === 'soccer' ? '⚽' : sportsMeta.sport === 'football' ? '🏈' : sportsMeta.sport === 'baseball' ? '⚾' : sportsMeta.sport === 'tennis' ? '🎾' : '🏅'}
-            </span>
-            <div>
-              <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Tournament / League</div>
-              <div className="text-sm sm:text-base text-white font-black">{sportsMeta.league || 'General'}</div>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-4 sm:gap-8 border-t sm:border-t-0 border-slate-800/50 pt-3 sm:pt-0">
-            <div>
-              <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">📅 Event Start (Locks Betting)</div>
-              <div className="text-xs sm:text-sm text-slate-200 font-semibold mt-0.5">
-                {sportsMeta.event_date ? new Date(sportsMeta.event_date).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Header Section */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-3">
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${CATEGORY_COLORS[market.category] || 'from-slate-500 to-slate-600'} text-white`}>
-            {market.category}
-          </span>
-          {sportsMeta && sportsMeta.match_state ? (
-            <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded border ${sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time' ? 'bg-slate-800 text-slate-300 border-slate-700' :
-              sportsMeta.match_state === 'overtime' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
-                sportsMeta.match_state === 'halftime' || sportsMeta.match_state === 'half-time' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
-                  sportsMeta.match_state === 'in_progress' || sportsMeta.match_state === 'live' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
-                    'bg-slate-800 text-slate-400 border-slate-700'
-              }`}>
-              {(sportsMeta.match_state === 'in_progress' || sportsMeta.match_state === 'live' || sportsMeta.match_state === 'overtime') && (
-                <span className="w-1.5 h-1.5 rounded-full inline-block bg-current animate-pulse"></span>
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 lg:h-[100dvh] flex flex-col lg:overflow-hidden">
+      {/* Header: back button + market title */}
+      <div className="shrink-0 z-30 sticky top-0 bg-slate-950/90 backdrop-blur-md pb-3 pt-1 mb-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 border-b border-slate-800/60">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-2 flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+        >
+          <span>←</span>
+          <span>Back</span>
+        </button>
+        <div className="flex items-center gap-3">
+          {market && <h1 className="text-xl md:text-2xl font-serif font-bold text-white truncate">{market.title}</h1>}
+          {market && (
+            <div className="hidden sm:flex items-center gap-3 shrink-0">
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${CATEGORY_COLORS[market.category] || 'from-slate-500 to-slate-600'} text-white`}>
+                {market.category}
+              </span>
+              {sportsMeta && sportsMeta.match_state ? (
+                <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded border ${sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time' ? 'bg-slate-800 text-slate-300 border-slate-700' :
+                  sportsMeta.match_state === 'overtime' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                    sportsMeta.match_state === 'halftime' || sportsMeta.match_state === 'half-time' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
+                      sportsMeta.match_state === 'in_progress' || sportsMeta.match_state === 'live' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
+                        'bg-slate-800 text-slate-400 border-slate-700'
+                  }`}>
+                  {(sportsMeta.match_state === 'in_progress' || sportsMeta.match_state === 'live' || sportsMeta.match_state === 'overtime') && (
+                    <span className="w-1.5 h-1.5 rounded-full inline-block bg-current animate-pulse"></span>
+                  )}
+                  {sportsMeta.match_state === 'in_progress' && `Period ${sportsMeta.current_period || 1}`}
+                  {sportsMeta.match_state === 'live' && 'Live'}
+                  {(sportsMeta.match_state === 'halftime' || sportsMeta.match_state === 'half-time') && 'Half Time'}
+                  {sportsMeta.match_state === 'overtime' && 'OVERTIME'}
+                  {(sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time') && 'Final'}
+                  {(sportsMeta.match_state === 'upcoming' || sportsMeta.match_state === 'pre-match') && 'Upcoming'}
+                  {sportsMeta.clock_running && <span className="ml-1 opacity-70">⏱</span>}
+                </span>
+              ) : (
+                <span className={`flex items-center gap-1.5 text-xs font-medium ${market.status === 'resolved' ? 'text-yellow-400' : 'text-green-400'}`}>
+                  <span className={`w-2 h-2 rounded-full ${market.status === 'resolved' ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
+                  {market.status === 'resolved' ? 'Resolved' : 'Open'}
+                </span>
               )}
-              {sportsMeta.match_state === 'in_progress' && `Period ${sportsMeta.current_period || 1}`}
-              {sportsMeta.match_state === 'live' && 'Live'}
-              {(sportsMeta.match_state === 'halftime' || sportsMeta.match_state === 'half-time') && 'Half Time'}
-              {sportsMeta.match_state === 'overtime' && 'OVERTIME'}
-              {(sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time') && 'Final'}
-              {(sportsMeta.match_state === 'upcoming' || sportsMeta.match_state === 'pre-match') && 'Upcoming'}
-              {sportsMeta.clock_running && <span className="ml-1 opacity-70">⏱</span>}
-            </span>
-          ) : (
-            <span className={`flex items-center gap-1.5 text-xs font-medium ${market.status === 'resolved' ? 'text-yellow-400' : 'text-green-400'}`}>
-              <span className={`w-2 h-2 rounded-full ${market.status === 'resolved' ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
-              {market.status === 'resolved' ? 'Resolved' : 'Open'}
-            </span>
+            </div>
           )}
         </div>
-        <h1 className="text-2xl md:text-3xl font-serif font-bold text-white mb-2">{market.title}</h1>
-        <p className="text-slate-400 text-sm md:text-base">{displayDescription}</p>
-        <div className="flex items-center gap-4 mt-4 text-sm text-slate-500">
-          <span>Volume: ${(market.total_volume || 0).toLocaleString()}</span>
-          {!sportsMeta && market.close_date && <span>Closes: {formatDate(market.close_date)}</span>}
-          {!sportsMeta && market.resolution_date && <span>Resolved: {formatDate(market.resolution_date)}</span>}
-        </div>
       </div>
 
-      {market.status === 'resolved' && (
-        <div className="mb-6 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-yellow-400 mb-2">Final Resolution</p>
-          <div className="flex flex-wrap gap-2">
-            {winningOutcomes.length > 0 ? winningOutcomes.map(outcome => (
-              <span key={outcome.id} className="inline-flex items-center rounded-lg border border-green-500/40 bg-green-500/10 px-3 py-1 text-sm font-semibold text-green-300">
-                {outcome.title}
-              </span>
-            )) : (
-              <span className="text-sm text-slate-300">No winning outcome recorded.</span>
+      <div className="flex flex-col lg:flex-row gap-6 lg:items-start relative flex-1 min-h-0">
+        {/* Left Column: Info, Price Chart & Controls */}
+        <div className="flex-1 min-w-0 space-y-6 z-10 lg:h-full lg:overflow-y-auto lg:pr-2 custom-scrollbar">
+          {homeLogo && awayLogo && (
+            <div className="flex items-center justify-center gap-6 py-6 px-8 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl max-w-xl shadow-2xl">
+              <div className="flex flex-col items-center gap-2">
+                <img src={homeLogo} className="w-16 h-16 rounded-full object-cover border-2 border-slate-700 bg-slate-950 shadow-lg" alt="Home" />
+                <span className="text-sm text-white font-bold">{sportsMeta.home_team}</span>
+              </div>
+              <span className="text-xs text-yellow-500 font-extrabold bg-yellow-500/10 border border-yellow-500/20 px-3 py-1 rounded-lg">VS</span>
+              <div className="flex flex-col items-center gap-2">
+                <img src={awayLogo} className="w-16 h-16 rounded-full object-cover border-2 border-slate-700 bg-slate-950 shadow-lg" alt="Away" />
+                <span className="text-sm text-white font-bold">{sportsMeta.away_team}</span>
+              </div>
+            </div>
+          )}
+
+          {!homeLogo && eventImage && (
+            <div className="w-full h-48 sm:h-64 rounded-2xl overflow-hidden border border-slate-800 shadow-xl relative">
+              <img src={eventImage} className="w-full h-full object-cover" alt="Banner" />
+            </div>
+          )}
+
+          {sportsMeta && (
+            <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl" style={{ textShadow: '0 0 10px rgba(212,175,55,0.3)' }}>
+                  {sportsMeta.sport === 'basketball' ? '🏀' : sportsMeta.sport === 'soccer' ? '⚽' : sportsMeta.sport === 'football' ? '🏈' : sportsMeta.sport === 'baseball' ? '⚾' : sportsMeta.sport === 'tennis' ? '🎾' : '🏅'}
+                </span>
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Tournament / League</div>
+                  <div className="text-sm sm:text-base text-white font-black">{sportsMeta.league || 'General'}</div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-4 sm:gap-8 border-t sm:border-t-0 border-slate-800/50 pt-3 sm:pt-0">
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">📅 Event Start (Locks Betting)</div>
+                  <div className="text-xs sm:text-sm text-slate-200 font-semibold mt-0.5">
+                    {sportsMeta.event_date ? new Date(sportsMeta.event_date).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Header Section – description */}
+          <div>
+            {market && (
+              <div className="flex sm:hidden items-center gap-3 mb-3">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${CATEGORY_COLORS[market.category] || 'from-slate-500 to-slate-600'} text-white`}>
+                  {market.category}
+                </span>
+                {sportsMeta && sportsMeta.match_state ? (
+                  <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded border ${sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time' ? 'bg-slate-800 text-slate-300 border-slate-700' :
+                    sportsMeta.match_state === 'overtime' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                      sportsMeta.match_state === 'halftime' || sportsMeta.match_state === 'half-time' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
+                        sportsMeta.match_state === 'in_progress' || sportsMeta.match_state === 'live' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
+                          'bg-slate-800 text-slate-400 border-slate-700'
+                    }`}>
+                    {(sportsMeta.match_state === 'in_progress' || sportsMeta.match_state === 'live' || sportsMeta.match_state === 'overtime') && (
+                      <span className="w-1.5 h-1.5 rounded-full inline-block bg-current animate-pulse"></span>
+                    )}
+                    {sportsMeta.match_state === 'in_progress' && `Period ${sportsMeta.current_period || 1}`}
+                    {sportsMeta.match_state === 'live' && 'Live'}
+                    {(sportsMeta.match_state === 'halftime' || sportsMeta.match_state === 'half-time') && 'Half Time'}
+                    {sportsMeta.match_state === 'overtime' && 'OVERTIME'}
+                    {(sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time') && 'Final'}
+                    {(sportsMeta.match_state === 'upcoming' || sportsMeta.match_state === 'pre-match') && 'Upcoming'}
+                    {sportsMeta.clock_running && <span className="ml-1 opacity-70">⏱</span>}
+                  </span>
+                ) : (
+                  <span className={`flex items-center gap-1.5 text-xs font-medium ${market.status === 'resolved' ? 'text-yellow-400' : 'text-green-400'}`}>
+                    <span className={`w-2 h-2 rounded-full ${market.status === 'resolved' ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
+                    {market.status === 'resolved' ? 'Resolved' : 'Open'}
+                  </span>
+                )}
+              </div>
             )}
+            <p className="text-slate-400 text-sm md:text-base">{displayDescription}</p>
           </div>
-        </div>
-      )}
 
-      {/* Price Chart */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-serif font-bold text-white">Price History</h2>
-          <div className="flex gap-2">
-            {['1D', '1W', '1M', 'ALL'].map(range => (
+          {market.status === 'resolved' && (
+            <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-yellow-400 mb-2">Final Resolution</p>
+              <div className="flex flex-wrap gap-2">
+                {winningOutcomes.length > 0 ? winningOutcomes.map(outcome => (
+                  <span key={outcome.id} className="inline-flex items-center rounded-lg border border-green-500/40 bg-green-500/10 px-3 py-1 text-sm font-semibold text-green-300">
+                    {outcome.title}
+                  </span>
+                )) : (
+                  <span className="text-sm text-slate-300">No winning outcome recorded.</span>
+                )}
+              </div>
+            </div>
+          )}
+          {/* Price Chart */}
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-serif font-bold text-white">Price History</h2>
+            </div>
+            <PriceChart selectedIds={selectedIds}
+              outcomes={chartOutcomes}
+              priceHistory={market.price_history}
+              totalVolume={market.total_volume}
+            />
+            <div className="flex flex-wrap items-center justify-center gap-6 mt-6 pt-5 border-t border-slate-800/60 text-xs font-medium text-slate-400">
+              <span className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Volume: ${(market.total_volume || 0).toLocaleString()}
+              </span>
+              {market.close_date && (
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  Closes: {formatDate(market.close_date)}
+                </span>
+              )}
+            </div>
+          </div>
+          {/* Controls: Dropdown & Timeline */}
+          <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 ">
+            <div className="relative" ref={chartDropdownRef}>
               <button
-                key={range}
-                className="px-3 py-1 text-xs font-medium rounded-lg transition-colors bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
+                onClick={() => setIsChartDropdownOpen(!isChartDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm text-slate-200 font-medium transition-colors"
               >
-                {range}
+                <span>Select Outcomes</span>
+                <svg className={`w-4 h-4 transition-transform ${isChartDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
               </button>
-            ))}
-          </div>
-        </div>
-        <PriceChart
-          outcomes={(isMultiMultiple && hasYesNoPairs) ? outcomes.filter(o => o.id.endsWith('_yes')).map(o => ({ ...o, title: o.title.replace(/\s*\(Yes\)$/i, '') })) : outcomes}
-          priceHistory={market.price_history}
-          totalVolume={market.total_volume}
-        />
-      </div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Left Column: Outcomes */}
-        <div className="flex-1 min-w-0">
+              {isChartDropdownOpen && (
+                <div className="absolute bottom-full mb-2 left-0 w-72 max-h-[16rem] overflow-y-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-20 p-2 custom-scrollbar">
+                  {chartOutcomes.map((o) => {
+                    const isSelected = selectedIds.includes(o.id);
+                    const canSelect = selectedIds.length < 4;
+                    const disabled = !isSelected && !canSelect;
+                    const color = getOutcomeColor(o, chartOutcomes);
+
+                    return (
+                      <div
+                        key={o.id}
+                        onClick={() => !disabled && handleToggle(o.id)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-700/70'}`}
+                      >
+                        <div className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-colors ${isSelected ? 'border-transparent' : 'border-slate-500'}`} style={{ backgroundColor: isSelected ? color : 'transparent' }}>
+                          {isSelected && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
+                        </div>
+                        <span className={`flex-1 truncate text-sm ${isSelected ? 'text-white font-medium' : 'text-slate-300'}`}>{o.title}</span>
+                        <span className="text-xs font-bold" style={{ color: isSelected ? color : '#64748b' }}>{Math.round(o.probability || 0)}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="flex bg-slate-800/50 p-1 rounded-lg border border-slate-700/50">
+              {['1D', '1W', '1M', 'ALL'].map(range => (
+                <button
+                  key={range}
+                  className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${range === 'ALL' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}
+                >
+                  {range}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* User Positions Carousel */}
+          {(() => {
+            const activePos = Object.keys(userPositions)
+              .filter(oid => userPositions[oid] > 0)
+              .map(oid => {
+                const o = outcomes.find(x => x.id === oid);
+                return o ? { ...o, stake: userPositions[oid], avgEntry: userAvgEntry[oid] } : null;
+              })
+              .filter(Boolean);
+
+            if (activePos.length === 0) return null;
+
+            const maxIdx = Math.max(0, activePos.length - 3);
+            const currentIdx = Math.min(positionSlideIdx, maxIdx);
+            const visibleCards = activePos.slice(currentIdx, currentIdx + 3);
+
+            return (
+              <div className="mt-6 border border-slate-800/80 bg-slate-900/30 rounded-xl p-4 font-serif">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                    Your Positions ({activePos.length})
+                  </h3>
+                  {activePos.length > 3 && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setPositionSlideIdx(Math.max(0, currentIdx - 1))}
+                        disabled={currentIdx === 0}
+                        className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        <svg className="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"></path></svg>
+                      </button>
+                      <button
+                        onClick={() => setPositionSlideIdx(Math.min(maxIdx, currentIdx + 1))}
+                        disabled={currentIdx === maxIdx}
+                        className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        <svg className="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"></path></svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 overflow-hidden">
+                  {activePos.map(o => (
+                    <div 
+                      key={o.id} 
+                      className="shrink-0 bg-slate-800/60 border border-slate-700/60 p-3 rounded-lg flex flex-col justify-between transition-transform duration-300 ease-in-out" 
+                      style={{ 
+                        width: activePos.length >= 3 ? 'calc(33.3333% - 8px)' : 'auto',
+                        transform: `translateX(calc(-${currentIdx * 100}% - ${currentIdx * 12}px))`
+                      }}
+                    >
+                      <div className="text-xs text-slate-300 font-medium truncate mb-2" title={o.title}>{o.title}</div>
+                      <div className="flex justify-between items-end">
+                        <div>
+                          <div className="text-[9px] text-slate-500 uppercase font-bold">Pos</div>
+                          <div className="text-sm text-white font-bold">${o.stake.toFixed(2)}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[9px] text-slate-500 uppercase font-bold">Avg Entry</div>
+                          <div className="text-sm text-yellow-500 font-bold">{Math.round(o.avgEntry)}&cent;</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Right Column: Outcomes — scrolls independently */}
+        <div className="w-full lg:w-[450px] font-serif lg:h-full lg:overflow-y-auto lg:pr-1 custom-scrollbar">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-serif font-bold text-white">Outcomes</h2>
             {outcomes.length >= 10 && (
@@ -670,170 +820,309 @@ export default function MarketDetailPage() {
                 barColorClass = isWinner ? 'bg-green-500' : 'bg-slate-700';
               }
 
+              let imageUrl = o.image_url;
+              if (!imageUrl && sportsMeta) {
+                if (sportsMeta.home_team && displayTitle.includes(sportsMeta.home_team)) imageUrl = sportsMeta.home_logo;
+                else if (sportsMeta.away_team && displayTitle.includes(sportsMeta.away_team)) imageUrl = sportsMeta.away_logo;
+              }
+
               return (
-                <div
-                  key={o.id}
-                  className={`bg-slate-900/50 border ${colorClasses} rounded-xl p-4 transition-all cursor-pointer ${isSelected ? 'ring-2 ring-yellow-500' : ''
-                    }`}
-                  onClick={() => market.status === 'active' && !isResolvedOutcome && setSelectedOutcome(o)}
-                >
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="flex items-center gap-2 text-white font-serif font-medium text-lg">
-                      {displayTitle}
-                      {isResolvedOutcome && isWinner && (
-                        <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-green-300">Won</span>
+                <div key={o.id}>
+                  {/* Outcome row – Polymarket-style */}
+                  <div
+                    className={`flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border transition-all cursor-pointer
+                      ${isResolvedOutcome
+                        ? isWinner ? 'border-green-500/40 bg-green-500/5' : 'border-slate-800 opacity-60'
+                        : 'border-slate-700/60 hover:border-slate-600 bg-slate-900/40 hover:bg-slate-800/40'}`}
+                    onClick={() => market.status === 'active' && !isResolvedOutcome && setSelectedOutcome(isSelected ? null : o)}
+                  >
+                    {/* Left: title + badges */}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {imageUrl && (
+                        <img src={imageUrl} alt={displayTitle} className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-700/50 bg-slate-900" />
                       )}
-                      {isResolvedOutcome && !isWinner && (
-                        <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">Lost</span>
-                      )}
-                      {userWinStatus === 'won' && (
-                        <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-green-300 ml-1">You Won</span>
-                      )}
-                      {userWinStatus === 'lost' && (
-                        <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-red-300 ml-1">You Lost</span>
-                      )}
-                    </span>
-                    <span className={`text-2xl font-serif font-bold ${textColorClass}`}>
-                      {(o.probability || 0).toFixed(2)}%
-                    </span>
+                      <div className="flex flex-wrap items-center gap-2 min-w-0">
+                        <span className="font-medium text-white truncate">{displayTitle}</span>
+                        {isResolvedOutcome && isWinner && <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-green-300 shrink-0">Won</span>}
+                        {isResolvedOutcome && !isWinner && <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500 shrink-0">Lost</span>}
+                        {userWinStatus === 'won' && <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-green-300 shrink-0">You Won</span>}
+                        {userWinStatus === 'lost' && <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-red-300 shrink-0">You Lost</span>}
+                      </div>
+                    </div>
+
+                    {/* Middle: probability + change */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-white font-bold text-base">{Math.round(o.probability || 0)}%</span>
+                    </div>
+
+                    {/* Right: Yes / No pill buttons */}
+                    {!isResolvedOutcome && market.status === 'active' && (
+                      <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                        {isYes || (!isYes && !isNo) ? (
+                          <button
+                            className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all
+                              ${isSelected
+                                ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/20'
+                                : 'border-green-500/60 text-green-400 hover:bg-green-500/10'}`}
+                            onClick={() => setSelectedOutcome(isSelected ? null : o)}
+                          >
+                            Yes {Math.round(o.probability || 0)}¢
+                          </button>
+                        ) : null}
+                        {isNo && (
+                          <button
+                            className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all
+                              ${isSelected
+                                ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20'
+                                : 'border-red-500/60 text-red-400 hover:bg-red-500/10'}`}
+                            onClick={() => setSelectedOutcome(isSelected ? null : o)}
+                          >
+                            No {Math.round(o.probability || 0)}¢
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Sell button for positions */}
+                    {userPositions[o.id] > 0 && market.status === 'active' && (
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (sellingOutcomeId === o.id) {
+                            setSellingOutcomeId(null); setSellAmount(''); setSellMsg('');
+                          } else {
+                            setSellingOutcomeId(o.id); setSellAmount(''); setSellMsg('');
+                          }
+                        }}
+                        className={`px-2 py-0.5 rounded text-xs font-semibold transition-all shrink-0 ${sellingOutcomeId === o.id
+                            ? 'bg-slate-700 text-slate-300'
+                            : 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30'
+                          }`}
+                      >
+                        {sellingOutcomeId === o.id ? 'Cancel' : 'Sell'}
+                      </button>
+                    )}
                   </div>
-                  <div className="h-2 bg-slate-800 rounded-full overflow-hidden mb-2">
-                    <div
-                      className={`h-full ${barColorClass} transition-all duration-500 ease-out`}
-                      style={{ width: `${(o.probability || 0).toFixed(2)}%` }}
-                    />
-                  </div>
+
+                  {/* Position info */}
                   {userPositions[o.id] > 0 && (() => {
                     const S = userPositions[o.id];
                     const mtmValue = calcPositionValue(S, userAvgEntry[o.id] || 50, o.probability || 50);
                     const unrealizedPnl = mtmValue - S;
                     return (
-                      <div onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between mt-2">
-                          <div className="text-xs font-medium">
-                            <span className="text-slate-400">Cost: </span>
-                            <span className="text-slate-300">${S.toFixed(2)}</span>
-                            {userAvgEntry[o.id] && (
-                              <span className="text-slate-500 ml-1">@ {userAvgEntry[o.id].toFixed(1)}%</span>
-                            )}
-                            <span className="mx-1 text-slate-600">·</span>
-                            <span className="text-slate-400">Value: </span>
-                            <span className={`font-semibold ${mtmValue < S ? 'text-red-400' : mtmValue > S ? 'text-green-400' : 'text-slate-300'
-                              }`}>${mtmValue.toFixed(2)}</span>
-                            <span className={`ml-1 text-[10px] ${unrealizedPnl < 0 ? 'text-red-500' : unrealizedPnl > 0 ? 'text-green-500' : 'text-slate-500'
-                              }`}>
-                              ({unrealizedPnl >= 0 ? '+' : ''}${unrealizedPnl.toFixed(2)})
-                            </span>
-                          </div>
-                          {market.status === 'active' && (
-                            <button
-                              onClick={e => {
-                                e.stopPropagation();
-                                if (sellingOutcomeId === o.id) {
-                                  setSellingOutcomeId(null); setSellAmount(''); setSellMsg('');
-                                } else {
-                                  setSellingOutcomeId(o.id); setSellAmount(''); setSellMsg('');
-                                }
-                              }}
-                              className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${sellingOutcomeId === o.id
-                                ? 'bg-slate-700 text-slate-300'
-                                : 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30'
-                                }`}
-                            >
-                              {sellingOutcomeId === o.id ? 'Cancel' : 'Sell'}
-                            </button>
-                          )}
-                        </div>
-
-                        {sellingOutcomeId === o.id && (
-                          <form
-                            onSubmit={e => handleSell(e, o.id)}
-                            className="mt-3 pt-3 border-t border-slate-700/50 space-y-2"
-                          >
-                            <p className="text-slate-500 text-xs">
-                              Sell at current price ({(o.probability || 50).toFixed(1)}%)
-                              {userAvgEntry[o.id] && (
-                                <span className={`ml-1 ${(o.probability || 50) >= userAvgEntry[o.id] ? 'text-green-400' : 'text-red-400'
-                                  }`}>
-                                  {(o.probability || 50) >= userAvgEntry[o.id] ? '↑' : '↓'} vs entry
-                                </span>
-                              )}
-                            </p>
-                            <div className="flex gap-2">
-                              <div className="relative flex-1">
-                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
-                                <input
-                                  type="number"
-                                  min="0.01"
-                                  max={userPositions[o.id]}
-                                  step="0.01"
-                                  value={sellAmount}
-                                  onChange={e => setSellAmount(e.target.value)}
-                                  placeholder={`Max $${userPositions[o.id].toFixed(2)}`}
-                                  className="w-full bg-slate-800 border border-slate-600 rounded-lg pl-7 pr-3 py-2 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500"
-                                />
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setSellAmount(userPositions[o.id].toFixed(2))}
-                                className="px-3 py-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-slate-300 hover:text-white hover:border-slate-500 transition-colors"
-                              >
-                                Max
-                              </button>
-                            </div>
-
-                            {parseFloat(sellAmount) > 0 && (
-                              <div className="bg-slate-800/60 rounded-lg p-2.5 space-y-1 text-xs">
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">You receive:</span>
-                                  <span className="text-white font-semibold">
-                                    ${(() => {
-                                      const sellAmt = parseFloat(sellAmount);
-                                      return calcPositionValue(sellAmt, userAvgEntry[o.id] || 50, o.probability || 50).toFixed(2);
-                                    })()}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">Net P&L:</span>
-                                  <span className={`font-semibold ${(o.probability || 50) >= (userAvgEntry[o.id] || 50) ? 'text-green-400' : 'text-red-400'
-                                    }`}>
-                                    {(() => {
-                                      const sellAmt = parseFloat(sellAmount);
-                                      const returnAmt = calcPositionValue(sellAmt, userAvgEntry[o.id] || 50, o.probability || 50);
-                                      const pnl = returnAmt - sellAmt;
-                                      return `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
-                                    })()}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-
-                            {sellMsg && (
-                              <p className={`text-xs ${sellMsg.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>
-                                {sellMsg}
-                              </p>
-                            )}
-
-                            <button
-                              type="submit"
-                              disabled={sellLoading || !parseFloat(sellAmount) || parseFloat(sellAmount) > userPositions[o.id]}
-                              className="w-full py-2 rounded-lg text-sm font-semibold bg-red-500/20 border border-red-500/50 text-red-400 hover:bg-red-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                            >
-                              {sellLoading ? 'Selling...' : `Confirm Sell $${parseFloat(sellAmount) > 0 ? parseFloat(sellAmount).toFixed(2) : '0.00'}`}
-                            </button>
-                          </form>
-                        )}
+                      <div className="px-4 py-2 text-xs flex items-center gap-3 text-slate-400">
+                        <span>Cost: <span className="text-slate-300">${S.toFixed(2)}</span>{userAvgEntry[o.id] && <span className="text-slate-500 ml-1">@ {userAvgEntry[o.id].toFixed(1)}%</span>}</span>
+                        <span>·</span>
+                        <span>Value: <span className={`font-semibold ${mtmValue < S ? 'text-red-400' : mtmValue > S ? 'text-green-400' : 'text-slate-300'}`}>${mtmValue.toFixed(2)}</span></span>
+                        <span className={`text-[10px] ${unrealizedPnl < 0 ? 'text-red-500' : unrealizedPnl > 0 ? 'text-green-500' : 'text-slate-500'}`}>({unrealizedPnl >= 0 ? '+' : ''}${unrealizedPnl.toFixed(2)})</span>
                       </div>
                     );
                   })()}
+
+                  {/* Sell form */}
+                  {sellingOutcomeId === o.id && (
+                    <form
+                      onSubmit={e => handleSell(e, o.id)}
+                      className="mx-4 mb-3 mt-1 pt-3 border-t border-slate-700/50 space-y-2"
+                    >
+                      <p className="text-slate-500 text-xs">
+                        Sell at current price ({(o.probability || 50).toFixed(1)}%)
+                        {userAvgEntry[o.id] && (
+                          <span className={`ml-1 ${(o.probability || 50) >= userAvgEntry[o.id] ? 'text-green-400' : 'text-red-400'}`}>
+                            {(o.probability || 50) >= userAvgEntry[o.id] ? '↑' : '↓'} vs entry
+                          </span>
+                        )}
+                      </p>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+                          <input
+                            type="number" min="0.01" max={userPositions[o.id]} step="0.01"
+                            value={sellAmount} onChange={e => setSellAmount(e.target.value)}
+                            placeholder={`Max $${userPositions[o.id].toFixed(2)}`}
+                            className="w-full bg-slate-800 border border-slate-600 rounded-lg pl-7 pr-3 py-2 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500"
+                          />
+                        </div>
+                        <button type="button" onClick={() => setSellAmount(userPositions[o.id].toFixed(2))}
+                          className="px-3 py-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-slate-300 hover:text-white hover:border-slate-500 transition-colors">Max</button>
+                      </div>
+                      {parseFloat(sellAmount) > 0 && (
+                        <div className="bg-slate-800/60 rounded-lg p-2.5 space-y-1 text-xs">
+                          <div className="flex justify-between"><span className="text-slate-400">You receive:</span><span className="text-white font-semibold">${calcPositionValue(parseFloat(sellAmount), userAvgEntry[o.id] || 50, o.probability || 50).toFixed(2)}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-400">Net P&L:</span><span className={`font-semibold ${(o.probability || 50) >= (userAvgEntry[o.id] || 50) ? 'text-green-400' : 'text-red-400'}`}>{(() => { const r = calcPositionValue(parseFloat(sellAmount), userAvgEntry[o.id] || 50, o.probability || 50); const p = r - parseFloat(sellAmount); return `${p >= 0 ? '+' : ''}$${p.toFixed(2)}`; })()}</span></div>
+                        </div>
+                      )}
+                      {sellMsg && <p className={`text-xs ${sellMsg.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>{sellMsg}</p>}
+                      <button type="submit" disabled={sellLoading || !parseFloat(sellAmount) || parseFloat(sellAmount) > userPositions[o.id]}
+                        className="w-full py-2 rounded-lg text-sm font-semibold bg-red-500/20 border border-red-500/50 text-red-400 hover:bg-red-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                        {sellLoading ? 'Selling...' : `Confirm Sell $${parseFloat(sellAmount) > 0 ? parseFloat(sellAmount).toFixed(2) : '0.00'}`}
+                      </button>
+                    </form>
+                  )}
+
+                  {/* Inline Place Prediction */}
+                  {isSelected && market.status === 'active' && !isResolvedOutcome && (
+                    <div className="mx-4 mb-3 mt-2 pt-3 border-t border-slate-700/50" onClick={e => e.stopPropagation()}>
+                      <h3 className="text-sm font-bold text-white mb-3">Place Prediction</h3>
+                      <form onSubmit={handleTrade} className="space-y-4">
+                        {session?.user?.id && session.user.id !== 'demo_user' && (
+                          <div className={`flex items-center justify-between rounded-lg px-3 py-2 border ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'bg-red-500/10 border-red-500/40' : 'bg-slate-800/50 border-slate-700'}`}>
+                            <span className="text-slate-400 text-xs font-medium">💰 Buying Power</span>
+                            <span className={`text-sm font-bold ${buyingPowerLoading ? 'text-slate-500' : buyingPower === null ? 'text-slate-500' : parseFloat(stake) > safeBuyingPower ? 'text-red-400' : 'text-green-400'}`}>
+                              {buyingPowerLoading ? '...' : safeBuyingPower !== null ? `$${safeBuyingPower.toFixed(2)}` : 'N/A'}
+                            </span>
+                          </div>
+                        )}
+                        <div>
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="block text-slate-300 text-xs font-medium">Stake Amount</label>
+                            {safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && (
+                              <button type="button" onClick={() => setStake(safeBuyingPower.toFixed(2))} className="text-xs text-yellow-500 hover:text-yellow-400 transition-colors">Max</button>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+                            <input type="number" min="0.01" max={safeBuyingPower !== null && session?.user?.id !== 'demo_user' ? safeBuyingPower : undefined}
+                              step="0.01" value={stake} onChange={e => setStake(e.target.value)} placeholder="10.00" required
+                              className={`w-full bg-slate-900 border rounded-lg px-4 pl-7 py-2 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-1 ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'border-red-500 focus:ring-red-500/50' : 'border-slate-600 focus:ring-yellow-500/50 focus:border-yellow-500'}`}
+                            />
+                          </div>
+                          {safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower && (
+                            <p className="text-red-400 text-xs mt-1.5 flex items-center gap-1"><span>⚠</span><span>Exceeds buying power</span></p>
+                          )}
+                        </div>
+                        {payout && (
+                          <div className="bg-slate-800/40 border border-slate-700/50 rounded-lg p-3 space-y-2">
+                            <div className="flex justify-between items-center"><span className="text-green-400/80 text-xs">Expected Win:</span><span className="text-green-400 text-sm font-bold">${payout.winReturn.toFixed(2)}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-red-400/80 text-xs">Expected Loss (Refund):</span><span className="text-red-400 text-sm font-bold">${payout.loseRefund.toFixed(2)}</span></div>
+                          </div>
+                        )}
+                        {tradeMsg && (
+                          <div className={`rounded-lg p-2 text-xs ${tradeMsg.startsWith('✅') ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{tradeMsg}</div>
+                        )}
+                        {!session ? (
+                          <button type="button" onClick={openAuthModal} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-sm font-bold py-2 rounded-lg transition-all">Sign in to trade</button>
+                        ) : (
+                          <button type="submit" disabled={tradeLoading || (safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower)}
+                            className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 disabled:from-slate-700 disabled:to-slate-700 text-slate-950 disabled:text-slate-500 text-sm font-bold py-2 rounded-lg transition-all">
+                            {tradeLoading ? 'Placing...' : 'Confirm Prediction'}
+                          </button>
+                        )}
+                      </form>
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
+            // Helper to render the trade form inline
+            const renderTradeForm = (o) => (
+              <div className="px-4 pb-4 pt-3 border-t border-slate-700/50" onClick={e => e.stopPropagation()}>
+                <h3 className="text-sm font-bold text-white mb-3">
+                  Place Prediction &mdash; <span className={o.title && o.title.toLowerCase() === 'no' ? 'text-red-400' : 'text-green-400'}>{o.title}</span>
+                </h3>
+                <form onSubmit={handleTrade} className="space-y-3">
+                  {session && session.user && session.user.id && session.user.id !== 'demo_user' && (
+                    <div className={`flex items-center justify-between rounded-lg px-3 py-2 border ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'bg-red-500/10 border-red-500/40' : 'bg-slate-800/50 border-slate-700'}`}>
+                      <span className="text-slate-400 text-xs font-medium">Buying Power</span>
+                      <span className={`text-sm font-bold ${buyingPowerLoading ? 'text-slate-500' : buyingPower === null ? 'text-slate-500' : parseFloat(stake) > safeBuyingPower ? 'text-red-400' : 'text-green-400'}`}>
+                        {buyingPowerLoading ? '...' : safeBuyingPower !== null ? '$' + safeBuyingPower.toFixed(2) : 'N/A'}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-slate-300 text-xs font-medium">Stake Amount</label>
+                      {safeBuyingPower !== null && session && session.user && session.user.id && session.user.id !== 'demo_user' && (
+                        <button type="button" onClick={() => setStake(safeBuyingPower.toFixed(2))} className="text-xs text-yellow-500 hover:text-yellow-400 transition-colors">Max</button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+                      <input type="number" min="0.01" max={safeBuyingPower !== null && session && session.user && session.user.id !== 'demo_user' ? safeBuyingPower : undefined}
+                        step="0.01" value={stake} onChange={e => setStake(e.target.value)} placeholder="10.00" required
+                        className={`w-full bg-slate-900 border rounded-lg px-4 pl-7 py-2 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-1 ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'border-red-500 focus:ring-red-500/50' : 'border-slate-600 focus:ring-yellow-500/50 focus:border-yellow-500'}`}
+                      />
+                    </div>
+                    {safeBuyingPower !== null && session && session.user && session.user.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower && (
+                      <p className="text-red-400 text-xs mt-1.5 flex items-center gap-1"><span>!</span><span>Exceeds buying power</span></p>
+                    )}
+                  </div>
+                  {payout && (
+                    <div className="bg-slate-800/40 border border-slate-700/50 rounded-lg p-3 space-y-1.5">
+                      <div className="flex justify-between items-center"><span className="text-green-400/80 text-xs">Expected Win:</span><span className="text-green-400 text-sm font-bold">${payout.winReturn.toFixed(2)}</span></div>
+                      <div className="flex justify-between items-center"><span className="text-red-400/80 text-xs">Expected Loss (Refund):</span><span className="text-red-400 text-sm font-bold">${payout.loseRefund.toFixed(2)}</span></div>
+                    </div>
+                  )}
+                  {tradeMsg && <div className={`rounded-lg p-2 text-xs ${tradeMsg.startsWith('✅') ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{tradeMsg}</div>}
+                  {!session ? (
+                    <button type="button" onClick={openAuthModal} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-sm font-bold py-2 rounded-lg transition-all">Sign in to trade</button>
+                  ) : (
+                    <button type="submit" disabled={tradeLoading || (safeBuyingPower !== null && session.user && session.user.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower)}
+                      className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 disabled:from-slate-700 disabled:to-slate-700 text-slate-950 disabled:text-slate-500 text-sm font-bold py-2 rounded-lg transition-all">
+                      {tradeLoading ? 'Placing...' : 'Confirm Prediction'}
+                    </button>
+                  )}
+                </form>
+              </div>
+            );
+
+            // Render yes + no as a single horizontal row
+            const renderPairRow = (yes, no, rowTitle) => {
+              const yesSelected = selectedOutcome && selectedOutcome.id === yes.id;
+              const noSelected = selectedOutcome && selectedOutcome.id === no.id;
+              const isResolvedYes = isOutcomeResolved(yes.id) || market.status === 'resolved';
+              const isWinnerYes = winningOutcomeSet.has(yes.id);
+              const isWinnerNo = winningOutcomeSet.has(no.id);
+              const activeOutcome = yesSelected ? yes : noSelected ? no : null;
+              const imageUrl = yes.image_url || no.image_url || (() => {
+                if (!sportsMeta) return null;
+                if (sportsMeta.home_team && rowTitle.includes(sportsMeta.home_team)) return sportsMeta.home_logo;
+                if (sportsMeta.away_team && rowTitle.includes(sportsMeta.away_team)) return sportsMeta.away_logo;
+                return null;
+              })();
+              return (
+                <div key={yes.id} className="rounded-xl border border-slate-700/60 bg-slate-900/40 overflow-hidden">
+                  <div className="flex items-center gap-3 px-4 py-3.5">
+                    {imageUrl && (
+                      <img src={imageUrl} alt={rowTitle} className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-700/50 bg-slate-900" />
+                    )}
+                    <span className="flex-1 font-medium text-white truncate min-w-0">{rowTitle}</span>
+                    {!isResolvedYes ? (
+                      <span className="text-white font-bold text-sm shrink-0 w-12 text-right">{Math.round(yes.probability || 0)}%</span>
+                    ) : (
+                      <span className="shrink-0">
+                        {isWinnerYes && <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-green-300">Yes Won</span>}
+                        {isWinnerNo && <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-red-300">No Won</span>}
+                      </span>
+                    )}
+                    {market.status === 'active' && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        {!isResolvedYes && (
+                          <button className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all ${yesSelected ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/20' : 'border-green-500/60 text-green-400 hover:bg-green-500/10'}`}
+                            onClick={() => setSelectedOutcome(yesSelected ? null : yes)}>
+                            Yes {Math.round(yes.probability || 0)}&cent;
+                          </button>
+                        )}
+                        {!isResolvedYes && (
+                          <button className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all ${noSelected ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20' : 'border-red-500/60 text-red-400 hover:bg-red-500/10'}`}
+                            onClick={() => setSelectedOutcome(noSelected ? null : no)}>
+                            No {Math.round(no.probability || 0)}&cent;
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {activeOutcome && market.status === 'active' && renderTradeForm(activeOutcome)}
                 </div>
               );
             };
 
             const renderOutcomesBlock = (outcomesToRender) => {
+              // Multi-binary: each question has a _yes / _no pair
               if (isMultiMultiple && hasYesNoPairs) {
                 return (
-                  <div className="space-y-6">
+                  <div className="space-y-2">
                     {outcomesToRender.filter(o => o.id.endsWith('_yes')).filter(yes => {
                       const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
                       return baseTitle.toLowerCase().includes(searchQuery.toLowerCase());
@@ -841,21 +1130,20 @@ export default function MarketDetailPage() {
                       const no = outcomesToRender.find(o => o.id === yes.id.replace('_yes', '_no'));
                       if (!yes || !no) return null;
                       const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
-                      return (
-                        <div key={yes.id} className="bg-slate-900/40 rounded-xl p-4 border border-slate-700/50">
-                          <h3 className="text-lg font-serif font-bold text-white mb-3 pl-1">{baseTitle}</h3>
-                          <div className="flex flex-col sm:flex-row gap-3">
-                            <div className="flex-1">{renderOutcome(yes, 'Yes')}</div>
-                            <div className="flex-1">{renderOutcome(no, 'No')}</div>
-                          </div>
-                        </div>
-                      );
+                      return renderPairRow(yes, no, baseTitle);
                     })}
                   </div>
                 );
               }
+              // Simple binary (just Yes + No)
+              const yesO = outcomesToRender.find(o => o.title && o.title.toLowerCase() === 'yes');
+              const noO = outcomesToRender.find(o => o.title && o.title.toLowerCase() === 'no');
+              if (yesO && noO && outcomesToRender.length === 2) {
+                return <div className="space-y-2">{renderPairRow(yesO, noO, market.title)}</div>;
+              }
+              // Multi-outcome without pairs
               const filteredOutcomes = outcomesToRender.filter(o => o.title.toLowerCase().includes(searchQuery.toLowerCase()));
-              return <div className="space-y-3">{filteredOutcomes.map(o => renderOutcome(o))}</div>;
+              return <div className="space-y-2">{filteredOutcomes.map(o => renderOutcome(o))}</div>;
             };
 
             const unresolvedOutcomesList = outcomes.filter(o => !isOutcomeResolved(o.id));
@@ -879,148 +1167,6 @@ export default function MarketDetailPage() {
             );
           })()}
         </div>
-
-        {/* Right Column: Trade Form */}
-        {market.status === 'active' && (
-          <div className="w-full lg:w-96">
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-6 sticky top-6">
-              <h2 className="text-xl font-serif font-bold text-white mb-4">Place Prediction</h2>
-
-              {!selectedOutcome ? (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59" />
-                    </svg>
-                  </div>
-                  <p className="text-slate-400 text-sm">Select an outcome to place your prediction</p>
-                </div>
-              ) : (
-                <form onSubmit={handleTrade} className="space-y-4">
-                  <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                    <p className="text-slate-400 text-xs mb-1">Betting on</p>
-                    <p className="text-white font-serif font-semibold text-lg">{selectedOutcome.title}</p>
-                    <p className="text-yellow-400 text-sm mt-1">
-                      {selectedOutcome.probability ?? 50}% probability
-                    </p>
-                  </div>
-
-                  {/* Buying Power Display */}
-                  {session?.user?.id && session.user.id !== 'demo_user' && (
-                    <div className={`flex items-center justify-between rounded-lg px-4 py-3 border ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower
-                      ? 'bg-red-500/10 border-red-500/40'
-                      : 'bg-slate-800/50 border-slate-700'
-                      }`}>
-                      <span className="text-slate-400 text-xs font-medium">💰 Buying Power</span>
-                      <span className={`text-sm font-bold ${buyingPowerLoading ? 'text-slate-500' :
-                        buyingPower === null ? 'text-slate-500' :
-                          parseFloat(stake) > safeBuyingPower ? 'text-red-400' :
-                            'text-green-400'
-                        }`}>
-                        {buyingPowerLoading ? '...' : safeBuyingPower !== null ? `$${safeBuyingPower.toFixed(2)}` : 'N/A'}
-                      </span>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-slate-300 text-sm font-medium mb-2">Stake Amount</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
-                      <input
-                        type="number"
-                        min="0.01"
-                        max={safeBuyingPower !== null && session?.user?.id !== 'demo_user' ? safeBuyingPower : undefined}
-                        step="0.01"
-                        value={stake}
-                        onChange={e => setStake(e.target.value)}
-                        placeholder="10.00"
-                        required
-                        className={`w-full bg-slate-800 border rounded-lg px-4 pl-8 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower
-                          ? 'border-red-500 focus:ring-red-500/50'
-                          : 'border-slate-700 focus:ring-yellow-500/50 focus:border-yellow-500'
-                          }`}
-                      />
-                    </div>
-                    {safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower && (
-                      <p className="text-red-400 text-xs mt-1.5 flex items-center gap-1">
-                        <span>⚠</span>
-                        <span>Exceeds your buying power by ${(parseFloat(stake) - safeBuyingPower).toFixed(2)}</span>
-                      </p>
-                    )}
-                    {safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && (
-                      <button
-                        type="button"
-                        onClick={() => setStake(safeBuyingPower.toFixed(2))}
-                        className="mt-1.5 text-xs text-yellow-500 hover:text-yellow-400 transition-colors"
-                      >
-                        Use max (${safeBuyingPower.toFixed(2)})
-                      </button>
-                    )}
-                  </div>
-
-                  {payout && (
-                    <div className="space-y-3">
-                      {/* Payout Bounds Explanation */}
-                      <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-                        <p className="text-slate-400 text-xs mb-2 font-semibold">Payout Bounds <span className="text-slate-600 font-normal">(S×(1−p) model)</span></p>
-                        <div className="text-xs text-slate-500 space-y-0.5">
-                          <p>S = Stake (${parseFloat(stake).toFixed(2)})</p>
-                          <p>p = Entry probability ({((selectedOutcome.probability || 50) / 100).toFixed(2)})</p>
-                          <p className="mt-1 text-slate-600 font-mono text-[10px]">
-                            R<sub>max</sub> = S×(2−p) &nbsp;|  R<sub>min</sub> = S×p
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Expected Returns */}
-                      <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                        <p className="text-slate-400 text-xs mb-3">Expected Returns</p>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-green-400 text-sm">Upper Bound:</span>
-                            <span className="text-green-400 text-xl font-bold">${payout.winReturn.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-red-400 text-sm">Lower Bound:</span>
-                            <span className="text-red-400 text-xl font-bold">${payout.loseRefund.toFixed(2)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {tradeMsg && (
-                    <div className={`rounded-lg p-3 text-sm ${tradeMsg.startsWith('✅') ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
-                      {tradeMsg}
-                    </div>
-                  )}
-
-                  {!session ? (
-                    <button
-                      type="button"
-                      onClick={openAuthModal}
-                      className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-slate-950 font-bold py-3 rounded-xl transition-all"
-                    >
-                      Sign in to trade
-                    </button>
-                  ) : (
-                    <button
-                      type="submit"
-                      disabled={tradeLoading || (safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower)}
-                      className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 disabled:from-slate-700 disabled:to-slate-700 text-slate-950 disabled:text-slate-500 font-bold py-3 rounded-xl transition-all"
-                    >
-                      {tradeLoading ? 'Placing Prediction...' : 'Place Prediction'}
-                    </button>
-                  )}
-
-                  {!session && (
-                    <p className="text-slate-500 text-xs text-center">You'll be asked to log in</p>
-                  )}
-                </form>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div >
   );
