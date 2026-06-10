@@ -5,7 +5,7 @@ export default function Layout() {
   return (
     <>
       <Sidebar />
-      <div className="main-content" style={{ background: 'rgb(2, 6, 23)' }}>
+      <div className="main-content" style={{ background: 'var(--bg)' }}>
         <Outlet />
       </div>
     </>

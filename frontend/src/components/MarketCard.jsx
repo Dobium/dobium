@@ -143,17 +143,21 @@ export default function MarketCard({ market }) {
         {outcomes.slice(0, 2).map((outcome, idx) => (
           <button
             key={outcome.id}
-            className={`flex-1 relative overflow-hidden rounded-lg px-3 py-2 transition-all duration-200 border ${idx === 0
-              ? 'bg-green-500/10 border-green-500/50 hover:border-green-500 hover:bg-green-500/20'
-              : 'bg-red-500/10 border-red-500/50 hover:border-red-500 hover:bg-red-500/20'
-              } active:scale-95`}
+            style={idx === 0
+              ? { background: 'var(--yes-dim)', borderColor: 'rgba(45,212,167,0.3)' }
+              : { background: 'var(--no-dim)', borderColor: 'rgba(255,92,114,0.3)' }
+            }
+            className="flex-1 relative overflow-hidden rounded-lg px-3 py-2 transition-all duration-200 border active:scale-95"
             onClick={(e) => {
               e.stopPropagation();
             }}
           >
             <div className="flex flex-col gap-1">
               <span className="text-white font-medium text-xs text-center">{normalizeOutcomeTitle(outcome.title)}</span>
-              <span className={`text-base font-semibold text-center ${idx === 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <span
+                className="text-base font-semibold text-center"
+                style={{ color: idx === 0 ? 'var(--yes)' : 'var(--no)', fontFamily: 'var(--mono)' }}
+              >
                 {Math.round(outcome.probability || 0)}¢
               </span>
             </div>
@@ -205,12 +209,7 @@ export default function MarketCard({ market }) {
               <span>{typeLabel.text}</span>
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-green-400 font-medium flex items-center gap-1">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse inline-block"></span>
-              Live
-            </span>
-          </div>
+          <div />
         </div>
 
         <MiniChart market={market} outcomes={outcomes} isBinary={isBinary} />
@@ -221,6 +220,17 @@ export default function MarketCard({ market }) {
 
         <div className="flex gap-2">
           {outcomeButtons}
+        </div>
+
+        <div className="flex items-center justify-between pt-1">
+          <span style={{ fontFamily: 'var(--mono)', color: 'var(--gold)', fontSize: '12px', fontWeight: 700 }}>
+            ${(market.total_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+            <span style={{ fontFamily: 'inherit', color: 'var(--muted)', fontWeight: 500, fontSize: '11px', marginLeft: 4 }}>vol</span>
+          </span>
+          <span className="text-xs flex items-center gap-1" style={{ color: 'var(--yes)' }}>
+            <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: 'var(--yes)' }}></span>
+            Live
+          </span>
         </div>
       </div>
     </div>

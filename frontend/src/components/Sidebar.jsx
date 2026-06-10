@@ -1,9 +1,11 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useWallet } from '../hooks/useWallet';
 
 export default function Sidebar() {
   const { session, logout } = useAuth();
   const navigate = useNavigate();
+  const { balance } = useWallet();
 
   const handleLogout = async () => {
     await logout();
@@ -18,6 +20,14 @@ export default function Sidebar() {
           <div className="sidebar-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
             <div className="sidebar-logo-icon">
               <img src="/Logo.png" alt="Samsa" className="sidebar-logo-img" style={{ width: 64, height: 64, objectFit: 'contain' }} />
+            </div>
+            <div style={{ textAlign: 'center', lineHeight: 1.2, opacity: 0, transition: 'opacity 0.3s' }} className="sidebar-balance-chip">
+              <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--gold)', fontSize: 13 }}>
+                ${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+              <span style={{ display: 'block', fontFamily: 'inherit', fontWeight: 500, color: 'var(--muted)', fontSize: 10 }}>
+                Paper portfolio
+              </span>
             </div>
           </div>
 

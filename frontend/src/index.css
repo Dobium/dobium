@@ -6,12 +6,38 @@
 @tailwind utilities;
 
 /* ========================================
+   DOBIUM DESIGN TOKENS
+   ======================================== */
+:root {
+  --bg: #0A1128;
+  --panel: #0E1631;
+  --card: #111A39;
+  --card-hover: #16214A;
+  --line: #21305C;
+  --text: #F2F0EB;
+  --muted: #8C95B5;
+  --gold: #F0C04A;
+  --gold-2: #D89B2B;
+  --gold-dim: rgba(245, 200, 75, 0.12);
+  --yes: #2DD4A7;
+  --yes-dim: rgba(45, 212, 167, 0.12);
+  --no: #FF5C72;
+  --no-dim: rgba(255, 92, 114, 0.12);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --mono: 'JetBrains Mono', monospace;
+  --wordmark: 'Quicksand', sans-serif;
+  --accent: var(--gold);
+  --accent-glow: rgba(240, 192, 74, 0.25);
+}
+
+/* ========================================
    SAMSA PREDICTION MARKETS - STYLES
    ======================================== */
 
 body {
   margin: 0;
-  font-family: "Jost", sans-serif;
+  font-family: "Inter", "Jost", sans-serif;
   font-optical-sizing: auto;
 }
 
@@ -67,8 +93,8 @@ a {
   top: 0;
   height: 100vh;
   width: 80px;
-  background: #020617;
-  border-right: 1px solid rgba(71, 85, 105, 0.40);
+  background: var(--bg);
+  border-right: 1px solid var(--line);
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 100;
   overflow: hidden;
@@ -129,7 +155,7 @@ a {
 .sidebar-logo-text {
   font-size: 20px;
   font-weight: 700;
-  color: #d4af37;
+  color: var(--gold);
   display: none;
   opacity: 0;
   transition: opacity 0.3s;
@@ -138,6 +164,10 @@ a {
 .sidebar:hover .sidebar-logo-text {
   display: none;
   opacity: 0;
+}
+
+.sidebar:hover .sidebar-balance-chip {
+  opacity: 1 !important;
 }
 
 .sidebar-nav {
@@ -171,12 +201,12 @@ a {
 }
 
 .sidebar-item:hover {
-  color: #d4af37;
+  color: var(--gold);
   background: rgba(30, 41, 59, 0.60);
 }
 
 .sidebar-item.active {
-  color: #d4af37;
+  color: var(--gold);
 }
 
 .sidebar-item-icon {
@@ -197,7 +227,7 @@ a {
 
 .sidebar-item.active .sidebar-item-icon,
 .sidebar-item.active .sidebar-item-icon svg {
-  color: #d4af37;
+  color: var(--gold);
 }
 
 .sidebar-item-text {
@@ -208,7 +238,7 @@ a {
 }
 
 .sidebar-item.active .sidebar-item-text {
-  color: #d4af37;
+  color: var(--gold);
 }
 
 .sidebar:hover .sidebar-item-text {
@@ -663,7 +693,7 @@ a,
 .link-btn {
   background: none;
   border: none;
-  color: #d4af37;
+  color: var(--gold);
   cursor: pointer;
   font-size: 13px;
   padding: 0;
@@ -681,7 +711,7 @@ a,
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #020617;
+  background: var(--bg);
   padding: 24px;
 }
 
@@ -767,8 +797,8 @@ a,
 }
 
 .form-input:focus {
-  border-color: #d4af37;
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .form-error {
@@ -807,12 +837,12 @@ a,
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #d4af37, #c4a030);
-  color: #020617;
+  background: linear-gradient(135deg, var(--gold), #c4a030);
+  color: var(--bg);
 }
 
 .btn-primary:hover {
-  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 4px 16px var(--accent-glow);
 }
 
 .btn-secondary {
@@ -822,8 +852,8 @@ a,
 }
 
 .btn-secondary:hover {
-  border-color: #d4af37;
-  color: #d4af37;
+  border-color: var(--gold);
+  color: var(--gold);
 }
 
 .btn-full {
