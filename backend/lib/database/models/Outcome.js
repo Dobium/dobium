@@ -28,8 +28,16 @@ const Outcome = sequelize.define('Outcome', {
       notEmpty: true
     }
   },
+  image_url: {
+    type: DataTypes.STRING(2048),
+    allowNull: true
+  },
+  icon: {
+    type: DataTypes.STRING(50),
+    allowNull: true
+  },
   probability: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.DECIMAL(7, 2),
     defaultValue: 0,
     validate: {
       min: 0,

@@ -59,10 +59,14 @@ const Prediction = sequelize.define('Prediction', {
     type: DataTypes.STRING(20),
     defaultValue: 'active',
     validate: {
-      isIn: [['active', 'won', 'lost', 'refunded']]
+      isIn: [['active', 'won', 'lost', 'sold', 'refunded']]
     }
   },
   resolved_at: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  sold_at: {
     type: DataTypes.DATE,
     allowNull: true
   }

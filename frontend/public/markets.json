@@ -49,36 +49,6 @@
     "image_url": "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800"
   },
   {
-    "id": "mkt_drake_iceman_features",
-    "title": "Who will be featured on Drake's 'Iceman' album?",
-    "description": "Predict which artist will have a feature on Drake's upcoming 'Iceman' album.",
-    "category": "entertainment",
-    "status": "active",
-    "outcomes": [
-      { "id": "weeknd", "title": "The Weeknd", "probability": 35 },
-      { "id": "lil_wayne", "title": "Lil Wayne", "probability": 25 },
-      { "id": "travis_scott", "title": "Travis Scott", "probability": 20 },
-      { "id": "other", "title": "Other Artist", "probability": 20 }
-    ],
-    "total_volume": 8500,
-    "image_url": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800"
-  },
-  {
-    "id": "mkt_drake_iceman_release",
-    "title": "When will Drake's 'Iceman' album be released?",
-    "description": "Predict in which quarter Drake will officially release his 'Iceman' album.",
-    "category": "entertainment",
-    "status": "active",
-    "outcomes": [
-      { "id": "q2_2025", "title": "Q2 2025 (Apr–Jun)", "probability": 20 },
-      { "id": "q3_2025", "title": "Q3 2025 (Jul–Sep)", "probability": 35 },
-      { "id": "q4_2025", "title": "Q4 2025 (Oct–Dec)", "probability": 30 },
-      { "id": "2026", "title": "2026 or later", "probability": 15 }
-    ],
-    "total_volume": 6200,
-    "image_url": "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800"
-  },
-  {
     "id": "mkt_spotify_june_2025",
     "title": "Who will be the most-streamed Spotify artist in June 2025?",
     "description": "Predict which artist will have the most total streams on Spotify globally during June 2025.",

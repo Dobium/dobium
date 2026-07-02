@@ -1,7 +1,7 @@
 # Data-Driven Architecture
 
 ## Overview
-The Samsa application is **100% data-driven** with no hardcoded values for prices, probabilities, or market data. All information flows from the backend API based on actual market data and user transactions.
+The Dobium application is **100% data-driven** with no hardcoded values for prices, probabilities, or market data. All information flows from the backend API based on actual market data and user transactions.
 
 ## Market Data Flow
 

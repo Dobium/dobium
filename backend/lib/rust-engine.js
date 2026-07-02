@@ -1,9 +1,9 @@
 'use strict';
 
 /**
- * SAMSA — Rust Engine Bridge
+ * Dobium — Rust Engine Bridge
  *
- * Calls the compiled Rust binary (engine/target/release/samsa-engine)
+ * Calls the compiled Rust binary (engine/target/release/dobium-engine)
  * via child_process, passing JSON on stdin and reading JSON from stdout.
  *
  * If the binary is not found (e.g. not yet compiled), falls back to the
@@ -15,6 +15,8 @@
  *   resolve(trades, winningOutcomeId)  → ResolutionResult
  *   invest(b, qYes, qNo, side, stake)  → { invest_result, new_state }
  *   probability(b, qYes, qNo)          → { probability, probability_percent }
+ *   Don't build the Rust engine at all
+ *   Let the Node.js implementation handle LMSR calculations
  */
 
 const { execFile } = require('child_process');
@@ -22,14 +24,14 @@ const path = require('path');
 const { resolveMarket, settleTrade } = require('./payouts');
 
 // Path to the compiled Rust binary (GNU toolchain — no MSVC needed)
-const BINARY_WIN = path.join(__dirname, '..', 'engine', 'target', 'release', 'samsa-engine.exe');
-const BINARY_GNU = path.join(__dirname, '..', 'engine', 'target', 'x86_64-pc-windows-gnu', 'release', 'samsa-engine.exe');
-const BINARY_UNIX = path.join(__dirname, '..', 'engine', 'target', 'release', 'samsa-engine');
+const BINARY_WIN = path.join(__dirname, '..', 'engine', 'target', 'release', 'dobium-engine.exe');
+const BINARY_GNU = path.join(__dirname, '..', 'engine', 'target', 'x86_64-pc-windows-gnu', 'release', 'dobium-engine.exe');
+const BINARY_UNIX = path.join(__dirname, '..', 'engine', 'target', 'release', 'dobium-engine');
 
 function getBinaryPath() {
   const fs = require('fs');
-  if (fs.existsSync(BINARY_WIN))  return BINARY_WIN;
-  if (fs.existsSync(BINARY_GNU))  return BINARY_GNU;
+  if (fs.existsSync(BINARY_WIN)) return BINARY_WIN;
+  if (fs.existsSync(BINARY_GNU)) return BINARY_GNU;
   if (fs.existsSync(BINARY_UNIX)) return BINARY_UNIX;
   return null;
 }
@@ -45,7 +47,7 @@ function runEngine(command) {
 
     if (!binaryPath) {
       reject(new Error(
-        'samsa-engine binary not found. ' +
+        'dobium-engine binary not found. ' +
         'Run: cd engine && cargo build --release'
       ));
       return;
@@ -75,12 +77,12 @@ function runEngine(command) {
 // ── JS fallback (used when binary is unavailable) ──────────────────────────
 
 function jsFallbackSettle(stake, probability, didWin) {
-  console.warn('[samsa-engine] Using JS fallback for settle (binary not compiled)');
+  console.warn('[dobium-engine] Using JS fallback for settle (binary not compiled)');
   return Promise.resolve(settleTrade(stake, probability, didWin));
 }
 
 function jsFallbackResolve(trades, winningOutcomeId) {
-  console.warn('[samsa-engine] Using JS fallback for resolve (binary not compiled)');
+  console.warn('[dobium-engine] Using JS fallback for resolve (binary not compiled)');
   return Promise.resolve(resolveMarket(trades, winningOutcomeId));
 }
 

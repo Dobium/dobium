@@ -70,3 +70,18 @@ build/
 # Deployment archives
 *.zip
 *.tar.gz
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+requirements.txt
+
+# Scratch / one-off scripts at root (keep in archive/ if needed)
+fix-balances.js
+check_balance.js
+send-welcome.js
+
+.vercel
+.env*

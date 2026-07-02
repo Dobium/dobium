@@ -1,24 +1,209 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../api/client';
 import { useMarkets } from '../hooks/useMarkets';
+import { useWallet } from '../hooks/useWallet';
+import { formatCurrency } from '../store/storage';
+import ActivityHistory from '../components/ActivityHistory';
 
-// Robinhood-style equity chart
+// ============================================================================
+// Robinhood-style dual-canvas equity chart
+// Base canvas:    bezier curve + gradient fill  (redraws only when data changes)
+// Overlay canvas: pulsing live dot + crosshair  (requestAnimationFrame, 60fps)
+// ============================================================================
 function EquityChart({ equityPoints, startingBalance, currentValue }) {
-  const svgRef = useRef(null);
-  const [hover, setHover] = useState(null);
-  const W = 800, H = 200, PX = 0, PY = 16;
+  const baseRef = useRef(null);
+  const overlayRef = useRef(null);
+  const hoverRef = useRef(null);   // shared between RAF loop and mouse handler
+  const animRef = useRef(null);
+  const scaleRef = useRef(null);   // cached scale data so RAF doesn't recompute
+  const [tooltip, setTooltip] = useState(null);
 
-  // CSS for pulsing live dot animation
-  const pulseStyle = `
-    @keyframes eq-pulse {
-      0%, 100% { opacity: 0.7; r: 10; }
-      50%       { opacity: 0;   r: 18; }
-    }
-    .eq-pulse-ring { animation: eq-pulse 2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-  `;
+  const isProfit = currentValue >= startingBalance;
+  const lineColor = isProfit ? '#22c55e' : '#ef4444';
+  const colorRgb = isProfit ? '34,197,94' : '239,68,68';
+  const PAD = { t: 20, r: 8, b: 8, l: 8 };
 
+  // ── Compute pixel coordinates from data ──────────────────────────────────
+  const computeScale = useCallback((w, h) => {
+    if (!equityPoints || equityPoints.length < 2) return null;
+    const gw = w - PAD.l - PAD.r;
+    const gh = h - PAD.t - PAD.b;
+    const vals = equityPoints.map(p => p.value);
+    const allVals = [startingBalance, ...vals];
+    const dataMin = Math.min(...allVals);
+    const dataMax = Math.max(...allVals);
+    const pad = Math.max((dataMax - dataMin) * 0.15, 50);
+    const min = dataMin - pad;
+    const max = dataMax + pad;
+    const range = max - min || 1;
+    const xs = equityPoints.map((_, i) => PAD.l + (i / (equityPoints.length - 1)) * gw);
+    const ys = equityPoints.map(p => PAD.t + (1 - (p.value - min) / range) * gh);
+    const baselineY = PAD.t + (1 - (startingBalance - min) / range) * gh;
+    return { xs, ys, baselineY, w, h, gw, gh };
+  }, [equityPoints, startingBalance, PAD.l, PAD.r, PAD.t, PAD.b]);
+
+  // ── Draw bezier line + gradient fill on base canvas ──────────────────────
+  useEffect(() => {
+    const canvas = baseRef.current;
+    if (!canvas || !equityPoints || equityPoints.length < 2) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const W = rect.width;
+    const H = rect.height;
+    const scale = computeScale(W, H);
+    if (!scale) return;
+    scaleRef.current = scale;   // cache for RAF loop
+
+    const { xs, ys, baselineY } = scale;
+    ctx.clearRect(0, 0, W, H);
+
+    // Dashed baseline at starting balance
+    ctx.beginPath();
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.5;
+    ctx.moveTo(0, baselineY);
+    ctx.lineTo(W, baselineY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+
+    // ── Bezier path (Robinhood S-curve) ─────────────────────────────────────
+    // Both control points share the midpoint x — one anchored to prev y,
+    // one to next y. Produces the characteristic smooth but data-faithful curve.
+    const buildPath = (ctx) => {
+      ctx.moveTo(xs[0], ys[0]);
+      for (let i = 1; i < xs.length; i++) {
+        const cpx = (xs[i - 1] + xs[i]) / 2;
+        ctx.bezierCurveTo(cpx, ys[i - 1], cpx, ys[i], xs[i], ys[i]);
+      }
+    };
+
+    // Gradient fill below the curve
+    const grad = ctx.createLinearGradient(0, PAD.t, 0, H - PAD.b);
+    grad.addColorStop(0, `rgba(${colorRgb}, 0.22)`);
+    grad.addColorStop(1, `rgba(${colorRgb}, 0)`);
+    ctx.beginPath();
+    buildPath(ctx);
+    ctx.lineTo(xs[xs.length - 1], H - PAD.b);
+    ctx.lineTo(xs[0], H - PAD.b);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Stroke the curve on top
+    ctx.beginPath();
+    buildPath(ctx);
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }, [equityPoints, startingBalance, lineColor, colorRgb, computeScale]);
+
+  // ── Overlay: pulsing dot + crosshair at 60fps ─────────────────────────────
+  useEffect(() => {
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+    let phase = 0;
+
+    const frame = () => {
+      const rect = overlay.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      overlay.width = rect.width * dpr;
+      overlay.height = rect.height * dpr;
+      const ctx = overlay.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      const W = rect.width;
+      const H = rect.height;
+      ctx.clearRect(0, 0, W, H);
+
+      // Re-compute scale if not cached yet
+      const scale = scaleRef.current || computeScale(W, H);
+      if (!scale) { animRef.current = requestAnimationFrame(frame); return; }
+
+      const { xs, ys } = scale;
+      const lastX = xs[xs.length - 1];
+      const lastY = ys[ys.length - 1];
+      const hover = hoverRef.current;
+
+      if (!hover) {
+        // ── Pulsing live dot ──────────────────────────────────────────────
+        phase += 0.04;
+        const pulse = (Math.sin(phase) + 1) / 2;          // 0 → 1
+        const ring = 7 + pulse * 9;                       // 7px → 16px
+        const alpha = 0.45 * (1 - pulse);                  // fades as ring grows
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, ring, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${colorRgb}, ${alpha})`;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, 5, 0, Math.PI * 2);
+        ctx.fillStyle = lineColor;
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      } else {
+        // ── Crosshair ─────────────────────────────────────────────────────
+        ctx.beginPath();
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.6;
+        ctx.moveTo(hover.x, PAD.t);
+        ctx.lineTo(hover.x, H - PAD.b);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+
+        // Dot on the line
+        ctx.beginPath();
+        ctx.arc(hover.x, hover.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = lineColor;
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      animRef.current = requestAnimationFrame(frame);
+    };
+
+    animRef.current = requestAnimationFrame(frame);
+    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+  }, [equityPoints, lineColor, colorRgb, computeScale]);
+
+  // ── Mouse interaction ─────────────────────────────────────────────────────
+  const handleMouseMove = useCallback((e) => {
+    const overlay = overlayRef.current;
+    if (!overlay || !equityPoints || !scaleRef.current) return;
+    const rect = overlay.getBoundingClientRect();
+    const xRatio = (e.clientX - rect.left) / rect.width;
+    const { xs, ys } = scaleRef.current;
+    const idx = Math.max(0, Math.min(Math.round(xRatio * (xs.length - 1)), xs.length - 1));
+    const data = { x: xs[idx], y: ys[idx], value: equityPoints[idx].value, date: equityPoints[idx].date, pct: xs[idx] / rect.width };
+    hoverRef.current = data;
+    setTooltip(data);
+  }, [equityPoints]);
+
+  const handleMouseLeave = useCallback(() => {
+    hoverRef.current = null;
+    setTooltip(null);
+  }, []);
+
+  // ── Empty state ───────────────────────────────────────────────────────────
   if (!equityPoints || equityPoints.length < 2) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -27,170 +212,258 @@ function EquityChart({ equityPoints, startingBalance, currentValue }) {
     );
   }
 
-  const values = equityPoints.map(p => p.value);
-  const allValues = [startingBalance, ...values];
-  const minVal = Math.min(...allValues);
-  const maxVal = Math.max(...allValues);
-  const pad = Math.max((maxVal - minVal) * 0.2, 500);
-  const chartMin = minVal - pad;
-  const chartMax = maxVal + pad;
-  const range = chartMax - chartMin || 1;
-
-  const getX = (i) => PX + (i / (equityPoints.length - 1)) * (W - PX * 2);
-  const getY = (v) => PY + (1 - (v - chartMin) / range) * (H - PY * 2);
-
-  const points = equityPoints.map((p, i) => ({ x: getX(i), y: getY(p.value), ...p }));
-  const baselineY = getY(startingBalance);
-  const isProfit = currentValue >= startingBalance;
-  const lineColor = isProfit ? '#22c55e' : '#ef4444';
-  const gradId = isProfit ? 'eq-grad-profit' : 'eq-grad-loss';
-
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  const areaPath = `${linePath} L${points[points.length-1].x},${H} L${points[0].x},${H} Z`;
-
-  const handleMouseMove = (e) => {
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const xRatio = (e.clientX - rect.left) / rect.width;
-    const idx = Math.min(Math.round(xRatio * (points.length - 1)), points.length - 1);
-    setHover(points[Math.max(0, idx)]);
-  };
-
   return (
-    <div className="relative w-full h-full" onMouseLeave={() => setHover(null)}>
-      <svg
-        ref={svgRef}
-        className="w-full h-full"
-        viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="none"
+    <div
+      className="relative w-full h-full"
+      onMouseLeave={handleMouseLeave}
+      style={{ position: 'relative' }}
+    >
+      {/* Base canvas — chart line drawn once per data change */}
+      <canvas
+        ref={baseRef}
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+      />
+      {/* Overlay canvas — crosshair + pulsing dot at 60fps */}
+      <canvas
+        ref={overlayRef}
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', cursor: 'crosshair' }}
         onMouseMove={handleMouseMove}
-      >
-        <defs>
-          <style>{pulseStyle}</style>
-          <linearGradient id="eq-grad-profit" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style={{ stopColor: '#22c55e', stopOpacity: 0.25 }} />
-            <stop offset="100%" style={{ stopColor: '#22c55e', stopOpacity: 0 }} />
-          </linearGradient>
-          <linearGradient id="eq-grad-loss" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style={{ stopColor: '#ef4444', stopOpacity: 0.25 }} />
-            <stop offset="100%" style={{ stopColor: '#ef4444', stopOpacity: 0 }} />
-          </linearGradient>
-        </defs>
-
-        {/* Baseline */}
-        <line x1={0} y1={baselineY} x2={W} y2={baselineY}
-          stroke="#475569" strokeWidth="1" strokeDasharray="6,4" opacity="0.5" />
-
-        {/* Area fill */}
-        <path d={areaPath} fill={`url(#${gradId})`} />
-
-        {/* Equity line */}
-        <path d={linePath} fill="none" stroke={lineColor} strokeWidth="2.5"
-          strokeLinecap="round" strokeLinejoin="round" />
-
-        {/* Hover scrubber */}
-        {hover && (
-          <>
-            <line x1={hover.x} y1={PY} x2={hover.x} y2={H - PY}
-              stroke="#94a3b8" strokeWidth="1" strokeDasharray="3,3" opacity="0.6" />
-            <circle cx={hover.x} cy={hover.y} r="5" fill={lineColor} stroke="#0f172a" strokeWidth="2" />
-          </>
-        )}
-
-        {/* Live current-value dot — hidden while scrubbing */}
-        {!hover && points.length > 0 && (() => {
-          const last = points[points.length - 1];
-          return (
-            <>
-              {/* Pulse ring */}
-              <circle className="eq-pulse-ring" cx={last.x} cy={last.y} r="10"
-                fill={lineColor} opacity="0.35" />
-              {/* Solid dot */}
-              <circle cx={last.x} cy={last.y} r="5"
-                fill={lineColor} stroke="#0f172a" strokeWidth="2" />
-            </>
-          );
-        })()}
-      </svg>
-
-      {/* Hover tooltip */}
-      {hover && (
+      />
+      {/* Floating tooltip */}
+      {tooltip && (
         <div
-          className="absolute top-2 pointer-events-none px-3 py-1.5 bg-slate-800/90 border border-slate-700 rounded-lg text-xs"
-          style={{ left: `${Math.min(Math.max((hover.x / W) * 100, 5), 75)}%` }}
+          className="absolute top-2 pointer-events-none px-3 py-1.5 bg-slate-800/90 border border-slate-700 rounded-lg text-xs z-10"
+          style={{ left: `${Math.min(Math.max(tooltip.pct * 100, 5), 72)}%` }}
         >
-          <p className="text-white font-semibold">${hover.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-          <p className="text-slate-400">{new Date(hover.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+          <p className="text-white font-semibold">
+            ${tooltip.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+          <p className="text-slate-400">
+            {new Date(tooltip.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </p>
         </div>
       )}
     </div>
   );
 }
 
+function calcPositionValue(stake, entryProbPct, currentProbPct) {
+  const pEntry = entryProbPct / 100;
+  const pCurrent = currentProbPct / 100;
+  const rMin = stake * pEntry;
+  const rMax = stake * (2 - pEntry);
+
+  if (pEntry === 0) return pCurrent > 0 ? rMax : rMin;
+  if (pEntry === 1) return pCurrent < 1 ? rMin : rMax;
+
+  if (pCurrent <= pEntry) {
+    return rMin + (stake - rMin) * (pCurrent / pEntry);
+  } else {
+    return stake + (rMax - stake) * ((pCurrent - pEntry) / (1 - pEntry));
+  }
+}
+
+function getResolvedReturn(pred) {
+  const S = pred.stake_amount || 0;
+  const entryProbPct = pred.odds_at_prediction || 50;
+  let returnAmount;
+
+  if (pred.status === 'won') {
+    returnAmount = (pred.actual_return && pred.actual_return > 0) ? pred.actual_return : calcPositionValue(S, entryProbPct, 100);
+  } else if (pred.status === 'lost') {
+    returnAmount = (pred.actual_return && pred.actual_return > 0) ? pred.actual_return : calcPositionValue(S, entryProbPct, 0);
+  } else if (pred.status === 'sold') {
+    const storedReturn = pred.actual_return || 0;
+    const pEntry = entryProbPct / 100;
+    const maxNewReturn = S * (2 - pEntry);
+
+    if (storedReturn > maxNewReturn) {
+      let pCurrent = S > 0 ? (storedReturn * pEntry) / S : 0;
+      pCurrent = Math.min(1.0, Math.max(0, pCurrent));
+      returnAmount = calcPositionValue(S, entryProbPct, pCurrent * 100);
+    } else {
+      returnAmount = storedReturn;
+    }
+  } else {
+    returnAmount = 0;
+  }
+  return returnAmount;
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const { markets } = useMarkets();
+  const { markets, loading: marketsLoading } = useMarkets();
+  const { balance: buyingPower, wallet, loading: walletLoading, refetch: refetchWallet } = useWallet();
   const [selectedRange, setSelectedRange] = useState('1D');
-  const [activeFilter, setActiveFilter] = useState('all');
   const [predictions, setPredictions] = useState([]);
   const [allPredictions, setAllPredictions] = useState([]);
   const [sellingKey, setSellingKey] = useState(null); // 'marketId__outcomeId'
   const [sellAmount, setSellAmount] = useState('');
   const [sellLoading, setSellLoading] = useState(false);
   const [sellMsg, setSellMsg] = useState('');
+  const [showAllActivity, setShowAllActivity] = useState(false);
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
+  const [hasLoadedWallet, setHasLoadedWallet] = useState(false);
+  const [hasLoadedMarkets, setHasLoadedMarkets] = useState(false);
 
-  const fetchPredictions = () => {
+  const fetchPredictions = useCallback(() => {
     api.getPredictions()
       .then(data => {
         const allPreds = Array.isArray(data) ? data : [];
         const userId = session?.user?.id || 'demo_user';
-        const userPredictions = allPreds.filter(p => p.user_id === userId);
+        const userEmail = session?.user?.email;
+        const userPredictions = allPreds.filter(p => p.user_id === userId || (userEmail && p.user_id === userEmail));
         const activePredictions = userPredictions.filter(p => p.status === 'active');
         setAllPredictions(userPredictions);
         setPredictions(activePredictions);
+        setInitialDataLoaded(true);
       })
       .catch(() => {
         setPredictions([]);
         setAllPredictions([]);
+        setInitialDataLoaded(true);
       });
-  };
+    refetchWallet();
+  }, [session, refetchWallet]);
+
+  useEffect(() => {
+    if (!walletLoading) {
+      setHasLoadedWallet(true);
+    }
+  }, [walletLoading]);
+
+  useEffect(() => {
+    if (!marketsLoading) {
+      setHasLoadedMarkets(true);
+    }
+  }, [marketsLoading]);
 
   useEffect(() => {
     fetchPredictions();
     // Auto-refresh every 60 seconds so the chart and portfolio value stay live
     const interval = setInterval(fetchPredictions, 60_000);
     return () => clearInterval(interval);
-  }, [session]);
+  }, [fetchPredictions]);
+
+  // Show a skeleton dashboard exoskeleton during the initial data fetch
+  if (!initialDataLoaded || !hasLoadedWallet || !hasLoadedMarkets) {
+    return (
+      <div className="max-w-7xl mx-auto p-6 lg:p-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Main Content (Left Side) Skeleton */}
+          <div className="flex-1">
+            <div className="mb-2">
+              <button className="flex items-center gap-2 text-white hover:bg-slate-800/50 px-3 py-2 rounded-lg transition-colors -ml-3">
+                <span className="text-2xl font-semibold">Portfolio</span>
+                <span className="text-slate-400">▾</span>
+              </button>
+            </div>
+
+            {/* Blank Portfolio Value */}
+            <div className="mb-1 flex items-center h-12">
+              <div className="h-12 w-64 bg-slate-800/80 rounded-lg animate-pulse"></div>
+            </div>
+            <div className="flex items-center gap-2 mb-8 h-6">
+              <div className="h-5 w-32 bg-slate-800/80 rounded animate-pulse"></div>
+              <span className="text-slate-400">All Time</span>
+            </div>
+
+            {/* Chart Skeleton */}
+            <div className="mb-6">
+              <div className="h-64 relative bg-slate-800/20 rounded-xl border border-slate-800/50 animate-pulse flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-slate-600 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            </div>
+
+            {/* Time Range Selector */}
+            <div className="flex items-center justify-between mb-8 border-b border-slate-800 pb-4 opacity-50">
+              <div className="flex gap-1">
+                {['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'].map(range => (
+                  <button key={range} className="px-4 py-2 text-sm font-medium text-slate-500">
+                    {range}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Paper Trading Balance Skeleton */}
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-8">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span style={{ color: 'rgb(212, 175, 55)' }}><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" /></svg></span>
+                  <span className="text-white font-medium">Paper Trading Balance</span>
+                </div>
+                <div className="h-8 w-32 bg-slate-800/80 rounded animate-pulse"></div>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">This buying power is virtual money for practice. No real funds are involved.</p>
+            </div>
+
+            {/* Forecasting Stats Skeleton */}
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 mb-8">
+              <div className="flex items-center gap-2 mb-4 opacity-50">
+                <span style={{ color: 'rgb(212, 175, 55)' }}><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg></span>
+                <span className="text-white font-serif font-bold">Your Forecasting Stats</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="bg-slate-800/30 rounded-lg p-3 text-center flex flex-col items-center justify-center">
+                    <div className="h-8 w-16 bg-slate-800 rounded animate-pulse mb-1"></div>
+                    <div className="h-4 w-16 bg-slate-800/50 rounded animate-pulse mt-1"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Sidebar Skeleton */}
+          <div className="w-full lg:w-80 space-y-4">
+            <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden">
+              <div className="p-5">
+                <div className="flex items-center gap-3 mb-4 opacity-50">
+                  <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
+                  <h3 className="text-white font-semibold">Positions</h3>
+                </div>
+                <div className="space-y-3">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="bg-slate-800/30 rounded-lg p-3 animate-pulse">
+                      <div className="h-4 w-3/4 bg-slate-800 rounded mb-3"></div>
+                      <div className="flex justify-between items-end">
+                        <div className="h-3 w-1/3 bg-slate-800 rounded"></div>
+                        <div className="h-6 w-1/4 bg-slate-800 rounded"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Calculate portfolio metrics
-  const startingBalance = 100000;
+  const startingBalance = wallet.paperStartingBalance || 10000;
   const totalStaked = predictions.reduce((sum, p) => sum + (p.stake_amount || 0), 0);
   const settledPredictions = allPredictions.filter(p => p.status === 'won' || p.status === 'lost');
-  const totalReturned = settledPredictions.reduce((sum, p) => sum + (p.actual_return || 0), 0);
-  const settledStake = settledPredictions.reduce((sum, p) => sum + (p.stake_amount || 0), 0);
-  const netProfitLoss = totalReturned - settledStake;
-  const availableBalance = startingBalance + netProfitLoss - totalStaked;
+  const availableBalance = buyingPower;
 
-  // Mark-to-market: expected value using FIXED entry payouts weighted by current probability
-  // win_payout  = S + S(1−p_entry)  = S(2−p_entry)   [fixed at trade time]
-  // loss_refund = S − S(1−p_entry)  = S × p_entry     [fixed at trade time]
-  // current_value = p_current × win_payout + (1−p_current) × loss_refund
-  // → value always stays between loss_refund and win_payout floors/ceilings
+  // Mark-to-market (MTM) valuation for all active positions:
+  //   R_max     = S + S×(1−p_entry)   = S×(2−p_entry)  ← win upper bound
+  //   R_min     = S×p_entry                             ← loss lower bound
+  //   R_current = R_min + (R_max − R_min)×p_current     ← midpoint valuation
+  //             = S×(p_entry + 2×p_current×(1−p_entry)) ← simplified
   const activeMtmValue = predictions.reduce((sum, p) => {
     const market = markets.find(m => m.id === p.market_id);
     const outcome = market?.outcomes?.find(o => o.id === p.outcome_id);
-    const pCurrent = (outcome?.probability ?? p.odds_at_prediction ?? 50) / 100;
-    const pEntry   = (p.odds_at_prediction || 50) / 100;
-    const S = p.stake_amount || 0;
-    const winPayout   = S * (2 - pEntry);   // S + S(1−p_entry)
-    const lossRefund  = S * pEntry;          // S − S(1−p_entry)
-    return sum + pCurrent * winPayout + (1 - pCurrent) * lossRefund;
+    const pCurrent = outcome?.probability ?? p.odds_at_prediction ?? 50;
+    return sum + calcPositionValue(p.stake_amount || 0, p.odds_at_prediction || 50, pCurrent);
   }, 0);
 
   const portfolioValue = availableBalance + activeMtmValue;
   const unrealizedPnl = activeMtmValue - totalStaked;
-  const todayChange = netProfitLoss + unrealizedPnl;
+  const todayChange = portfolioValue - startingBalance;
   const todayChangePercent = startingBalance > 0 ? (todayChange / startingBalance) * 100 : 0;
 
   // Forecasting stats
@@ -199,38 +472,95 @@ export default function DashboardPage() {
   const settledCount = settledPredictions.length;
   const accuracyPercent = settledCount > 0 ? Math.round((wonCount / settledCount) * 100) : 0;
 
-  // Build equity curve:
-  //  - Only resolved trades (won/lost) create real equity steps, plotted at
-  //    their creation timestamp.
-  //  - Active positions do NOT add intermediate points. Their live value is
-  //    captured by the final pin to portfolioValue (same EV formula as header).
-  //    The old per-position MTM loop used a different formula, creating false spikes.
-  //  - Final point pinned to portfolioValue at now → chart always matches header.
+  // Build equity curve — one data point per trade placed throughout the day.
+  // For each trade (sorted by time), we compute the full portfolio value AT
+  // that moment: settled P&L + MTM of all active positions up to that point.
+  // MTM uses current market probabilities (best available — no historical prices stored).
+  // This gives a proper N-point line graph instead of a flat 2-point line.
   const buildEquityPoints = (preds) => {
     if (!preds.length) return [];
 
-    const sorted = preds
-      .filter(p => p.created_at)
-      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const now = Date.now();
 
-    const firstDate = sorted[0].created_at;
-    let runningValue = startingBalance;
-    const points = [{ date: firstDate, value: runningValue }];
+    const getMtm = (p) => {
+      const market = markets.find(m => m.id === p.market_id);
+      const outcome = market?.outcomes?.find(o => o.id === p.outcome_id);
+      const pCurrent = outcome?.probability ?? p.odds_at_prediction ?? 50;
+      return calcPositionValue(p.stake_amount || 0, p.odds_at_prediction || 50, pCurrent);
+    };
 
-    // Only resolved trades change real equity
-    sorted.forEach(p => {
-      if (p.status === 'won') {
-        runningValue += (p.actual_return || 0) - (p.stake_amount || 0);
-        points.push({ date: p.created_at, value: runningValue });
-      } else if (p.status === 'lost') {
-        runningValue -= (p.stake_amount || 0) - (p.actual_return || 0);
-        points.push({ date: p.created_at, value: runningValue });
+    const startOfDay = new Date(Math.min(...preds.map(p => new Date(p.created_at || p.createdAt).getTime())));
+    startOfDay.setHours(0, 0, 0, 0);
+
+    // Generate chronological events for both opening and resolving trades
+    const historyEvents = [];
+
+    preds.forEach(p => {
+      historyEvents.push({
+        date: new Date(p.created_at || p.createdAt).getTime(),
+        type: 'open',
+        pred: p
+      });
+
+      if (['won', 'lost', 'sold', 'refunded'].includes(p.status)) {
+        historyEvents.push({
+          date: new Date(p.resolved_at || p.sold_at || p.updated_at || p.created_at || p.createdAt).getTime(),
+          type: 'resolve',
+          pred: p
+        });
       }
-      // active: no equity change until resolved
     });
 
-    // Pin to portfolioValue at now — single source of truth for live valuation
-    points.push({ date: new Date().toISOString(), value: portfolioValue });
+    historyEvents.sort((a, b) => a.date - b.date);
+
+    const rawPoints = [{ date: startOfDay.getTime(), value: startingBalance }];
+    let realizedPnl = 0;
+    const activeSet = new Set();
+
+    historyEvents.forEach(ev => {
+      if (ev.type === 'open') {
+        activeSet.add(ev.pred.id);
+      } else if (ev.type === 'resolve') {
+        activeSet.delete(ev.pred.id);
+        const actualReturn = getResolvedReturn(ev.pred);
+        realizedPnl += actualReturn - (ev.pred.stake_amount || 0);
+      }
+
+      let activeMtmPnL = 0;
+      activeSet.forEach(id => {
+        const p = preds.find(x => x.id === id);
+        if (p.status === 'active') {
+          // Smoothly scale active MTM from the date opened to now, so the chart doesn't retroactively spike
+          const openTime = new Date(p.created_at || p.createdAt).getTime();
+          const totalDuration = now - openTime;
+          const elapsed = ev.date - openTime;
+          const progress = totalDuration > 0 ? Math.max(0, Math.min(1, elapsed / totalDuration)) : 1;
+
+          const currentMtm = getMtm(p);
+          const finalPnl = currentMtm - (p.stake_amount || 0);
+          activeMtmPnL += finalPnl * progress;
+        }
+      });
+
+      rawPoints.push({
+        date: ev.date,
+        value: startingBalance + realizedPnl + activeMtmPnL
+      });
+    });
+
+    const points = rawPoints.map(pt => ({
+      date: new Date(pt.date).toISOString(),
+      value: pt.value
+    }));
+
+    // The final point maps precisely to the current moment
+    let currentActiveMtmPnL = 0;
+    activeSet.forEach(id => {
+      const p = preds.find(x => x.id === id);
+      if (p.status === 'active') currentActiveMtmPnL += getMtm(p) - (p.stake_amount || 0);
+    });
+    points.push({ date: new Date(now).toISOString(), value: startingBalance + realizedPnl + currentActiveMtmPnL });
+
     return points;
   };
 
@@ -244,6 +574,38 @@ export default function DashboardPage() {
     acc[pred.market_id].push(pred);
     return acc;
   }, {});
+
+  const recentActivities = allPredictions
+    .filter(pred => pred.status !== 'active')
+    .map(pred => {
+      const market = markets.find(m => m.id === pred.market_id);
+      const outcome = market?.outcomes?.find(o => o.id === pred.outcome_id);
+      const isSettled = ['won', 'lost'].includes(pred.status);
+      const isSold = pred.status === 'sold';
+
+      const actualReturn = getResolvedReturn(pred);
+
+      return {
+        id: pred.id,
+        type: isSettled || isSold ? 'resolution' : 'trade',
+        label: isSettled ? (pred.status === 'won' ? 'Resolved Won' : 'Resolved Lost') : isSold ? 'Sold' : 'Bought',
+        marketId: pred.market_id,
+        marketTitle: market?.title || 'Unknown Market',
+        outcomeTitle: outcome?.title || 'Unknown',
+        probability: pred.odds_at_prediction || 50,
+        amount: isSettled || isSold ? actualReturn : (pred.stake_amount || 0),
+        stakeAmount: pred.stake_amount || 0,
+        pnl: isSettled || isSold ? actualReturn - (pred.stake_amount || 0) : null,
+        status: pred.status,
+        date: pred.resolved_at || pred.sold_at || pred.updated_at || pred.created_at || new Date().toISOString()
+      };
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 5);
+
+  if (showAllActivity) {
+    return <ActivityHistory predictions={allPredictions} markets={markets} onBack={() => setShowAllActivity(false)} />;
+  }
 
   return (
     <div className="max-w-7xl mx-auto p-6 lg:p-8">
@@ -260,11 +622,11 @@ export default function DashboardPage() {
 
           {/* Portfolio Value */}
           <div className="mb-1">
-            <h1 className="text-5xl font-bold text-white">${portfolioValue.toFixed(2)}</h1>
+            <h1 className="text-5xl font-serif font-bold text-white">${portfolioValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h1>
           </div>
           <div className="flex items-center gap-2 mb-8">
             <span className={`font-medium ${todayChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {todayChange >= 0 ? '+' : ''}${todayChange.toFixed(2)} ({todayChange >= 0 ? '+' : ''}{todayChangePercent.toFixed(2)}%)
+              {todayChange >= 0 ? '+$' : '-$'}{Math.abs(todayChange).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({todayChange >= 0 ? '+' : ''}{todayChangePercent.toFixed(2)}%)
             </span>
             <span className="text-slate-400">All Time</span>
           </div>
@@ -318,9 +680,11 @@ export default function DashboardPage() {
                 <span className="text-white font-medium">Paper Trading Balance</span>
                 <span className="text-slate-500 cursor-help text-sm" title="Virtual money for practice trading">ⓘ</span>
               </div>
-              <span className="text-2xl font-bold text-yellow-400">${availableBalance.toFixed(2)}</span>
+              <span className="text-2xl font-bold text-yellow-400">
+                {walletLoading ? '...' : `$${availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </span>
             </div>
-            <p className="text-xs text-slate-500 mt-2">This is virtual money for practice. No real funds are involved.</p>
+            <p className="text-xs text-slate-500 mt-2">This buying power is virtual money for practice. No real funds are involved.</p>
           </div>
 
           {/* Forecasting Statistics */}
@@ -332,19 +696,19 @@ export default function DashboardPage() {
                     d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
                 </svg>
               </span>
-              <span className="text-white font-medium">Your Forecasting Stats</span>
+              <span className="text-white font-serif font-bold text-lg">Your Forecasting Stats</span>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-yellow-400">{totalPredictionCount}</p>
+                <p className="text-2xl font-sans font-medium text-yellow-400">{totalPredictionCount}</p>
                 <p className="text-slate-500 text-xs">Predictions</p>
               </div>
               <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-green-400">{accuracyPercent}%</p>
+                <p className="text-2xl font-sans font-medium text-green-400">{accuracyPercent}%</p>
                 <p className="text-slate-500 text-xs">Accuracy</p>
               </div>
               <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-blue-400">0%</p>
+                <p className="text-2xl font-sans font-medium text-blue-400">0%</p>
                 <p className="text-slate-500 text-xs">Calibration</p>
               </div>
             </div>
@@ -353,60 +717,51 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Get More Section */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-4">Get more out of Samsa</h2>
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex items-start gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg className="w-8 h-8 text-slate-900" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                    d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-slate-400 text-sm mb-1">Did you know?</p>
-                    <p className="text-white">You can explore trending markets and make predictions on events you care about.</p>
-                  </div>
-                  <button className="text-slate-500 hover:text-white p-1">✕</button>
-                </div>
-                <button
-                  onClick={() => navigate('/explore')}
-                  className="text-yellow-400 hover:text-yellow-300 text-sm font-medium mt-3 transition-colors"
-                >
-                  Explore markets
-                </button>
-              </div>
-            </div>
-          </div>
-
           {/* Recent Activity with Filters */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-white">Recent Activity</h2>
-              <div className="flex gap-1">
-                {['all', 'trade', 'resolution'].map(filter => (
-                  <button
-                    key={filter}
-                    onClick={() => setActiveFilter(filter)}
-                    className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${activeFilter === filter
-                      ? 'bg-slate-800 text-white'
-                      : 'text-slate-400 hover:bg-slate-800/50'
-                      }`}
-                  >
-                    {filter === 'all' ? 'All' : filter === 'trade' ? 'Trades' : 'Resolutions'}
-                  </button>
-                ))}
-              </div>
             </div>
             <div className="space-y-3">
-              <div className="text-slate-500 text-sm text-center py-8">
-                <p>No activity yet</p>
-                <p className="text-xs mt-1">Your trades and resolutions will appear here</p>
-              </div>
+              {recentActivities.length === 0 ? (
+                <div className="text-slate-500 text-sm text-center py-8">
+                  <p>No activity yet</p>
+                  <p className="text-xs mt-1">Your trades and resolutions will appear here</p>
+                </div>
+              ) : recentActivities.map(activity => (
+                <button
+                  key={activity.id}
+                  onClick={() => navigate(`/markets/${activity.marketId}`)}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900/40 p-3 text-left transition-colors hover:border-slate-700"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-white">{activity.marketTitle}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-slate-500">{activity.outcomeTitle}</p>
+                        <span className="text-xs text-slate-600 bg-slate-800/50 px-2 py-0.5 rounded">Entry: {activity.probability.toFixed(0)}%</span>
+                        {activity.status === 'won' && activity.probability < 35 && (
+                          <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 rounded text-[9px] font-bold uppercase tracking-wider">Called It 🔥</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      {activity.type === 'resolution' ? (
+                        <>
+                          <p className="text-xs text-slate-400 mb-1">Invested: {formatCurrency(activity.stakeAmount)}</p>
+                          <p className={`text-sm font-semibold ${activity.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {activity.pnl >= 0 ? '+' : ''}{formatCurrency(activity.pnl)}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm font-semibold text-white">{formatCurrency(activity.amount)}</p>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
             </div>
-            <button className="w-full mt-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">
+            <button onClick={() => setShowAllActivity(true)} className="w-full mt-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">
               View all activity →
             </button>
           </div>
@@ -457,19 +812,13 @@ export default function DashboardPage() {
                             const outcome = market?.outcomes?.find(o => o.id === outcomeId);
                             const currentProb = outcome?.probability ?? 50;
                             const avgEntry = data.totalStake > 0 ? data.weightedOdds / data.totalStake : 50;
-                            // Expected value using FIXED entry payouts, weighted by current probability
-                            const pCurrent = currentProb / 100;
-                            const pEntry   = avgEntry / 100;
-                            const S = data.totalStake;
-                            const winPayout  = S * (2 - pEntry);   // S + S(1−p_entry)
-                            const lossRefund = S * pEntry;          // S × p_entry
-                            const mtmValue = pCurrent * winPayout + (1 - pCurrent) * lossRefund;
-                            const unrealizedPnl = mtmValue - S;
+                            const mtmValue = calcPositionValue(data.totalStake, avgEntry, currentProb);
+                            const unrealizedPnl = mtmValue - data.totalStake;
                             const sellKey = `${marketId}__${outcomeId}`;
                             const isSelling = sellingKey === sellKey;
                             const sellAmt = parseFloat(sellAmount) || 0;
                             const previewReturn = isSelling && sellAmt > 0
-                              ? Math.min(sellAmt * (currentProb / avgEntry), sellAmt * 2).toFixed(2)
+                              ? calcPositionValue(sellAmt, avgEntry, currentProb).toFixed(2)
                               : null;
                             const previewPnl = previewReturn !== null
                               ? (parseFloat(previewReturn) - sellAmt).toFixed(2)
@@ -488,7 +837,7 @@ export default function DashboardPage() {
                                   user_id: userId,
                                   sell_amount: sellAmt,
                                 });
-                                setSellMsg(`✅ Sold $${sellAmt.toFixed(2)}`);
+                                setSellMsg(`✅ Sold $${sellAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
                                 setTimeout(() => window.location.reload(), 1000);
                               } catch (err) {
                                 setSellMsg(`❌ ${err.message}`);
@@ -504,18 +853,16 @@ export default function DashboardPage() {
                                   <div className="flex items-center gap-2">
                                     <div className="text-right">
                                       {/* Live MTM value — red if below cost, green if above */}
-                                      <span className={`font-semibold ${
-                                        mtmValue < data.totalStake ? 'text-red-400' :
+                                      <span className={`font-semibold ${mtmValue < data.totalStake ? 'text-red-400' :
                                         mtmValue > data.totalStake ? 'text-green-400' : 'text-slate-300'
-                                      }`}>
-                                        ${mtmValue.toFixed(2)}
+                                        }`}>
+                                        ${mtmValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                       </span>
                                       {/* Unrealized P&L delta */}
-                                      <span className={`block text-[10px] leading-tight ${
-                                        unrealizedPnl < 0 ? 'text-red-500' :
+                                      <span className={`block text-[10px] leading-tight ${unrealizedPnl < 0 ? 'text-red-500' :
                                         unrealizedPnl > 0 ? 'text-green-500' : 'text-slate-500'
-                                      }`}>
-                                        {unrealizedPnl >= 0 ? '+' : ''}${unrealizedPnl.toFixed(2)}
+                                        }`}>
+                                        {unrealizedPnl >= 0 ? '+$' : '-$'}{Math.abs(unrealizedPnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                       </span>
                                     </div>
                                     <button
@@ -527,11 +874,10 @@ export default function DashboardPage() {
                                           setSellingKey(sellKey); setSellAmount(''); setSellMsg('');
                                         }
                                       }}
-                                      className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
-                                        isSelling
-                                          ? 'bg-slate-700 text-slate-300'
-                                          : 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30'
-                                      }`}
+                                      className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${isSelling
+                                        ? 'bg-slate-700 text-slate-300'
+                                        : 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30'
+                                        }`}
                                     >
                                       {isSelling ? 'Cancel' : 'Sell'}
                                     </button>
@@ -556,7 +902,7 @@ export default function DashboardPage() {
                                           step="0.01"
                                           value={sellAmount}
                                           onChange={e => setSellAmount(e.target.value)}
-                                          placeholder={`Max $${data.totalStake.toFixed(2)}`}
+                                          placeholder={`Max $${data.totalStake.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                           className="w-full bg-slate-800 border border-slate-600 rounded pl-5 pr-2 py-1.5 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-red-500"
                                         />
                                       </div>
@@ -573,14 +919,13 @@ export default function DashboardPage() {
                                       <div className="bg-slate-800 rounded p-2 space-y-1 text-xs">
                                         <div className="flex justify-between">
                                           <span className="text-slate-500">Receive:</span>
-                                          <span className="text-white font-medium">${previewReturn}</span>
+                                          <span className="text-white font-medium">${parseFloat(previewReturn).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                         </div>
                                         <div className="flex justify-between">
                                           <span className="text-slate-500">P&L:</span>
-                                          <span className={`font-medium ${
-                                            parseFloat(previewPnl) >= 0 ? 'text-green-400' : 'text-red-400'
-                                          }`}>
-                                            {parseFloat(previewPnl) >= 0 ? '+' : ''}${previewPnl}
+                                          <span className={`font-medium ${parseFloat(previewPnl) >= 0 ? 'text-green-400' : 'text-red-400'
+                                            }`}>
+                                            {parseFloat(previewPnl) >= 0 ? '+$' : '-$'}{Math.abs(parseFloat(previewPnl)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                           </span>
                                         </div>
                                       </div>
@@ -610,34 +955,6 @@ export default function DashboardPage() {
                   })}
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Following Section */}
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl overflow-hidden hover:border-slate-700 transition-colors">
-            <div className="p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                </svg>
-                <h3 className="text-white font-semibold">Following</h3>
-                <span className="text-slate-500 text-xs">0 markets</span>
-              </div>
-              <p className="text-slate-500 text-sm">No markets followed</p>
-            </div>
-          </div>
-
-          {/* Watchlist Section */}
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl overflow-hidden hover:border-slate-700 transition-colors">
-            <div className="p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-                </svg>
-                <h3 className="text-white font-semibold">Watchlist</h3>
-                <span className="text-slate-500 text-xs">0 items</span>
-              </div>
-              <p className="text-slate-500 text-sm">No watchlist items</p>
             </div>
           </div>
         </div>

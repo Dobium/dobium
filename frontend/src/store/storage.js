@@ -41,16 +41,7 @@ export const truncateText = (text, max = 100) =>
   text && text.length > max ? text.substring(0, max - 3) + '...' : text;
 
 export const CATEGORY_COLORS = {
-  politics: '#6366f1',
-  international: '#06b6d4',
-  finance: '#f59e0b',
-  environment: '#10b981',
-  climate: '#38bdf8',
-  science: '#8b5cf6',
-  health: '#ef4444',
   technology: '#a855f7',
-  economics: '#eab308',
   sports: '#22c55e',
   entertainment: '#ec4899',
-  crypto: '#f97316',
 };

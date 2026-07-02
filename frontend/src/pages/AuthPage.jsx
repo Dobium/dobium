@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 export default function AuthPage() {
-  const { login, loginWithGoogle, signup, resetPassword } = useAuth();
+  const { login, loginWithGoogle, signup, resetPassword, isNewSignup, clearNewSignup } = useAuth();
   const navigate = useNavigate();
-  const [view, setView] = useState('login'); // login | signup | reset
+  const [view, setView] = useState('login'); // login | signup | confirm | reset
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,18 +23,23 @@ export default function AuthPage() {
     finally { setLoading(false); }
   };
 
-  const handleSignup = async (e) => {
-    e.preventDefault(); clear();
-    if (password !== confirm) { setError('Passwords do not match'); return; }
-    setLoading(true);
-    try { await signup(email, password); setInfo('Check your email to verify your account.'); }
+  const handleReset = async (e) => {
+    e.preventDefault(); clear(); setLoading(true);
+    try { await resetPassword(email); setInfo('Password reset link sent to your email.'); }
     catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
 
-  const handleReset = async (e) => {
-    e.preventDefault(); clear(); setLoading(true);
-    try { await resetPassword(email); setInfo('Password reset link sent to your email.'); }
+  const handleSignup = async (e) => {
+    e.preventDefault(); clear();
+    if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
+    if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    setLoading(true);
+    try {
+      await signup(email, password, fullName);
+      // Switch to confirm view — user must verify their email before signing in
+      setView('confirm');
+    }
     catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -48,16 +54,16 @@ export default function AuthPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <img src="/Logo-Title.png" alt="Samsa Prediction Markets" style={{ height: 64 }} />
+          <img src="/Logo-Title.png" alt="Samsa Prediction Markets" style={{ height: 50 }} />
         </div>
 
         {view === 'login' && (
           <>
-            <h1 className="auth-title">Welcome back</h1>
+            <h1 className="auth-title font-serif font-extrabold text-white text-2xl md:text-3xl text-center mb-1">Welcome back</h1>
             <p className="auth-subtitle">Sign in to your account</p>
 
             {/* Google — primary CTA */}
-            <button className="btn-google" onClick={handleGoogle} disabled={loading}>
+            <button className="btn-google font-sans font-medium" onClick={handleGoogle} disabled={loading}>
               <GoogleIcon />
               <span>Continue with Google</span>
             </button>
@@ -73,15 +79,35 @@ export default function AuthPage() {
                 <label className="form-label">Password</label>
                 <input id="loginPassword" className="form-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
               </div>
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => { clear(); setView('reset'); }}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'right',
+                  padding: '2px 0',
+                  marginTop: '-4px',
+                  marginBottom: '6px',
+                  color: '#d4af37',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                Forgot password?
+              </button>
               {error && <p className="form-error">{error}</p>}
               {info && <p style={{ fontSize: 12, color: 'var(--green)' }}>{info}</p>}
-              <button id="loginSubmit" className="btn btn-primary btn-full" type="submit" disabled={loading}>
+              <button id="loginSubmit" className="btn btn-primary btn-full font-sans font-medium" type="submit" disabled={loading}>
                 {loading ? 'Signing in…' : 'Sign in'}
               </button>
             </form>
-            <div style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)' }}>
-              <button className="link-btn" onClick={() => { clear(); setView('reset'); }}>Forgot password?</button>
-              {'  ·  '}
+            <div style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: '#cbd5e1' }}>
+              Don't have an account?{' '}
               <button className="link-btn" onClick={() => { clear(); setView('signup'); }}>Create account</button>
             </div>
           </>
@@ -89,8 +115,8 @@ export default function AuthPage() {
 
         {view === 'signup' && (
           <>
-            <h1 className="auth-title">Create account</h1>
-            <p className="auth-subtitle">Join Samsa prediction markets</p>
+            <h1 className="auth-title font-serif font-extrabold text-white text-2xl md:text-3xl text-center mb-1">Create account</h1>
+            <p className="auth-subtitle">Join Samsa Prediction Markets</p>
 
             {/* Google — primary CTA */}
             <button className="btn-google" onClick={handleGoogle} disabled={loading}>
@@ -102,26 +128,61 @@ export default function AuthPage() {
 
             <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div className="form-group">
+                <label className="form-label">Full Name</label>
+                <input id="signupName" className="form-input" type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Jane Doe" required autoFocus />
+              </div>
+              <div className="form-group">
                 <label className="form-label">Email</label>
-                <input id="signupEmail" className="form-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required autoFocus />
+                <input id="signupEmail" className="form-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
               </div>
               <div className="form-group">
                 <label className="form-label">Password</label>
-                <input id="signupPassword" className="form-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 8 characters" required />
+                <input id="signupPassword" className="form-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 characters" required />
               </div>
               <div className="form-group">
-                <label className="form-label">Confirm password</label>
-                <input id="signupConfirm" className="form-input" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="••••••••" required />
+                <label className="form-label">Confirm Password</label>
+                <input id="signupConfirmPassword" className="form-input" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" required />
               </div>
               {error && <p className="form-error">{error}</p>}
               {info && <p style={{ fontSize: 12, color: 'var(--green)' }}>{info}</p>}
-              <button id="signupSubmit" className="btn btn-primary btn-full" type="submit" disabled={loading}>
-                {loading ? 'Creating…' : 'Create account'}
+              <button id="signupSubmit" className="btn btn-primary btn-full font-sans font-medium" type="submit" disabled={loading}>
+                {loading ? 'Creating account…' : 'Create account'}
               </button>
             </form>
-            <div style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)' }}>
+            <div style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: '#cbd5e1' }}>
               Already have an account?{' '}
               <button className="link-btn" onClick={() => { clear(); setView('login'); }}>Sign in</button>
+            </div>
+          </>
+        )}
+
+        {view === 'confirm' && (
+          <>
+            <div className="confirm-icon">✉️</div>
+            <h1 className="auth-title">Check your email</h1>
+            <p className="auth-subtitle">We sent a confirmation link to</p>
+            <p className="confirm-email">{email}</p>
+            <p className="confirm-body">
+              Click the link in that email to confirm your account. Once confirmed,
+              you'll receive a welcome email and can sign in.
+            </p>
+            <div className="confirm-steps">
+              <div className="confirm-step"><span className="confirm-step-num">1</span>Check your inbox (and spam folder)</div>
+              <div className="confirm-step"><span className="confirm-step-num">2</span>Click the confirmation link</div>
+              <div className="confirm-step"><span className="confirm-step-num">3</span>Return here and sign in</div>
+            </div>
+            <button
+              className="btn btn-primary btn-full"
+              style={{ marginTop: 24 }}
+              onClick={() => { clearNewSignup(); setView('login'); }}
+            >
+              Back to sign in
+            </button>
+            <div style={{ marginTop: 14, textAlign: 'center', fontSize: 12, color: '#475569' }}>
+              Didn't receive it?{' '}
+              <button className="link-btn" style={{ fontSize: 12 }} onClick={() => { clearNewSignup(); setView('signup'); }}>
+                Try again
+              </button>
             </div>
           </>
         )}
@@ -141,7 +202,7 @@ export default function AuthPage() {
                 {loading ? 'Sending…' : 'Send reset link'}
               </button>
             </form>
-            <div style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)' }}>
+            <div style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: '#cbd5e1' }}>
               <button className="link-btn" onClick={() => { clear(); setView('login'); }}>Back to sign in</button>
             </div>
           </>
@@ -161,6 +222,28 @@ export default function AuthPage() {
         }
         .btn-google:hover:not(:disabled) { background: #f8fafc; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
         .btn-google:disabled { opacity: 0.6; cursor: not-allowed; }
+        .confirm-icon { font-size: 44px; text-align: center; margin-bottom: 12px; animation: bounce 0.6s ease; }
+        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        .confirm-email {
+          text-align: center; font-size: 14px; font-weight: 700;
+          color: #d4af37; background: rgba(212,175,55,0.08);
+          border: 1px solid rgba(212,175,55,0.2); border-radius: 8px;
+          padding: 8px 14px; margin: 4px 0 16px; word-break: break-all;
+        }
+        .confirm-body { font-size: 13px; color: #94a3b8; line-height: 1.7; text-align: center; margin-bottom: 20px; }
+        .confirm-steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
+        .confirm-step {
+          display: flex; align-items: center; gap: 12px;
+          font-size: 13px; color: #cbd5e1;
+          background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 8px; padding: 10px 14px;
+        }
+        .confirm-step-num {
+          width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+          background: rgba(212,175,55,0.15); border: 1.5px solid rgba(212,175,55,0.4);
+          color: #d4af37; font-size: 11px; font-weight: 700;
+          display: flex; align-items: center; justify-content: center;
+        }
       `}</style>
     </div>
   );

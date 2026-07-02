@@ -1,0 +1,8 @@
+pyproject.toml
+requirements.txt
+Pipfile
+**/*.py
+**/*.toml
+**/requirements.txt
+archive/
+backend/engine/

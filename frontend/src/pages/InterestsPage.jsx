@@ -5,12 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 
 const TOPICS = {
   Technology: ['Artificial Intelligence', 'Cybersecurity', 'Big Tech', 'Social Media', 'Electric Vehicles'],
-  Politics: ['Government', 'US Elections', 'Congress', 'White House', 'Immigration'],
-  Finance: ['Stock Markets', 'Real Estate', 'Commodities', 'Banking', 'Taxation'],
-  Science: ['Space Exploration', 'Medicine', 'Biology', 'Genetics', 'AI Research'],
-  Health: ['Vaccine', 'Disease', 'Public Health', 'Mental Health', 'Pharmaceuticals'],
-  Environment: ['Conservation', 'Renewable Energy', 'Biodiversity', 'Climate Policy'],
-  International: ['United Nations', 'NATO', 'European Union', 'Global Trade'],
+  Sports: ['NBA / Basketball', 'Champions League / Soccer', 'NFL / Football', 'World Cup', 'Tennis'],
   Entertainment: ['Music', 'Film', 'Award Shows', 'Celebrity News'],
 };
 

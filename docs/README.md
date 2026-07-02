@@ -1,6 +1,6 @@
 # 🦋 Samsa Prediction Markets: Trade on the World
 
-A modern prediction markets platform where users can trade on the outcomes of real-world events across sports, technology, finance, and more.
+A modern prediction markets platform where users can trade on the outcomes of real-world events across sports, technology, finance, and more using virtual currency.
 
 ![Samsa Logo](Logo-Title.png)
 
@@ -14,9 +14,9 @@ A modern prediction markets platform where users can trade on the outcomes of re
 
 ### 💹 Trading
 - **LMSR Pricing** - Logarithmic Market Scoring Rule for fair, automated market making
-- **Binary & Multi-Outcome** - Support for Yes/No markets and multiple choice markets
+- **Binary & Multi-Outcome** - Support for binary and multiple choice markets
 - **Real-time Odds** - Prices update based on trading activity
-- **Rebated Risk Model** - Partial refunds on losing trades based on odds at time of trade
+- **Linear-Probability Valuation** - Dynamic position values based on linear interpolation of real-time probabilities
 
 ### 👤 Dashboard
 - **Portfolio Overview** - Track your positions and performance
@@ -166,6 +166,8 @@ samsa/
 - Server creates PaymentIntents with user metadata.
 - Webhook confirms `payment_intent.succeeded` and credits balance via transactions.
 
+*Note: Currently all transactions operate in Stripe Test Mode. This is a paper trading platform, and no real money is charged.*
+
 ### Recurring Subscriptions
 - Client starts a subscription from the deposit modal using Stripe Checkout.
 - Server creates a Session with `mode=subscription` and user metadata.
@@ -217,10 +219,9 @@ Samsa uses the **Logarithmic Market Scoring Rule (LMSR)** for automated market m
 
 - Prices between 0¢ and 100¢ represent probability estimates
 - Buying shares increases the price; selling decreases it
-- **If you win**: Profit = Stake × (1 - probability) - 1% fee
-- **If you lose**: Refund = Stake × probability (rebated risk)
+- **Linear-Probability Valuation**: The value of any active position dynamically interpolates based on the current market probability relative to your entry price.
 
-This ensures you never lose your entire stake—you always get back a portion based on the odds.
+This linear interpolation system allows users to actively trade in and out of positions, capturing profits or cutting losses as market consensus shifts.
 
 ## 📄 License
 

@@ -1,12 +1,17 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import Layout from './components/Layout';
-import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
 import ExplorePage from './pages/ExplorePage';
 import MarketDetailPage from './pages/MarketDetailPage';
 import NewsPage from './pages/NewsPage';
 import SettingsPage from './pages/SettingsPage';
+import AdminDashboard from './pages/AdminDashboard';
+import LeaguesPage from './pages/LeaguesPage';
+import LeagueDetailPage from './pages/LeagueDetailPage';
+import UserProfilePage from './pages/UserProfilePage';
+import GlobalLeaderboardPage from './pages/GlobalLeaderboardPage';
+
 
 function AppRoutes() {
   const { session, loading } = useAuth();
@@ -19,30 +24,23 @@ function AppRoutes() {
     );
   }
 
-  // If not signed in, redirect to auth (but allow auth page)
-  if (!session) {
-    return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="*" element={<Navigate to="/auth" replace />} />
-        </Routes>
-      </BrowserRouter>
-    );
-  }
-
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
-        <Route path="/auth" element={<Navigate to="/" replace />} />
+        <Route path="/auth" element={<Navigate to="/explore" replace />} />
         <Route element={<Layout />}>
-          <Route path="/"           element={<DashboardPage />} />
-          <Route path="/explore"    element={<ExplorePage />} />
-          <Route path="/portfolio"  element={<Navigate to="/" replace />} />
+          <Route path="/" element={session ? <DashboardPage /> : <Navigate to="/explore" replace />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/explore" element={<ExplorePage />} />
+          <Route path="/portfolio" element={<Navigate to="/" replace />} />
           <Route path="/markets/:id" element={<MarketDetailPage />} />
-          <Route path="/news"       element={<NewsPage />} />
-          <Route path="/settings"   element={<SettingsPage />} />
-          <Route path="*"           element={<Navigate to="/" replace />} />
+          <Route path="/leagues" element={<LeaguesPage />} />
+          <Route path="/leagues/leaderboard" element={<GlobalLeaderboardPage />} />
+          <Route path="/leagues/:id" element={<LeagueDetailPage />} />
+          <Route path="/profile/:id" element={<UserProfilePage />} />
+          <Route path="/news" element={<NewsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>
