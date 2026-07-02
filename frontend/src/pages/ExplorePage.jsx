@@ -186,112 +186,7 @@ export default function ExplorePage() {
           </div>
         </div>
       </div>
-
-      {/* Trending Markets Slideshow */}
-      <div className="mb-10">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <span style={{ color: 'var(--gold)' }}>
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-              </svg>
-            </span>
-            Trending
-          </h2>
-          <div className="flex items-center gap-3">
-            <div className="flex gap-2">
-              {trending.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setTrendingIndex(idx)}
-                  className={`w-2 h-2 rounded-full transition-all ${idx === trendingIndex ? 'bg-yellow-400 w-6' : 'bg-slate-600'
-                    }`}
-                />
-              ))}
-            </div>
-            <button
-              onClick={() => setTrendingIndex(prev => (prev - 1 + trending.length) % trending.length)}
-              className="w-10 h-10 bg-slate-800/80 border border-slate-700 rounded-full flex items-center justify-center text-white hover:bg-slate-700 hover:border-yellow-500/50 transition-all"
-            >
-              ←
-            </button>
-            <button
-              onClick={() => setTrendingIndex(prev => (prev + 1) % trending.length)}
-              className="w-10 h-10 bg-slate-800/80 border border-slate-700 rounded-full flex items-center justify-center text-white hover:bg-slate-700 hover:border-yellow-500/50 transition-all"
-            >
-              →
-            </button>
-          </div>
-        </div>
-
-        <div className="relative overflow-hidden rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800">
-          {trending.length > 0 && trending[trendingIndex] && (
-            <div className="p-6 animate-fadeIn">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Left: Info & Chart */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="inline-block text-xs font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
-                      {trending[trendingIndex].category}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--yes)' }}>
-                      <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--yes)' }}></span>
-                      Live
-                    </span>
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-3 cursor-pointer hover:text-yellow-400 transition-colors" onClick={() => navigate(`/markets/${trending[trendingIndex].id}`)}>
-                    {trending[trendingIndex].title}
-                  </h3>
-                  <p className="text-slate-400 text-sm mb-4">{trending[trendingIndex].description}</p>
-
-                  {/* Mini Chart */}
-                  <div className="bg-slate-800/30 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-slate-400">30-Day Trend</span>
-                    </div>
-                    <TrendingMiniChart market={trending[trendingIndex]} />
-                  </div>
-                </div>
-
-                {/* Right: Outcome Buttons */}
-                <div className="flex flex-col justify-center">
-                  <h4 className="text-sm font-semibold text-slate-400 mb-3">Trade Outcomes</h4>
-                  <div className="space-y-2">
-                    {trending[trendingIndex].outcomes?.slice(0, 4).map((outcome, idx) => {
-                      const isYes = outcome.title?.toLowerCase() === 'yes';
-                      const isNo = outcome.title?.toLowerCase() === 'no';
-                      const colorClass = isYes ? '' : isNo ? '' : 'bg-blue-500/10 border-blue-500/50 hover:border-blue-500 text-blue-400';
-                      const colorStyle = isYes
-                        ? { background: 'var(--yes-dim)', borderColor: 'rgba(45,212,167,0.3)', color: 'var(--yes)' }
-                        : isNo
-                        ? { background: 'var(--no-dim)', borderColor: 'rgba(255,92,114,0.3)', color: 'var(--no)' }
-                        : {};
-
-                      return (
-                        <button
-                          key={outcome.id}
-                          onClick={() => navigate(`/markets/${trending[trendingIndex].id}`)}
-                          className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${colorClass}`}
-                          style={colorStyle}
-                        >
-                          <span className="text-white font-medium text-sm">{outcome.title}</span>
-                          <span className="text-lg font-bold" style={{ fontFamily: 'var(--mono)' }}>{Math.round(outcome.probability || 0)}¢</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {trending[trendingIndex].outcomes?.length > 4 && (
-                    <p className="text-xs text-slate-500 text-center mt-2">+{trending[trendingIndex].outcomes.length - 4} more options</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* All Markets Section */}
+{/* All Markets Section */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
           <span style={{ color: 'var(--gold)' }}>
@@ -303,7 +198,6 @@ export default function ExplorePage() {
           All Markets
         </h2>
       </div>
-
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="w-8 h-8 border-3 border-slate-700 border-t-yellow-400 rounded-full animate-spin" />
