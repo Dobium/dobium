@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
 import { useAuth } from './useAuth';
 
-const PAPER_TRADING_STARTING_BALANCE = 100000;
+const PAPER_TRADING_STARTING_BALANCE = 100;
 
 export function useWallet() {
   const { session } = useAuth();

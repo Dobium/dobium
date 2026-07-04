@@ -82,7 +82,7 @@ const PORT = process.env.PORT || 3001;
 const Stripe = require('stripe');
 const stripeSecret = (process.env.STRIPE_SECRET_KEY || '').trim();
 const stripe = stripeSecret ? Stripe(stripeSecret) : null;
-const PAPER_TRADING_STARTING_BALANCE = Number(process.env.PAPER_TRADING_STARTING_BALANCE || 10000);
+const PAPER_TRADING_STARTING_BALANCE = Number(process.env.PAPER_TRADING_STARTING_BALANCE || 100);
 
 // CORS — allow dobium.com (Vercel frontend), Render preview URLs, and local dev
 const ALLOWED_ORIGINS = [
