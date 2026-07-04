@@ -1,300 +1,236 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useMarkets } from '../hooks/useMarkets';
+import MarketCard from '../components/MarketCard';
+import WaitlistCard from '../components/WaitlistCard';
 
-export default function LandingPage() {
-  const { signup, loginWithGoogle } = useAuth();
-  const navigate = useNavigate();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [currentSlide, setCurrentSlide] = useState(0);
+// Shown in the hero stats until the waitlist count is wired to the database.
+const WAITLIST_COUNT = 347;
 
-  const slides = [
-    {
-      title: 'Welcome',
-      description: 'Trade probabilities, not just prices. Take positions on real-world outcomes using dynamically scaled risk and reward.',
-      highlight: 'Probability-based trading',
-      icon: '📈',
-    },
-    {
-      title: 'How It Works',
-      description: 'Every market has a live probability score. Lower probability positions carry higher exposure, while higher probability positions carry lower exposure.',
-      highlight: 'Risk scales with probability',
-      icon: '⚙️',
-    },
-    {
-      title: 'Multi-Outcome Markets',
-      description: 'Go beyond binary events. Trade on multi-option outcomes, independent events, and build positions across multiple outcomes simultaneously.',
-      highlight: 'Flexible market structures',
-      icon: '🎯',
-    },
-    {
-      title: 'Structured Risk',
-      description: 'Exposure scales with probability instead of all-or-nothing payouts. This creates smoother risk management and more flexible trading behavior.',
-      highlight: 'Proportional payouts',
-      icon: '💼',
-    },
-    {
-      title: 'Dynamic Pricing',
-      description: 'Probabilities update as users trade. Market activity continuously shapes pricing and exposure across outcomes in real time.',
-      highlight: 'Live market movements',
-      icon: '📊',
-    },
-    {
-      title: 'Portfolio Management',
-      description: 'Track positions, manage exposure, and diversify across markets. Designed for probability traders who want strategic position management.',
-      highlight: 'Advanced trading tools',
-      icon: '💰',
-    },
-    {
-      title: 'Paper Trading Mode',
-      description: 'Currently in paper trading mode. Test strategies, explore markets, and learn the platform without risking real money.',
-      highlight: 'Risk-free learning',
-      icon: '🎓',
-    },
-    {
-      title: 'Get Started',
-      description: 'Create positions, follow market movements, and start trading probabilities in real time. Join Dobium today.',
-      highlight: 'Begin probability trading',
-      icon: '🚀',
-    },
-  ];
+function leaderOf(market) {
+  const outcomes = market.outcomes || [];
+  return [...outcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
+}
 
-  const handleSignup = async (e) => {
-    e.preventDefault();
-    if (password !== confirm) {
-      setError('Passwords do not match');
-      return;
-    }
-    setLoading(true);
-    try {
-      const fullName = `${firstName} ${lastName}`.trim();
-      const data = await signup(email, password, fullName);
-      if (data?.session) {
-        navigate('/');
-        return;
-      }
-      setInfo('Check your email to verify your account, then sign in.');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+function leaderDelta(market, leader) {
+  const h = market?.price_history || [];
+  if (h.length >= 2 && leader) {
+    const last = h[h.length - 1]?.prices?.[leader.id];
+    const prev = h[h.length - 2]?.prices?.[leader.id];
+    if (typeof last === 'number' && typeof prev === 'number') return last - prev;
+  }
+  return 0;
+}
 
-  const handleGoogle = async () => {
-    setError('');
-    setInfo('');
-    setLoading(true);
-    try {
-      await loginWithGoogle();
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-    }
-  };
+function Ticker({ markets }) {
+  const items = [...markets]
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
+    .slice(0, 10)
+    .map((m) => {
+      const leader = leaderOf(m);
+      return {
+        id: m.id,
+        title: m.title,
+        pct: Math.round(leader?.probability || 0),
+        delta: leaderDelta(m, leader),
+      };
+    });
+
+  if (items.length === 0) return null;
+  const loop = [...items, ...items]; // duplicated for a seamless marquee
 
   return (
-    <div className="landing-page">
-      {/* Left Side - Signup Form */}
-      <div className="landing-left">
-        <div className="landing-form-container">
-          <div className="landing-logo">
-            <img src="/Logo-Title.png" alt="Dobium Prediction Markets" style={{ height: 50 }} />
-          </div>
-
-          <h1 className="landing-main-title">Get Started</h1>
-          <p className="landing-main-subtitle">Join the prediction market revolution</p>
-
-          <button className="btn-google" onClick={handleGoogle} disabled={loading}>
-            <GoogleIcon />
-            <span>Sign up with Google</span>
-          </button>
-
-          <div className="auth-divider">or sign up with email</div>
-
-          <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'flex', gap: '14px' }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label className="form-label">First name</label>
-                <input
-                  className="form-input"
-                  type="text"
-                  value={firstName}
-                  onChange={e => setFirstName(e.target.value)}
-                  placeholder="First name"
-                  required
-                />
-              </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label className="form-label">Last name</label>
-                <input
-                  className="form-input"
-                  type="text"
-                  value={lastName}
-                  onChange={e => setLastName(e.target.value)}
-                  placeholder="Last name"
-                  required
-                />
-              </div>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Email</label>
-              <input
-                className="form-input"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                autoFocus
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Password</label>
-              <input
-                className="form-input"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Min 8 characters"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Confirm password</label>
-              <input
-                className="form-input"
-                type="password"
-                value={confirm}
-                onChange={e => setConfirm(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
-            </div>
-            {error && <p className="form-error">{error}</p>}
-            {info && <p style={{ fontSize: 12, color: 'var(--green)' }}>{info}</p>}
-            <button className="btn btn-primary btn-full" type="submit" disabled={loading}>
-              {loading ? 'Creating…' : 'Create account'}
-            </button>
-          </form>
-
-          <div style={{ marginTop: 24, textAlign: 'center', fontSize: 14, color: '#cbd5e1' }}>
-            Already have an account?{' '}
-            <button
-              className="link-btn"
-              onClick={() => navigate('/auth')}
+    <div
+      style={{
+        overflow: 'hidden',
+        borderBottom: '1px solid var(--line)',
+        background: 'rgba(14,22,49,.8)',
+      }}
+    >
+      <div className="dbm-ticker-track" style={{ display: 'inline-flex', whiteSpace: 'nowrap', padding: '9px 0' }}>
+        {loop.map((it, i) => (
+          <span
+            key={`${it.id}-${i}`}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '0 26px', fontSize: 12.5, color: 'var(--text)',
+              borderRight: '1px solid rgba(33,48,92,.55)',
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-block', maxWidth: 250,
+                overflow: 'hidden', textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap', verticalAlign: 'middle', fontWeight: 500,
+              }}
             >
-              Sign in
-            </button>
-          </div>
-        </div>
+              {it.title}
+            </span>
+            <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: it.delta < 0 ? 'var(--no)' : 'var(--yes)' }}>
+              {it.pct}¢ {it.delta < 0 ? '▼' : '▲'}
+            </span>
+          </span>
+        ))}
       </div>
-
-      {/* Right Side - Slideshow */}
-      <div className="landing-right">
-        <div className="slideshow-container">
-          <div className="slides-wrapper">
-            {slides.map((slide, idx) => (
-              <div
-                key={idx}
-                className={`slide ${idx === currentSlide ? 'active' : ''}`}
-              >
-                <div className="slide-icon">{slide.icon}</div>
-                <h2 className="slide-title">{slide.title}</h2>
-                <p className="slide-description">{slide.description}</p>
-                <div className="slide-highlight">{slide.highlight}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Dots Navigation */}
-          <div className="slideshow-dots">
-            {slides.map((_, idx) => (
-              <button
-                key={idx}
-                className={`dot ${idx === currentSlide ? 'active' : ''}`}
-                onClick={() => setCurrentSlide(idx)}
-                aria-label={`Go to slide ${idx + 1}`}
-              />
-            ))}
-          </div>
-
-          {/* Auto-advance slide every 5 seconds */}
-          {typeof window !== 'undefined' && (
-            <Slideshow currentSlide={currentSlide} setCurrentSlide={setCurrentSlide} totalSlides={slides.length} />
-          )}
-        </div>
-      </div>
-
       <style>{`
-        .link-btn { 
-          background: none; 
-          border: none; 
-          color: #d4af37; 
-          cursor: pointer; 
-          font-size: 13px; 
-          padding: 0;
-          font-weight: 600;
-          font-family: "Jost", sans-serif;
-          transition: color 0.2s;
-        }
-        .link-btn:hover { 
-          color: #e4bd3f;
-          text-decoration: underline; 
-        }
-        
-        .btn-google {
-          display: flex; align-items: center; justify-content: center; gap: 10px;
-          width: 100%; padding: 11px 16px; border-radius: 10px;
-          background: #fff; border: 1.5px solid #e2e8f0; color: #1a1a2e;
-          font-size: 14px; font-weight: 600; cursor: pointer;
-          transition: background 0.15s, box-shadow 0.15s;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        }
-        .btn-google:hover:not(:disabled) { background: #f8fafc; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
-        .btn-google:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        /* Responsive adjustments for the slideshow on mobile */
-        @media (max-width: 768px) {
-          .landing-right { 
-            flex: none;
-            min-height: 250px; /* Scale down the slideshow height on mobile */
-            padding: 16px;
-          }
-          .slide-icon { font-size: 2rem !important; margin-bottom: 10px !important; }
-          .slide-title { font-size: 1.4rem !important; margin-bottom: 8px !important; }
-          .slide-description { font-size: 0.9rem !important; }
-        }
+        .dbm-ticker-track { animation: dbm-marquee 48s linear infinite; }
+        .dbm-ticker-track:hover { animation-play-state: paused; }
+        @keyframes dbm-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
       `}</style>
     </div>
   );
 }
 
-function Slideshow({ currentSlide, setCurrentSlide, totalSlides }) {
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % totalSlides);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [totalSlides, setCurrentSlide]);
+export default function LandingPage() {
+  const { markets, loading } = useMarkets();
+  const navigate = useNavigate();
 
-  return null;
-}
+  const totalVolume = markets.reduce((s, m) => s + (m.total_volume || 0), 0);
+  const topMarkets = [...markets]
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
+    .slice(0, 6);
 
-function GoogleIcon() {
+  const scrollToWaitlist = () =>
+    document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-    </svg>
+    <div>
+      <Ticker markets={markets} />
+
+      <div className="max-w-7xl mx-auto p-6 lg:p-8">
+        {/* ── Hero ── */}
+        <div style={{ textAlign: 'center', padding: '64px 24px 40px', position: 'relative' }}>
+          <div
+            style={{
+              position: 'absolute', top: -60, left: '50%', transform: 'translateX(-50%)',
+              width: 580, height: 320,
+              background: 'radial-gradient(ellipse at center,rgba(240,192,74,.10),transparent 65%)',
+              pointerEvents: 'none',
+            }}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 18 }}>
+            <svg viewBox="0 0 120 110" xmlns="http://www.w3.org/2000/svg" style={{ height: 'clamp(52px,8vw,80px)', width: 'auto', filter: 'drop-shadow(0 6px 24px rgba(240,192,74,.3))' }}>
+              <defs>
+                <linearGradient id="landingGoldG" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#F7D573" /><stop offset="1" stopColor="#D89B2B" />
+                </linearGradient>
+              </defs>
+              <g stroke="url(#landingGoldG)" strokeWidth="14" strokeLinejoin="round" fill="url(#landingGoldG)">
+                <path d="M60 12 L104 34 L104 78 L60 100 L16 78 L16 34 Z" />
+              </g>
+              <path d="M16 34 L60 54 L104 34 M60 54 L60 100" stroke="#0A1128" strokeWidth="4.5" fill="none" strokeLinecap="round" opacity=".9" />
+              <path d="M68 62 C88 58 94 68 94 76 C94 86 84 92 70 90 C68.5 89.7 68 88 68 86 L68 66 C68 64 68 62.4 68 62 Z" fill="#0A1128" />
+              <ellipse cx="78" cy="30" rx="6.5" ry="4.2" fill="#0A1128" transform="rotate(8 78 30)" />
+              <ellipse cx="30" cy="56" rx="4.6" ry="5.4" fill="#0A1128" transform="rotate(-18 30 56)" />
+              <ellipse cx="40" cy="74" rx="4.6" ry="5.4" fill="#0A1128" transform="rotate(-18 40 74)" />
+            </svg>
+            <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 600, fontSize: 'clamp(44px,7vw,72px)', background: 'linear-gradient(180deg,#F7D573,var(--gold-2))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
+              obium
+            </span>
+          </div>
+
+          <p style={{ color: 'var(--text)', fontSize: 'clamp(18px,2.6vw,24px)', fontWeight: 400, maxWidth: 620, margin: '0 auto 12px', opacity: .93 }}>
+            The entertainment prediction market
+          </p>
+          <p style={{ color: 'var(--muted)', fontSize: 14.5, maxWidth: 520, margin: '0 auto 34px', lineHeight: 1.6 }}>
+            Trade on music drops, box office, awards and the biggest moments in culture
+            — with $100 paper money. <span style={{ color: 'var(--gold)' }}>⚡ World Cup markets are live.</span>
+          </p>
+
+          {/* CTA buttons */}
+          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 42 }}>
+            <button
+              onClick={() => navigate('/explore')}
+              style={{
+                background: 'linear-gradient(180deg,#F7D573,var(--gold-2))',
+                color: '#1a1405', fontWeight: 700, fontSize: 15,
+                border: 'none', borderRadius: 12, padding: '13px 26px',
+                cursor: 'pointer', boxShadow: '0 6px 22px rgba(240,192,74,.28)',
+              }}
+            >
+              Start Predicting →
+            </button>
+            <button
+              onClick={scrollToWaitlist}
+              style={{
+                background: 'rgba(17,26,57,.65)', color: 'var(--text)',
+                fontWeight: 600, fontSize: 15,
+                border: '1px solid var(--line)', borderRadius: 12, padding: '13px 26px',
+                cursor: 'pointer',
+              }}
+            >
+              Join Waitlist for Real Money
+            </button>
+          </div>
+
+          {/* Stats row */}
+          {!loading && (
+            <div style={{ display: 'flex', gap: 18, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'stretch' }}>
+              <div style={{ textAlign: 'center', minWidth: 120 }}>
+                <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>
+                  ${totalVolume.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                </span>
+                <span style={{ color: 'var(--muted)', fontSize: 13 }}>paper volume traded</span>
+              </div>
+              <div style={{ width: 1, background: 'var(--line)' }} />
+              <div style={{ textAlign: 'center', minWidth: 100 }}>
+                <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>
+                  {markets.length}
+                </span>
+                <span style={{ color: 'var(--muted)', fontSize: 13 }}>live markets</span>
+              </div>
+              <div style={{ width: 1, background: 'var(--line)' }} />
+              <div style={{ textAlign: 'center', minWidth: 130 }}>
+                <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>
+                  {WAITLIST_COUNT}
+                </span>
+                <span style={{ color: 'var(--muted)', fontSize: 13 }}>on the real-money waitlist</span>
+              </div>
+            </div>
+          )}
+        </div>
+        {/* ── /Hero ── */}
+
+        {/* ── Waitlist (the #1 priority element) ── */}
+        <div id="waitlist" style={{ scrollMarginTop: 24, padding: '14px 0 6px' }}>
+          <WaitlistCard />
+        </div>
+
+        {/* ── Live Markets preview ── */}
+        {!loading && topMarkets.length > 0 && (
+          <div style={{ marginTop: 64 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 22 }}>
+              <h2 style={{ fontFamily: '"DM Serif Text", serif', fontSize: 30, color: 'var(--text)', margin: 0 }}>
+                Live Markets
+              </h2>
+              <span style={{ color: 'var(--muted)', fontSize: 13 }}>
+                Sorted by <span style={{ color: 'var(--gold)', fontWeight: 600 }}>volume</span> · updates live
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-auto">
+              {topMarkets.map((m) => <MarketCard key={m.id} market={m} />)}
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 30 }}>
+              <button
+                onClick={() => navigate('/explore')}
+                style={{
+                  background: 'transparent', color: 'var(--gold)',
+                  fontWeight: 600, fontSize: 14,
+                  border: '1px solid var(--gold)', borderRadius: 12, padding: '11px 24px',
+                  cursor: 'pointer',
+                }}
+              >
+                See all markets →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 border-3 border-slate-700 border-t-yellow-400 rounded-full animate-spin" />
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

@@ -1,102 +1,48 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import MarketCard from '../components/MarketCard';
+import WaitlistCard from '../components/WaitlistCard';
 import { useMarkets } from '../hooks/useMarkets';
 
-function TrendingMiniChart({ market }) {
-  const width = 400;
-  const height = 100;
-  const outcomes = market.outcomes || [];
-  const priceHistory = market.price_history || [];
+const CHIPS = [
+  { id: 'all', label: 'All' },
+  { id: 'short', label: '⚡ Short-fuse' },
+  { id: 'long', label: '📈 Long-fuse' },
+  { id: 'music', label: '🎵 Music' },
+  { id: 'sports', label: '🏆 Sports' },
+  { id: 'entertainment', label: '🎬 Movies & TV' },
+  { id: 'awards', label: '🏅 Awards' },
+];
 
-  const trends = outcomes.slice(0, 3).map((o, idx) => {
-    let data;
-
-    if (priceHistory.length > 0) {
-      // Use real price history
-      data = priceHistory.map(snapshot => snapshot.prices[o.id] || o.probability || 20);
-
-      // Ensure minimum 2 points
-      if (data.length < 2) {
-        data = [o.probability || 20, o.probability || 20];
-      }
-    } else {
-      // No history - flat line
-      data = [o.probability || 20, o.probability || 20];
-    }
-
-    return {
-      data: data,
-      color: o.title?.toLowerCase() === 'yes' ? '#22c55e' : o.title?.toLowerCase() === 'no' ? '#ef4444' : ['#3b82f6', '#f59e0b', '#8b5cf6'][idx]
-    };
-  });
-
-  const allValues = trends.flatMap(t => t.data);
-  const minVal = Math.min(...allValues);
-  const maxVal = Math.max(...allValues);
-  const range = maxVal - minVal || 1;
-
-  const getY = (val) => ((maxVal - val) / range) * height;
-  const getX = (idx, total) => (idx / (total - 1)) * width;
-
-  return (
-    <svg className="w-full" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
-      {trends.map((trend, idx) => {
-        const points = trend.data.map((val, i) => ({
-          x: getX(i, trend.data.length),
-          y: getY(val)
-        }));
-        const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
-
-        return (
-          <path
-            key={idx}
-            d={path}
-            fill="none"
-            stroke={trend.color}
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity="0.8"
-          />
-        );
-      })}
-    </svg>
-  );
+// Same close-date fallbacks MarketCard uses, so fuse filters match the fuse labels.
+function daysLeft(m) {
+  const raw = m.close_time || m.closes_at || m.end_time || m.close_date || null;
+  if (!raw) return null;
+  return Math.ceil((new Date(raw) - Date.now()) / 86400000);
 }
-
-const CATEGORIES = ['all', 'politics', 'international', 'environment', 'climate', 'science', 'health', 'finance', 'technology'];
 
 export default function ExplorePage() {
   const { markets, loading } = useMarkets();
-  const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState('All Markets');
+  const [chip, setChip] = useState('all');
   const [search, setSearch] = useState('');
-  const [trendingIndex, setTrendingIndex] = useState(0);
 
-  const trending = [...markets]
-    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
-    .slice(0, 5);
-
-  const filtered = markets.filter(m => {
-    const categoryMatch = selectedCategory === 'All Markets' || m.category === selectedCategory.toLowerCase();
-    const searchMatch = !search || m.title?.toLowerCase().includes(search.toLowerCase());
-    return categoryMatch && searchMatch;
-  });
-
-  useEffect(() => {
-    if (trending.length === 0) return;
-    const interval = setInterval(() => {
-      setTrendingIndex(prev => (prev + 1) % trending.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [trending.length]);
+  const filtered = [...markets]
+    .filter((m) => {
+      const d = daysLeft(m);
+      const chipMatch =
+        chip === 'all' ? true :
+        chip === 'short' ? d !== null && d > 0 && d <= 7 :
+        chip === 'long' ? d !== null && d > 7 :
+        m.category === chip;
+      const searchMatch = !search || m.title?.toLowerCase().includes(search.toLowerCase());
+      return chipMatch && searchMatch;
+    })
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 
   return (
     <div className="max-w-7xl mx-auto p-6 lg:p-8">
 
       {/* ── Hero ── */}
-      <div style={{ textAlign: 'center', padding: '72px 24px 52px', position: 'relative' }}>
+      <div style={{ textAlign: 'center', padding: '64px 24px 48px', position: 'relative' }}>
         <div style={{
           position: 'absolute', top: -60, left: '50%', transform: 'translateX(-50%)',
           width: 580, height: 320,
@@ -126,87 +72,98 @@ export default function ExplorePage() {
         <p style={{ color: 'var(--text)', fontSize: 'clamp(17px,2.4vw,22px)', fontWeight: 400, maxWidth: 580, margin: '0 auto 10px', opacity: .92 }}>
           The entertainment prediction market
         </p>
-        <p style={{ color: 'var(--muted)', fontSize: 14, maxWidth: 480, margin: '0 auto 40px' }}>
-          Trade on music drops, box office, awards and the biggest moments in culture — with ${(100000).toLocaleString()} paper money.
+        <p style={{ color: 'var(--muted)', fontSize: 14, maxWidth: 480, margin: '0 auto 36px' }}>
+          Trade on music drops, box office, awards and the biggest moments in culture — with $100 paper money.
         </p>
-        <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <div style={{ textAlign: 'center' }}>
-            <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
-              {markets.length}
-            </span>
-            <span style={{ color: 'var(--muted)', fontSize: 13 }}>live markets</span>
+        {!loading && (
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
+                {markets.length}
+              </span>
+              <span style={{ color: 'var(--muted)', fontSize: 13 }}>live markets</span>
+            </div>
+            <div style={{ width: 1, background: 'var(--line)', margin: '4px 8px' }} />
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
+                ${markets.reduce((s, m) => s + (m.total_volume || 0), 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+              </span>
+              <span style={{ color: 'var(--muted)', fontSize: 13 }}>paper volume traded</span>
+            </div>
           </div>
-          <div style={{ width: 1, background: 'var(--line)', margin: '4px 8px' }} />
-          <div style={{ textAlign: 'center' }}>
-            <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
-              ${markets.reduce((s, m) => s + (m.total_volume || 0), 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
-            </span>
-            <span style={{ color: 'var(--muted)', fontSize: 13 }}>paper volume traded</span>
-          </div>
-        </div>
+        )}
       </div>
       {/* ── /Hero ── */}
 
-      <div className="mb-12">
-        <div className="flex items-center justify-end mb-8">
-          <div className="flex items-center gap-2.5">
-            <div className="relative search-container">
-              <input
-                type="text"
-                placeholder="Search markets..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="search-input pl-12 pr-4 py-3 bg-slate-900/50 border border-slate-800 text-white placeholder:text-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500/20"
-              />
-              <span className="absolute left-4 top-1/2 transform -translate-y-1/2" style={{ color: 'var(--gold)' }}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                    d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                </svg>
-              </span>
-            </div>
-            <div className="relative category-dropdown-container">
-              <button className="px-4 py-3 bg-gradient-to-r from-yellow-500 to-yellow-600 text-slate-950 font-semibold rounded-xl hover:brightness-110 transition flex items-center gap-2 whitespace-nowrap">
-                <span>{selectedCategory}</span>
-                <span className="text-sm">▼</span>
-              </button>
-              <div className="absolute right-0 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-10 hidden group-hover:block">
-                {['All Markets', ...CATEGORIES.filter(c => c !== 'all').map(c => c.charAt(0).toUpperCase() + c.slice(1))].map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`w-full text-left px-4 py-3 hover:bg-slate-800 transition ${selectedCategory === cat ? 'text-white' : 'text-slate-300'
-                      }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* ── Live Markets heading ── */}
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+        <h2 style={{ fontFamily: '"DM Serif Text", serif', fontSize: 30, color: 'var(--text)', margin: 0 }}>
+          Live Markets
+        </h2>
+        <span style={{ color: 'var(--muted)', fontSize: 13 }}>
+          Sorted by <span style={{ color: 'var(--gold)', fontWeight: 600 }}>volume</span> · updates live
+        </span>
       </div>
-{/* All Markets Section */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-          <span style={{ color: 'var(--gold)' }}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+
+      {/* ── Filter chips + search ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 26 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {CHIPS.map((c) => {
+            const active = chip === c.id;
+            return (
+              <button
+                key={c.id}
+                onClick={() => setChip(c.id)}
+                style={{
+                  padding: '8px 15px', borderRadius: 999,
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  border: `1px solid ${active ? 'var(--gold)' : 'var(--line)'}`,
+                  background: active ? 'var(--gold-dim)' : 'rgba(17,26,57,.5)',
+                  color: active ? 'var(--gold)' : 'var(--muted)',
+                  transition: 'all .15s ease',
+                }}
+              >
+                {c.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="relative search-container">
+          <input
+            type="text"
+            placeholder="Search markets..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="search-input pl-11 pr-4 py-2.5 bg-slate-900/50 border border-slate-800 text-white placeholder:text-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500/20"
+          />
+          <span className="absolute left-4 top-1/2 transform -translate-y-1/2" style={{ color: 'var(--gold)' }}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round"
-                d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
           </span>
-          All Markets
-        </h2>
+        </div>
       </div>
+
+      {/* ── Markets grid ── */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="w-8 h-8 border-3 border-slate-700 border-t-yellow-400 rounded-full animate-spin" />
         </div>
+      ) : filtered.length === 0 ? (
+        <p style={{ color: 'var(--muted)', textAlign: 'center', padding: '48px 0' }}>
+          No markets match — try another category.
+        </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-auto">
-          {filtered.map(m => <MarketCard key={m.id} market={m} />)}
+          {filtered.map((m) => <MarketCard key={m.id} market={m} />)}
         </div>
       )}
+
+      {/* ── Waitlist, visible on the markets page too ── */}
+      <div style={{ marginTop: 64, marginBottom: 24 }}>
+        <WaitlistCard />
+      </div>
     </div>
   );
 }

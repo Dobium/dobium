@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import Layout from './components/Layout';
+import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 import ExplorePage from './pages/ExplorePage';
 import MarketDetailPage from './pages/MarketDetailPage';
@@ -29,10 +30,12 @@ function AppRoutes() {
       <Routes>
         <Route path="/auth" element={<Navigate to="/explore" replace />} />
         <Route element={<Layout />}>
-          <Route path="/" element={session ? <DashboardPage /> : <Navigate to="/explore" replace />} />
+          {/* Front door: the landing page with the real-money waitlist */}
+          <Route path="/" element={<LandingPage />} />
+          {/* Logged-in portfolio/dashboard lives here now */}
+          <Route path="/portfolio" element={session ? <DashboardPage /> : <Navigate to="/explore" replace />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/explore" element={<ExplorePage />} />
-          <Route path="/portfolio" element={<Navigate to="/" replace />} />
           <Route path="/markets/:id" element={<MarketDetailPage />} />
           <Route path="/leagues" element={<LeaguesPage />} />
           <Route path="/leagues/leaderboard" element={<GlobalLeaderboardPage />} />
