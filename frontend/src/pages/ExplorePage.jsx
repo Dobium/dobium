@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import MarketCard from '../components/MarketCard';
 import WaitlistCard from '../components/WaitlistCard';
 import { useMarkets } from '../hooks/useMarkets';
@@ -22,7 +23,10 @@ function daysLeft(m) {
 
 export default function ExplorePage() {
   const { markets, loading } = useMarkets();
-  const [chip, setChip] = useState('all');
+  const [searchParams] = useSearchParams();
+  const urlFilter = searchParams.get('filter');
+  const [chip, setChip] = useState(urlFilter || 'all');
+  useEffect(() => { setChip(urlFilter || 'all'); }, [urlFilter]);
   const [search, setSearch] = useState('');
 
   const filtered = [...markets]
