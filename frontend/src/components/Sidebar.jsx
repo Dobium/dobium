@@ -19,7 +19,7 @@ export default function Sidebar() {
           {/* Logo */}
           <div className="sidebar-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
             <div className="sidebar-logo-icon">
-              <img src="/Logo.png" alt="Samsa" className="sidebar-logo-img" style={{ width: 64, height: 64, objectFit: 'contain' }} />
+              <img src="/Logo.png" alt="Dobium" className="sidebar-logo-img" style={{ width: 64, height: 64, objectFit: 'contain' }} />
             </div>
             <div style={{ textAlign: 'center', lineHeight: 1.2, opacity: 0, transition: 'opacity 0.3s' }} className="sidebar-balance-chip">
               <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--gold)', fontSize: 13 }}>
@@ -42,7 +42,7 @@ export default function Sidebar() {
               <span className="sidebar-item-text">Explore</span>
             </NavLink>
 
-            <NavLink to="/" end className={({ isActive }) => `sidebar-item${isActive ? ' active' : ''}`}>
+            <NavLink to="/portfolio" className={({ isActive }) => `sidebar-item${isActive ? ' active' : ''}`}>
               <div className="sidebar-item-icon">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round"
