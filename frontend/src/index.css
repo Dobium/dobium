@@ -9,11 +9,11 @@
    DOBIUM DESIGN TOKENS
    ======================================== */
 :root {
-  --bg: #07080D;
-  --panel: #0D0F1A;
-  --card: #12141F;
-  --card-hover: #191C2B;
-  --line: #262A3D;
+  --bg: #0A1128;
+  --panel: #0E1631;
+  --card: #111A39;
+  --card-hover: #16214A;
+  --line: #21305C;
   --text: #F2F0EB;
   --muted: #8C95B5;
   --gold: #F0C04A;
