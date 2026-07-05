@@ -38,7 +38,7 @@ export default function GlobalLeaderboardPage() {
       </button>
 
       <div className="mb-8 border-b border-dobium-border pb-6">
-        <h1 className="text-3xl font-serif font-bold text-dobium-text flex items-center gap-3">
+        <h1 className="text-3xl font-bold text-dobium-text flex items-center gap-3">
           <span className="text-yellow-500 text-4xl">🏆</span> Global Leaderboard
         </h1>
         <p className="mt-2 text-dobium-text-secondary">

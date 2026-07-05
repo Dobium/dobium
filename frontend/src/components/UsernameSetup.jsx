@@ -76,7 +76,7 @@ export default function UsernameSetup({ user, initialValue = '', open = true, on
       <form onSubmit={handleSubmit} className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-950 p-6 shadow-2xl">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-serif font-bold text-white">Choose Username</h2>
+            <h2 className="text-xl font-bold text-white">Choose Username</h2>
             <p className="mt-1 text-sm text-slate-400">3-20 lowercase characters.</p>
           </div>
           {onClose && (

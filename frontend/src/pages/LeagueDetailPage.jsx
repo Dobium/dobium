@@ -102,7 +102,7 @@ export default function LeagueDetailPage() {
               </span>
               <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-300">{league.status}</span>
             </div>
-            <h1 className="mt-3 text-3xl font-serif font-bold text-white">{league.name}</h1>
+            <h1 className="mt-3 text-3xl font-bold text-white">{league.name}</h1>
             <p className="mt-2 text-sm text-slate-500">Invite code: <span className="font-mono text-yellow-400">{league.invite_code}</span></p>
           </div>
           <div className="grid grid-cols-3 gap-3 text-center">

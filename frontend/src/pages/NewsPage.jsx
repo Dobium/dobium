@@ -23,7 +23,7 @@ export default function NewsPage() {
   return (
     <div className="max-w-7xl mx-auto p-6 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-serif font-bold text-white mb-2">News Feed</h1>
+        <h1 className="text-3xl font-bold text-white mb-2">News Feed</h1>
         <p className="text-slate-400">Latest headlines relevant to prediction markets</p>
       </div>
 

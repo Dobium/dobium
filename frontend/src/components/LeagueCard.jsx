@@ -17,7 +17,7 @@ export default function LeagueCard({ league }) {
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xl">{league.event?.icon || '🏆'}</span>
-            <h3 className="truncate text-lg font-serif font-bold text-dobium-text">{league.name}</h3>
+            <h3 className="truncate text-lg font-bold text-dobium-text">{league.name}</h3>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-dobium-accent/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-dobium-accent">

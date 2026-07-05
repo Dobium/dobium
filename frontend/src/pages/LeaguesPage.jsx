@@ -129,7 +129,7 @@ export default function LeaguesPage() {
     return (
       <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center p-6">
         <div className="rounded-2xl border border-dobium-border bg-dobium-panel p-8 text-center">
-          <h1 className="text-2xl font-serif font-bold text-dobium-text">Forecast Leagues</h1>
+          <h1 className="text-2xl font-bold text-dobium-text">Forecast Leagues</h1>
           <p className="text-dobium-text-secondary mt-2 mb-6">Sign in to join leagues and compete on the global leaderboard.</p>
           <button onClick={openAuthModal} className="rounded-xl bg-dobium-accent hover:bg-dobium-accent-hover px-6 py-3 font-bold text-white transition-colors">
             Sign in
@@ -156,7 +156,7 @@ export default function LeaguesPage() {
       <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.25em] text-dobium-accent">Forecast Leagues</p>
-          <h1 className="mt-2 text-3xl font-serif font-bold text-dobium-text">Prediction Leagues</h1>
+          <h1 className="mt-2 text-3xl font-bold text-dobium-text">Prediction Leagues</h1>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <button
@@ -186,7 +186,7 @@ export default function LeaguesPage() {
           
           {createStep === 1 && (
             <div>
-              <h2 className="text-xl font-serif font-bold text-dobium-text mb-2">Step 1: Choose an Event</h2>
+              <h2 className="text-xl font-bold text-dobium-text mb-2">Step 1: Choose an Event</h2>
               <p className="text-dobium-text-secondary mb-6 text-sm">Select the main event your league will be based on.</p>
               
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -197,7 +197,7 @@ export default function LeaguesPage() {
                     className="flex flex-col items-start p-4 bg-dobium-bg border border-dobium-border hover:border-dobium-accent rounded-xl transition-all text-left group"
                   >
                     <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">{event.icon}</div>
-                    <h3 className="font-serif font-bold text-dobium-text">{event.name}</h3>
+                    <h3 className="font-bold text-dobium-text">{event.name}</h3>
                     <p className="text-xs text-dobium-text-secondary mt-1 line-clamp-2">{event.description}</p>
                   </button>
                 ))}
@@ -220,7 +220,7 @@ export default function LeaguesPage() {
                   ← Back
                 </button>
                 <div>
-                  <h2 className="text-xl font-serif font-bold text-dobium-text">Step 2: Name Your League</h2>
+                  <h2 className="text-xl font-bold text-dobium-text">Step 2: Name Your League</h2>
                   <p className="text-dobium-text-secondary text-sm">For the {selectedEvent.name} event</p>
                 </div>
               </div>
@@ -270,7 +270,7 @@ export default function LeaguesPage() {
 
           <div>
             <div className="flex items-center justify-between mb-4 border-b border-dobium-border pb-2">
-              <h2 className="text-xl font-serif font-bold text-dobium-text">Your Leagues</h2>
+              <h2 className="text-xl font-bold text-dobium-text">Your Leagues</h2>
               <button 
                 onClick={() => setShowUsername(true)}
                 title={usernameReady ? "Change Username" : "Set Username"}
@@ -299,7 +299,7 @@ export default function LeaguesPage() {
         <div>
           <div className="bg-dobium-panel border border-dobium-border rounded-xl overflow-hidden sticky top-6">
             <div className="p-4 border-b border-dobium-border bg-gradient-to-r from-dobium-panel to-dobium-accent/5">
-              <button onClick={() => navigate('/leagues/leaderboard')} className="w-full text-left text-lg font-serif font-bold text-dobium-text flex items-center justify-between group">
+              <button onClick={() => navigate('/leagues/leaderboard')} className="w-full text-left text-lg font-bold text-dobium-text flex items-center justify-between group">
                 <span className="flex items-center gap-2">
                   <span className="text-yellow-500">🏆</span> Global Top 10
                 </span>

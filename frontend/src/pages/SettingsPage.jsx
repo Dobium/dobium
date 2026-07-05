@@ -91,14 +91,14 @@ export default function SettingsPage() {
   return (
     <div className="max-w-7xl mx-auto p-6 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-serif font-bold text-white mb-2">Settings</h1>
+        <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
         <p className="text-slate-400">Manage your account and preferences</p>
       </div>
 
       <div className="max-w-2xl">
         {/* Paper Trading Disclaimer Section */}
         <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-5 mb-4">
-          <h2 className="text-sm font-serif font-bold uppercase tracking-wider text-yellow-400 mb-4">⚠️ Paper Trading Mode</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-yellow-400 mb-4">⚠️ Paper Trading Mode</h2>
           <div className="space-y-2 text-sm text-slate-300">
             <p className="font-semibold text-white">Dobium is currently in paper trading mode.</p>
             <ul className="list-disc list-inside space-y-1 text-xs">
@@ -115,7 +115,7 @@ export default function SettingsPage() {
 
         {/* Account Section */}
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 mb-4">
-          <h2 className="text-sm font-serif font-bold uppercase tracking-wider text-yellow-400 mb-4">Account</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-yellow-400 mb-4">Account</h2>
           <div className="space-y-3">
             <div className="flex justify-between items-center py-3 border-b border-slate-800">
               <div>
@@ -134,7 +134,7 @@ export default function SettingsPage() {
 
         {/* Preferences Section */}
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 mb-4">
-          <h2 className="text-sm font-serif font-bold uppercase tracking-wider text-yellow-400 mb-4">Preferences</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-yellow-400 mb-4">Preferences</h2>
           <div className="space-y-3">
             <div className="flex justify-between items-center py-3 border-b border-slate-800">
               <div>
@@ -155,7 +155,7 @@ export default function SettingsPage() {
 
         {/* Data Section */}
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 mb-4">
-          <h2 className="text-sm font-serif font-bold uppercase tracking-wider text-yellow-400 mb-4">Data Management</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-yellow-400 mb-4">Data Management</h2>
           <div className="space-y-3">
             <div className="flex justify-between items-center py-3 border-b border-slate-800">
               <div>
@@ -187,7 +187,7 @@ export default function SettingsPage() {
 
         {/* Support / Bug Report Section */}
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 mb-4">
-          <h2 className="text-sm font-serif font-bold uppercase tracking-wider text-yellow-400 mb-4">Support</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-yellow-400 mb-4">Support</h2>
           <div className="flex justify-between items-center">
             <div>
               <div className="text-sm font-semibold text-white">🐛 Report a Problem</div>
@@ -205,7 +205,7 @@ export default function SettingsPage() {
 
         {/* Session Section */}
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5">
-          <h2 className="text-sm font-serif font-bold uppercase tracking-wider text-yellow-400 mb-4">Session</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-yellow-400 mb-4">Session</h2>
           {session ? (
             <button
               onClick={handleLogout}

@@ -49,7 +49,7 @@ export default function UserProfilePage() {
         <p className="text-sm font-bold uppercase tracking-[0.25em] text-yellow-500">League Profile</p>
         <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-3xl font-serif font-bold text-white">{profile.user?.username || id.slice(0, 8)}</h1>
+            <h1 className="text-3xl font-bold text-white">{profile.user?.username || id.slice(0, 8)}</h1>
             <p className="mt-2 inline-flex rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-sm font-bold text-yellow-300">
               {profile.archetype}
             </p>
@@ -67,7 +67,7 @@ export default function UserProfilePage() {
       </div>
 
       <div className="mb-8 rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-        <h2 className="mb-4 text-xl font-serif font-bold text-white">Highlight Reel</h2>
+        <h2 className="mb-4 text-xl font-bold text-white">Highlight Reel</h2>
         {calledIt.length === 0 ? (
           <p className="text-slate-500">No Called It entries yet.</p>
         ) : (
