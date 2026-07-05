@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { api } from '../api/client';
 
 // The referral waitlist card — Dobium's #1 priority element.
-// Writes signups to the `waitlist` table in Supabase.
+// Saves through the backend's own database (reliable — no Supabase table/RLS dependency).
 export default function WaitlistCard() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState('idle'); // idle | saving | done | already | error
@@ -18,20 +18,11 @@ export default function WaitlistCard() {
     setStatus('saving');
     setMessage('');
     try {
-      const { error } = await supabase.from('waitlist').insert({ email: clean });
-      if (error) {
-        if (error.code === '23505') {
-          setStatus('already'); // duplicate email — treat as success
-        } else {
-          setStatus('error');
-          setMessage("Couldn't save your spot — please try again in a minute.");
-        }
-        return;
-      }
-      setStatus('done');
-    } catch {
+      const result = await api.joinWaitlist(clean);
+      setStatus(result?.already ? 'already' : 'done');
+    } catch (err) {
       setStatus('error');
-      setMessage("Couldn't save your spot — please try again in a minute.");
+      setMessage(err?.message || "Couldn't save your spot — please try again in a minute.");
     }
   };
 
@@ -51,7 +42,6 @@ export default function WaitlistCard() {
         background: 'linear-gradient(180deg, var(--panel), var(--card))',
       }}
     >
-      {/* gold accent strip */}
       <div
         style={{
           position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
@@ -83,7 +73,7 @@ export default function WaitlistCard() {
           <p style={{ color: 'var(--muted)', fontSize: 13, margin: '6px 0 0' }}>
             {status === 'already'
               ? 'This email is already on the waitlist — your spot is safe.'
-              : 'We\u2019ll email your invite when real-money trading opens.'}
+              : "We'll email your invite when real-money trading opens."}
           </p>
         </div>
       ) : (
