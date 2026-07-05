@@ -25,8 +25,7 @@ export default function Sidebar() {
                 <stop offset="0" stopColor="#F7D573" /><stop offset="1" stopColor="#D89B2B" />
               </linearGradient>
             </defs>
-            <path d="M4 23 L12 15 L18 20 L28 8" stroke="url(#sideGoldG)" strokeWidth="3.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="28" cy="8" r="3.2" fill="url(#sideGoldG)" />
+            <path d="M11.5 7.5 h5 a8.5 8.5 0 0 1 0 17 h-5 Z" stroke="url(#sideGoldG)" strokeWidth="3.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
             </div>
             <div style={{ textAlign: 'center', lineHeight: 1.2, opacity: 0, transition: 'opacity 0.3s' }} className="sidebar-balance-chip">
