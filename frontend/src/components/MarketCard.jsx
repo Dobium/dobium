@@ -1,14 +1,19 @@
 import { useNavigate } from 'react-router-dom';
 
 const CATEGORY_ICONS = {
-  sports: '🏆',
-  music: '🎵',
-  entertainment: '🎬',
-  awards: '🏅',
-  politics: '🏛️',
-  finance: '📈',
-  technology: '💻',
+  sports: 'trophy',
+  music: 'music_note',
+  entertainment: 'movie',
+  awards: 'award_star',
+  politics: 'account_balance',
+  finance: 'trending_up',
+  technology: 'computer',
 };
+const DEFAULT_ICON = 'category';
+
+function CategoryIcon({ name, size = 16 }) {
+  return <span className="material-symbols-outlined" style={{ fontSize: size, lineHeight: 1 }}>{name}</span>;
+}
 
 const BINARY_COLORS = ['#2dd4a7', '#ff5c72'];
 const MULTI_COLORS = ['#e0b53d', '#a855f7', '#06b6d4', '#ec4899'];
@@ -100,7 +105,7 @@ export default function MarketCard({ market }) {
       fuseRow = (
         <div className="flex items-center justify-between text-[11px] pt-1">
           <span className="font-semibold uppercase tracking-wide" style={{ color: isShort ? 'var(--no)' : 'var(--gold)' }}>
-            {isShort ? '⚡ Short resolution' : '📈 Long resolution'}
+            <span className="material-symbols-outlined" style={{ fontSize: 13, verticalAlign: '-2px', marginRight: 2 }}>{isShort ? 'bolt' : 'trending_up'}</span>{isShort ? 'Short resolution' : 'Long resolution'}
           </span>
           <span style={{ color: 'var(--muted)' }}>🕐 {dateStr} · {daysLeft}d left</span>
         </div>
@@ -155,7 +160,7 @@ export default function MarketCard({ market }) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2.5 min-w-0">
           <span className="w-8 h-8 rounded-lg bg-slate-800/80 flex items-center justify-center text-base flex-shrink-0">
-            {CATEGORY_ICONS[market.category] || '🎯'}
+            <CategoryIcon name={CATEGORY_ICONS[market.category] || DEFAULT_ICON} size={17} />
           </span>
           <h3 className="text-sm font-semibold text-white leading-snug line-clamp-2 group-hover:text-yellow-400 transition-colors">
             {market.title}

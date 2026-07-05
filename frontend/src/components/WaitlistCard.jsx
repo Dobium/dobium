@@ -96,7 +96,7 @@ export default function WaitlistCard() {
               onClick={submit}
               disabled={status === 'saving'}
               style={{
-                background: 'linear-gradient(180deg, #F7D573, var(--gold-2))',
+                background: 'linear-gradient(180deg, #FFDF9B, var(--gold-2))',
                 color: '#1a1405', fontWeight: 700, fontSize: 14,
                 border: 'none', borderRadius: 10, padding: '12px 22px',
                 cursor: status === 'saving' ? 'wait' : 'pointer',

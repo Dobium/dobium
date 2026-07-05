@@ -112,7 +112,7 @@ export default function CommentsSection({ marketId }) {
             <button
               onClick={() => post(c.id)}
               disabled={posting || !replyBody.trim()}
-              style={{ background: 'linear-gradient(180deg,#F7D573,var(--gold-2))', color: '#1a1405', fontWeight: 700, fontSize: 13, border: 'none', borderRadius: 10, padding: '9px 14px', cursor: 'pointer', opacity: posting || !replyBody.trim() ? 0.5 : 1 }}
+              style={{ background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))', color: '#1a1405', fontWeight: 700, fontSize: 13, border: 'none', borderRadius: 10, padding: '9px 14px', cursor: 'pointer', opacity: posting || !replyBody.trim() ? 0.5 : 1 }}
             >
               Reply
             </button>
@@ -142,7 +142,7 @@ export default function CommentsSection({ marketId }) {
         <button
           onClick={() => post(null)}
           disabled={posting || !body.trim()}
-          style={{ background: 'linear-gradient(180deg,#F7D573,var(--gold-2))', color: '#1a1405', fontWeight: 700, fontSize: 13.5, border: 'none', borderRadius: 10, padding: '10px 18px', cursor: 'pointer', opacity: posting || !body.trim() ? 0.5 : 1 }}
+          style={{ background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))', color: '#1a1405', fontWeight: 700, fontSize: 13.5, border: 'none', borderRadius: 10, padding: '10px 18px', cursor: 'pointer', opacity: posting || !body.trim() ? 0.5 : 1 }}
         >
           {posting ? '...' : 'Post'}
         </button>

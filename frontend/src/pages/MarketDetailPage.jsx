@@ -899,7 +899,7 @@ export default function MarketDetailPage() {
                     {tradeMsg && <p className={`text-xs ${tradeMsg.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>{tradeMsg}</p>}
                     <button type="submit" disabled={marketClosed || tradeLoading || !sel || !parseFloat(stake)}
                       className="w-full py-3 rounded-xl text-sm font-extrabold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                      style={{ background: 'linear-gradient(180deg,#F7D573,var(--gold-2))', color: '#1a1405' }}>
+                      style={{ background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))', color: '#1a1405' }}>
                       {tradeLoading ? 'Placing...' : 'Place Trade'}
                     </button>
                   </form>

@@ -56,7 +56,7 @@ export default function RadarPage() {
         <button
           onClick={tryUnlock}
           style={{
-            width: '100%', background: 'linear-gradient(180deg,#F7D573,var(--gold-2))',
+            width: '100%', background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))',
             color: '#1a1405', fontWeight: 700, fontSize: 14, border: 'none',
             borderRadius: 10, padding: '12px 14px', cursor: 'pointer',
           }}
@@ -106,7 +106,7 @@ export default function RadarPage() {
             }}
             disabled={seedBusy}
             style={{
-              flexShrink: 0, background: 'linear-gradient(180deg,#F7D573,var(--gold-2))',
+              flexShrink: 0, background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))',
               color: '#1a1405', fontWeight: 700, fontSize: 13.5, border: 'none',
               borderRadius: 10, padding: '10px 18px', cursor: 'pointer', opacity: seedBusy ? 0.6 : 1,
             }}
