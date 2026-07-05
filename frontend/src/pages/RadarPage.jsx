@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import TrendingRadar from '../components/TrendingRadar';
+import { api } from '../api/client';
 
 const RADAR_KEY = 'dobium-radar-9247';
 const STORAGE_KEY = 'dobium_radar_unlocked';
@@ -12,6 +13,8 @@ export default function RadarPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
+  const [seedBusy, setSeedBusy] = useState(false);
+  const [seedMsg, setSeedMsg] = useState('');
 
   useEffect(() => {
     if (sessionStorage.getItem(STORAGE_KEY) === RADAR_KEY) setUnlocked(true);
@@ -77,6 +80,40 @@ export default function RadarPage() {
           Review, tighten the wording into a question, and publish.
         </p>
       </div>
+
+      <div style={{ marginBottom: 24, padding: 16, borderRadius: 14, border: '1px solid var(--line)', background: 'var(--panel)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Curated starter batch</div>
+            <div style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 2 }}>
+              21 hand-picked, properly categorized markets (Drake, Travis Scott, Kanye, Oscars, Grammys, Netflix, HBO Max...).
+              Safe to click more than once — already-live markets are skipped automatically.
+            </div>
+          </div>
+          <button
+            onClick={async () => {
+              setSeedBusy(true); setSeedMsg('');
+              try {
+                const r = await api.seedCuratedMarkets(RADAR_KEY);
+                setSeedMsg(`Created ${r.created} new markets · skipped ${r.skipped_existing} already live`);
+              } catch (e) {
+                setSeedMsg(`Failed: ${e.message}`);
+              }
+              setSeedBusy(false);
+            }}
+            disabled={seedBusy}
+            style={{
+              flexShrink: 0, background: 'linear-gradient(180deg,#F7D573,var(--gold-2))',
+              color: '#1a1405', fontWeight: 700, fontSize: 13.5, border: 'none',
+              borderRadius: 10, padding: '10px 18px', cursor: 'pointer', opacity: seedBusy ? 0.6 : 1,
+            }}
+          >
+            {seedBusy ? 'Creating…' : 'Publish curated batch'}
+          </button>
+        </div>
+        {seedMsg && <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 10, marginBottom: 0 }}>{seedMsg}</p>}
+      </div>
+
       <TrendingRadar radarKey={RADAR_KEY} />
     </div>
   );

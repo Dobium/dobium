@@ -40,6 +40,8 @@ export const api = {
     request(`/markets/${id}/resolve`, { method: 'POST', body: JSON.stringify({ winning_outcome_id: winningOutcomeId }) }),
 
   // Predictions
+  seedCuratedMarkets: (radarKey) => request('/seed/curated-batch', { method: 'POST', headers: { 'x-radar-key': radarKey } }),
+
   joinWaitlist: (email) => request('/waitlist', { method: 'POST', body: JSON.stringify({ email }) }),
   getWaitlistCount: () => request('/waitlist/count'),
   getPulse: () => request('/pulse'),

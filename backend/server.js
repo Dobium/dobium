@@ -1891,6 +1891,92 @@ app.get('/api/pulse', async (req, res) => {
   }
 });
 
+// ============================================================================
+// CURATED SEED BATCH — one-time, hand-picked, properly categorized markets
+// ============================================================================
+const CURATED_MARKETS = [
+  { title: "Will Travis Scott release a new album before September 1, 2026?", category: 'music', market_type: 'binary', close_date: '2026-09-01T00:00:00.000Z', outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will Kanye West release "BULLY" before March 21, 2027?', category: 'music', market_type: 'binary', close_date: '2027-03-21T00:00:00.000Z', outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: "Will Bad Bunny finish 2026 as Spotify's #1 most-streamed artist?", category: 'music', market_type: 'binary', close_date: '2026-12-31T00:00:00.000Z', outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: "Bad Bunny vs. Taylor Swift — who finishes 2026 as Spotify's #1 artist?", category: 'music', market_type: 'multi_single', close_date: '2026-12-31T00:00:00.000Z', outcomes: [{ title: 'Bad Bunny', probability: 40 }, { title: 'Taylor Swift', probability: 35 }, { title: 'Other', probability: 25 }] },
+  { title: 'Will a country song win Album of the Year at the 2027 Grammys?', category: 'awards', market_type: 'binary', close_date: '2027-02-01T00:00:00.000Z', outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will "Iceman" cross 1 billion streams within 30 days of release?', category: 'music', market_type: 'binary', close_date: '2026-08-15T00:00:00.000Z', outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will Kanye West release a Yeezy clothing drop before August 2026?', category: 'music', market_type: 'binary', close_date: '2026-08-01T00:00:00.000Z', outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will Drake announce a new tour in 2026?', category: 'music', market_type: 'binary', close_date: '2026-12-31T00:00:00.000Z', outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will Travis Scott headline Coachella 2027?', category: 'music', market_type: 'binary', close_date: '2027-04-01T00:00:00.000Z', outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will Travis Scott feature on a Kanye West project in 2026?', category: 'music', market_type: 'binary', close_date: '2026-12-31T00:00:00.000Z', outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will Drake and 21 Savage release a joint sequel album in 2026?', category: 'music', market_type: 'binary', close_date: '2026-12-31T00:00:00.000Z', outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: "Will Future feature on Playboi Carti's next album?", category: 'music', market_type: 'binary', close_date: '2027-01-01T00:00:00.000Z', outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'When will Playboi Carti release his next album?', category: 'music', market_type: 'multi_single', close_date: '2027-06-01T00:00:00.000Z', outcomes: [{ title: 'Q3 2026', probability: 20 }, { title: 'Q4 2026', probability: 30 }, { title: '2027', probability: 35 }, { title: 'Never', probability: 15 }] },
+  { title: 'What will be #1 on the Billboard Hot 100 the first week of August 2026?', category: 'music', market_type: 'multi_single', close_date: '2026-08-07T00:00:00.000Z', outcomes: [{ title: 'Sabrina Carpenter', probability: 30 }, { title: 'Drake', probability: 20 }, { title: 'Morgan Wallen', probability: 20 }, { title: 'Other', probability: 30 }] },
+  { title: "Who will feature on Kanye West's next album?", category: 'music', market_type: 'multi_single', close_date: '2026-12-31T00:00:00.000Z', outcomes: [{ title: 'Travis Scott', probability: 30 }, { title: 'Drake', probability: 20 }, { title: 'Future', probability: 20 }, { title: 'Other', probability: 30 }] },
+  { title: 'Will "Euphoria" be the top show on HBO Max this week?', category: 'entertainment', market_type: 'binary', close_date: '2026-07-12T00:00:00.000Z', outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'What will be the #1 show on Netflix this week (US)?', category: 'entertainment', market_type: 'multi_single', close_date: '2026-07-12T00:00:00.000Z', outcomes: [{ title: 'Voicemails for Isabelle', probability: 30 }, { title: 'Little Brother', probability: 25 }, { title: 'Enola Holmes 3', probability: 20 }, { title: 'Other', probability: 25 }] },
+  { title: 'What will be the #1 show on HBO Max this week?', category: 'entertainment', market_type: 'multi_single', close_date: '2026-07-12T00:00:00.000Z', outcomes: [{ title: 'House of the Dragon', probability: 40 }, { title: 'Euphoria', probability: 20 }, { title: 'Stuart Fails to Save the Universe', probability: 15 }, { title: 'Other', probability: 25 }] },
+  { title: "Will MrBeast's next video hit 100M views within 7 days of upload?", category: 'entertainment', market_type: 'binary', close_date: '2026-08-05T00:00:00.000Z', outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Oscar Best Picture 2027 — who wins?', category: 'awards', market_type: 'multi_single', close_date: '2027-03-14T00:00:00.000Z', outcomes: [{ title: 'The Odyssey', probability: 25 }, { title: 'Dune: Part Three', probability: 20 }, { title: 'Wild Horse Nine', probability: 20 }, { title: 'Fjord', probability: 15 }, { title: 'Other', probability: 20 }] },
+  { title: 'Grammy Album of the Year 2027 — which artist wins?', category: 'awards', market_type: 'multi_single', close_date: '2027-02-01T00:00:00.000Z', outcomes: [{ title: 'Bad Bunny', probability: 30 }, { title: 'Taylor Swift', probability: 25 }, { title: 'Kendrick Lamar', probability: 20 }, { title: 'Other', probability: 25 }] },
+];
+
+app.post('/api/seed/curated-batch', requireRadarKey, async (req, res) => {
+  try {
+    const existing = await Market.findAll({ attributes: ['title'] });
+    const known = new Set(existing.map(m => (m.title || '').toLowerCase()));
+
+    let created = 0;
+    const skipped = [];
+
+    for (const def of CURATED_MARKETS) {
+      if (known.has(def.title.toLowerCase())) {
+        skipped.push(def.title);
+        continue;
+      }
+      known.add(def.title.toLowerCase());
+
+      await sequelize.transaction(async (t) => {
+        const marketId = nanoid(12);
+        await Market.create({
+          id: marketId,
+          title: def.title,
+          description: '',
+          category: def.category,
+          market_type: def.market_type,
+          status: 'active',
+          close_date: def.close_date,
+          resolution_date: null,
+          total_volume: 0,
+          image_url: '',
+          winning_outcome_id: null,
+          search_keywords: '',
+          is_trending: true,
+        }, { transaction: t });
+
+        let outcomeRecords = [];
+        if (def.market_type === 'multi_single' || def.market_type === 'multi_multiple') {
+          def.outcomes.forEach(o => {
+            const baseId = nanoid(8);
+            const probYes = typeof o.probability === 'number' ? o.probability : Math.round(100 / def.outcomes.length);
+            outcomeRecords.push({ id: `${marketId}_${baseId}_yes`, market_id: marketId, title: `${o.title} (Yes)`, probability: probYes, total_stake: 0 });
+            outcomeRecords.push({ id: `${marketId}_${baseId}_no`, market_id: marketId, title: `${o.title} (No)`, probability: 100 - probYes, total_stake: 0 });
+          });
+        } else {
+          outcomeRecords = def.outcomes.map(o => ({ id: `${marketId}_${nanoid(8)}`, market_id: marketId, title: o.title, probability: 50, total_stake: 0 }));
+        }
+        await Outcome.bulkCreate(outcomeRecords, { transaction: t });
+
+        const prices = Object.fromEntries(outcomeRecords.map(o => [o.id, o.probability]));
+        await PriceHistory.create({ market_id: marketId, timestamp: new Date(), prices }, { transaction: t });
+      });
+      created++;
+    }
+
+    res.json({ ok: true, created, skipped_existing: skipped.length, skipped_titles: skipped });
+  } catch (error) {
+    console.error('Curated seed error:', error);
+    res.status(500).json({ error: 'Seed failed', detail: error.message });
+  }
+});
+
 app.get('/api/cron/market-scout', requireRadarKey, async (req, res) => {
   try {
     const result = await runMarketScout();

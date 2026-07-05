@@ -91,17 +91,23 @@ async function fetchText(url) {
   return res.text();
 }
 
+function stripCdata(raw) {
+  if (!raw) return null;
+  const m = raw.trim().match(/^<!\[CDATA\[([\s\S]*?)\]\]>$/);
+  return (m ? m[1] : raw).trim();
+}
+
 function parseRssTitles(xml) {
   const items = [];
   const itemBlocks = xml.split(/<item[\s>]/).slice(1);
   for (const block of itemBlocks.slice(0, 20)) {
-    const titleMatch = block.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/);
+    const titleMatch = block.match(/<title>([\s\S]*?)<\/title>/);
     const linkMatch = block.match(/<link>([\s\S]*?)<\/link>/);
     if (titleMatch) {
-      items.push({
-        title: titleMatch[1].replace(/&amp;/g, '&').replace(/&#8217;|&rsquo;/g, "'").replace(/&quot;/g, '"').trim(),
-        link: linkMatch ? linkMatch[1].trim() : null,
-      });
+      const cleanTitle = stripCdata(titleMatch[1])
+        .replace(/&amp;/g, '&').replace(/&#8217;|&rsquo;/g, "'").replace(/&quot;/g, '"').trim();
+      const cleanLink = linkMatch ? stripCdata(linkMatch[1]) : null;
+      items.push({ title: cleanTitle, link: cleanLink && /^https?:\/\//.test(cleanLink) ? cleanLink : null });
     }
   }
   return items;

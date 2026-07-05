@@ -74,8 +74,15 @@ function Sparkline({ market, outcomes, isBinary }) {
 
 export default function MarketCard({ market }) {
   const navigate = useNavigate();
-  const outcomes = market.outcomes || [];
-  const isBinary = (market.market_type || 'binary') === 'binary';
+  const marketType = market.market_type || 'binary';
+  const isMultiType = marketType === 'multi_single' || marketType === 'multi_multiple';
+  // Multi markets store each candidate as an internal Yes/No pair (e.g. "Spain (Yes)").
+  // Only the "Yes" side is a real candidate row, with the "(Yes)" suffix stripped for display.
+  const hasYesNoPairs = (market.outcomes || []).some(o => o.id?.endsWith('_yes'));
+  const outcomes = (isMultiType && hasYesNoPairs)
+    ? (market.outcomes || []).filter(o => o.id?.endsWith('_yes')).map(o => ({ ...o, title: o.title.replace(/\s*\(Yes\)$/i, '') }))
+    : (market.outcomes || []);
+  const isBinary = !isMultiType;
 
   const leader = [...outcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
   const leaderPct = Math.round(leader?.probability || 0);
