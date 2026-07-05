@@ -2335,7 +2335,24 @@ app.post('/api/positions/sell', async (req, res) => {
 // MARKET RESOLUTION
 // ============================================================================
 
-app.post('/api/markets/:id/resolve', async (req, res) => {
+app.get('/api/resolve/pending', requireRadarKey, async (req, res) => {
+  try {
+    const markets = await Market.findAll({
+      where: {
+        status: 'active',
+        close_date: { [Op.lt]: new Date(), [Op.ne]: null }
+      },
+      include: [{ model: Outcome, as: 'outcomes' }],
+      order: [['close_date', 'ASC']]
+    });
+    res.json(markets.map(formatMarketResponse));
+  } catch (error) {
+    console.error('Pending resolution fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch pending markets' });
+  }
+});
+
+app.post('/api/markets/:id/resolve', requireRadarKey, async (req, res) => {
   try {
     const { winning_outcome_id, winning_outcome_ids, partial } = req.body;
 

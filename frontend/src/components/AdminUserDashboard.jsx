@@ -597,7 +597,7 @@ export default function AdminUserDashboard({ user, onBack }) {
         </div>
 
         <div className="w-full lg:w-80 space-y-4">
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl overflow-hidden">
+          <div className="bg-slate-900/50  border border-slate-800 rounded-2xl overflow-hidden">
             <div className="p-5">
               <div className="flex items-center gap-3 mb-3">
                 <h3 className="text-white font-semibold">Positions</h3>
