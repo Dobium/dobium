@@ -46,20 +46,14 @@ export default function TopNav() {
         onClick={() => navigate('/')}
         style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', flexShrink: 0 }}
       >
-        <svg viewBox="0 0 120 110" xmlns="http://www.w3.org/2000/svg" style={{ height: 26, width: 'auto' }}>
+        <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style={{ height: 22, width: 'auto' }}>
           <defs>
             <linearGradient id="navGoldG" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0" stopColor="#F7D573" /><stop offset="1" stopColor="#D89B2B" />
             </linearGradient>
           </defs>
-          <g stroke="url(#navGoldG)" strokeWidth="14" strokeLinejoin="round" fill="url(#navGoldG)">
-            <path d="M60 12 L104 34 L104 78 L60 100 L16 78 L16 34 Z" />
-          </g>
-          <path d="M16 34 L60 54 L104 34 M60 54 L60 100" stroke="#0A1128" strokeWidth="4.5" fill="none" strokeLinecap="round" opacity=".9" />
-          <path d="M68 62 C88 58 94 68 94 76 C94 86 84 92 70 90 C68.5 89.7 68 88 68 86 L68 66 C68 64 68 62.4 68 62 Z" fill="#0A1128" />
-          <ellipse cx="78" cy="30" rx="6.5" ry="4.2" fill="#0A1128" transform="rotate(8 78 30)" />
-          <ellipse cx="30" cy="56" rx="4.6" ry="5.4" fill="#0A1128" transform="rotate(-18 30 56)" />
-          <ellipse cx="40" cy="74" rx="4.6" ry="5.4" fill="#0A1128" transform="rotate(-18 40 74)" />
+          <path d="M4 23 L12 15 L18 20 L28 8" stroke="url(#navGoldG)" strokeWidth="3.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="28" cy="8" r="3.2" fill="url(#navGoldG)" />
         </svg>
         <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 600, fontSize: 21, background: 'linear-gradient(180deg,#F7D573,var(--gold-2))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
           obium

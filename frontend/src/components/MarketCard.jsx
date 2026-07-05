@@ -93,7 +93,7 @@ export default function MarketCard({ market }) {
       fuseRow = (
         <div className="flex items-center justify-between text-[11px] pt-1">
           <span className="font-semibold uppercase tracking-wide" style={{ color: isShort ? 'var(--no)' : 'var(--gold)' }}>
-            {isShort ? '⚡ Short-fuse' : '📈 Long-fuse'}
+            {isShort ? '⚡ Short resolution' : '📈 Long resolution'}
           </span>
           <span style={{ color: 'var(--muted)' }}>🕐 {dateStr} · {daysLeft}d left</span>
         </div>
@@ -174,10 +174,21 @@ export default function MarketCard({ market }) {
           ${(market.total_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
           <span style={{ color: 'var(--muted)', fontWeight: 500, fontSize: 11, marginLeft: 4 }}>vol</span>
         </span>
-        <span className="text-xs flex items-center gap-1" style={{ color: 'var(--yes)' }}>
-          <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: 'var(--yes)' }}></span>
-          Live
-        </span>
+        {(() => {
+          const cRaw = market.close_time || market.closes_at || market.end_time || market.close_date || null;
+          const closed = market.status === 'resolved' || market.status === 'closed' || (cRaw && new Date(cRaw) < new Date());
+          return closed ? (
+            <span className="text-xs flex items-center gap-1" style={{ color: 'var(--muted)' }}>
+              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: 'var(--muted)' }}></span>
+              Closed
+            </span>
+          ) : (
+            <span className="text-xs flex items-center gap-1" style={{ color: 'var(--yes)' }}>
+              <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: 'var(--yes)' }}></span>
+              Live
+            </span>
+          );
+        })()}
       </div>
     </div>
   );

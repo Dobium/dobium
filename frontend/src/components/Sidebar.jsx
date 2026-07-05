@@ -19,7 +19,15 @@ export default function Sidebar() {
           {/* Logo */}
           <div className="sidebar-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
             <div className="sidebar-logo-icon">
-              <img src="/Logo.png" alt="Dobium" className="sidebar-logo-img" style={{ width: 64, height: 64, objectFit: 'contain' }} />
+              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className="sidebar-logo-img">
+            <defs>
+              <linearGradient id="sideGoldG" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#F7D573" /><stop offset="1" stopColor="#D89B2B" />
+              </linearGradient>
+            </defs>
+            <path d="M4 23 L12 15 L18 20 L28 8" stroke="url(#sideGoldG)" strokeWidth="3.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="28" cy="8" r="3.2" fill="url(#sideGoldG)" />
+          </svg>
             </div>
             <div style={{ textAlign: 'center', lineHeight: 1.2, opacity: 0, transition: 'opacity 0.3s' }} className="sidebar-balance-chip">
               <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--gold)', fontSize: 13 }}>

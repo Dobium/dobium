@@ -40,6 +40,9 @@ export const api = {
     request(`/markets/${id}/resolve`, { method: 'POST', body: JSON.stringify({ winning_outcome_id: winningOutcomeId }) }),
 
   // Predictions
+  getComments: (marketId) => request(`/markets/${marketId}/comments`),
+  postComment: (marketId, data) => request(`/markets/${marketId}/comments`, { method: 'POST', body: JSON.stringify(data) }),
+
   getPredictions: (marketId = null) =>
     request(`/predictions${marketId ? `?market_id=${marketId}` : ''}`),
   createPrediction: (data) =>
