@@ -10,23 +10,24 @@
    ======================================== */
 :root {
   --bg: #0A1128;
-  --panel: #0E1631;
-  --card: #111A39;
-  --card-hover: #16214A;
-  --line: #21305C;
-  --text: #F2F0EB;
-  --muted: #8C95B5;
+  --panel: #141A32;
+  --card: #181E36;
+  --card-hover: #222941;
+  --line: #2D344C;
+  --text: #DCE1FF;
+  --muted: #9A8F7C;
   --gold: #F0C04A;
   --gold-2: #D89B2B;
+  --gold-text: #FFDF9B;
   --gold-dim: rgba(245, 200, 75, 0.12);
-  --yes: #2DD4A7;
-  --yes-dim: rgba(45, 212, 167, 0.12);
-  --no: #FF5C72;
-  --no-dim: rgba(255, 92, 114, 0.12);
-  --radius: 14px;
-  --radius-sm: 8px;
+  --yes: #6BFE8F;
+  --yes-dim: rgba(107, 254, 143, 0.12);
+  --no: #FFB4AB;
+  --no-dim: rgba(255, 180, 171, 0.12);
+  --radius: 8px;
+  --radius-sm: 4px;
   --mono: 'JetBrains Mono', monospace;
-  --wordmark: 'Quicksand', sans-serif;
+  --wordmark: 'Hanken Grotesk', sans-serif;
   --accent: var(--gold);
   --accent-glow: rgba(240, 192, 74, 0.25);
 }
@@ -37,8 +38,14 @@
 
 body {
   margin: 0;
-  font-family: "Inter", "Jost", sans-serif;
+  font-family: "Hanken Grotesk", sans-serif;
   font-optical-sizing: auto;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+  line-height: 1;
 }
 
 a {

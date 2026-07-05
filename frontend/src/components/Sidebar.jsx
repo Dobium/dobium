@@ -22,7 +22,7 @@ export default function Sidebar() {
               <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className="sidebar-logo-img">
             <defs>
               <linearGradient id="sideGoldG" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stopColor="#F7D573" /><stop offset="1" stopColor="#D89B2B" />
+                <stop offset="0" stopColor="#FFDF9B" /><stop offset="1" stopColor="#F0C04A" />
               </linearGradient>
             </defs>
             <path d="M11.5 7.5 h5 a8.5 8.5 0 0 1 0 17 h-5 Z" stroke="url(#sideGoldG)" strokeWidth="3.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />

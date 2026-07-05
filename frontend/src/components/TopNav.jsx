@@ -49,7 +49,7 @@ export default function TopNav() {
         <svg viewBox="0 0 120 110" xmlns="http://www.w3.org/2000/svg" style={{ height: 26, width: 'auto' }}>
           <defs>
             <linearGradient id="navGoldG" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor="#F7D573" /><stop offset="1" stopColor="#D89B2B" />
+              <stop offset="0" stopColor="#FFDF9B" /><stop offset="1" stopColor="#F0C04A" />
             </linearGradient>
           </defs>
           <g stroke="url(#navGoldG)" strokeWidth="14" strokeLinejoin="round" fill="url(#navGoldG)">
@@ -61,7 +61,7 @@ export default function TopNav() {
           <ellipse cx="30" cy="56" rx="4.6" ry="5.4" fill="#0A1128" transform="rotate(-18 30 56)" />
           <ellipse cx="40" cy="74" rx="4.6" ry="5.4" fill="#0A1128" transform="rotate(-18 40 74)" />
         </svg>
-        <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 600, fontSize: 25, background: 'linear-gradient(180deg,#F7D573,var(--gold-2))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
+        <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 600, fontSize: 25, background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
           Dobium
         </span>
       </div>
@@ -103,7 +103,7 @@ export default function TopNav() {
           </div>
           <div style={{
             width: 32, height: 32, borderRadius: 999, flexShrink: 0,
-            background: 'linear-gradient(180deg,#F7D573,var(--gold-2))',
+            background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))',
             color: '#1a1405', fontWeight: 700, fontSize: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
@@ -114,7 +114,7 @@ export default function TopNav() {
         <button
           onClick={() => navigate('/explore')}
           style={{
-            background: 'linear-gradient(180deg,#F7D573,var(--gold-2))',
+            background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))',
             color: '#1a1405', fontWeight: 700, fontSize: 13,
             border: 'none', borderRadius: 10, padding: '9px 16px',
             cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,

@@ -109,7 +109,7 @@ export default function LandingPage() {
             }}
           />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 18 }}>
-            <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 600, fontSize: 'clamp(44px,7vw,72px)', background: 'linear-gradient(180deg,#F7D573,var(--gold-2))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
+            <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 600, fontSize: 'clamp(44px,7vw,72px)', background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
               Dobium
             </span>
           </div>
@@ -119,7 +119,7 @@ export default function LandingPage() {
           </p>
           <p style={{ color: 'var(--muted)', fontSize: 14.5, maxWidth: 520, margin: '0 auto 34px', lineHeight: 1.6 }}>
             Trade on music drops, box office, awards and the biggest moments in culture
-            — with $100 paper money. <span style={{ color: 'var(--gold)' }}>⚡ World Cup markets are live.</span>
+            — with $100 paper money. <span style={{ color: 'var(--gold)' }}><span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: '-2px', marginRight: 2 }}>bolt</span>World Cup markets are live.</span>
           </p>
 
           {/* CTA buttons */}
@@ -127,7 +127,7 @@ export default function LandingPage() {
             <button
               onClick={() => navigate('/explore')}
               style={{
-                background: 'linear-gradient(180deg,#F7D573,var(--gold-2))',
+                background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))',
                 color: '#1a1405', fontWeight: 700, fontSize: 15,
                 border: 'none', borderRadius: 12, padding: '13px 26px',
                 cursor: 'pointer', boxShadow: '0 6px 22px rgba(240,192,74,.28)',
@@ -185,7 +185,7 @@ export default function LandingPage() {
         {!loading && topMarkets.length > 0 && (
           <div style={{ marginTop: 64 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 22 }}>
-              <h2 style={{ fontFamily: '"DM Serif Text", serif', fontSize: 30, color: 'var(--text)', margin: 0 }}>
+              <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 28, color: 'var(--text)', margin: 0 }}>
                 Live Markets
               </h2>
               <span style={{ color: 'var(--muted)', fontSize: 13 }}>

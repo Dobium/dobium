@@ -6,13 +6,13 @@ import WaitlistCard from '../components/WaitlistCard';
 import { useMarkets } from '../hooks/useMarkets';
 
 const CHIPS = [
-  { id: 'all', label: 'All' },
-  { id: 'short', label: '⚡ Short resolution' },
-  { id: 'long', label: '📈 Long resolution' },
-  { id: 'music', label: '🎵 Music' },
-  { id: 'sports', label: '🏆 Sports' },
-  { id: 'entertainment', label: '🎬 Movies & TV' },
-  { id: 'awards', label: '🏅 Awards' },
+  { id: 'all', label: 'All', icon: null },
+  { id: 'short', label: 'Short resolution', icon: 'bolt' },
+  { id: 'long', label: 'Long resolution', icon: 'trending_up' },
+  { id: 'music', label: 'Music', icon: 'music_note' },
+  { id: 'sports', label: 'Sports', icon: 'trophy' },
+  { id: 'entertainment', label: 'Movies & TV', icon: 'movie' },
+  { id: 'awards', label: 'Awards', icon: 'award_star' },
 ];
 
 // Same close-date fallbacks MarketCard uses, so fuse filters match the fuse labels.
@@ -55,7 +55,7 @@ export default function ExplorePage() {
           pointerEvents: 'none',
         }} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 18 }}>
-            <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 600, fontSize: 'clamp(44px,7vw,72px)', background: 'linear-gradient(180deg,#F7D573,var(--gold-2))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
+            <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 600, fontSize: 'clamp(44px,7vw,72px)', background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
             Dobium
           </span>
         </div>
@@ -94,7 +94,7 @@ export default function ExplorePage() {
 
       {/* ── Live Markets heading ── */}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
-        <h2 style={{ fontFamily: '"DM Serif Text", serif', fontSize: 30, color: 'var(--text)', margin: 0 }}>
+        <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 28, color: 'var(--text)', margin: 0 }}>
           Live Markets
         </h2>
         <span style={{ color: 'var(--muted)', fontSize: 13 }}>
@@ -120,6 +120,7 @@ export default function ExplorePage() {
                   transition: 'all .15s ease',
                 }}
               >
+                {c.icon && <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: '-2px', marginRight: 4 }}>{c.icon}</span>}
                 {c.label}
               </button>
             );

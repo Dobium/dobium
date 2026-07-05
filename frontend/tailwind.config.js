@@ -18,8 +18,18 @@ export default {
         }
       },
       fontFamily: {
-        serif: ['"Cabinet Grotesk"', 'sans-serif'],
-        sans: ['Inter', 'sans-serif'],
+        serif: ['"Hanken Grotesk"', 'sans-serif'],
+        sans: ['"Hanken Grotesk"', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
+      },
+      borderRadius: {
+        DEFAULT: '4px',
+        sm: '3px',
+        md: '4px',
+        lg: '6px',
+        xl: '8px',
+        '2xl': '10px',
+        '3xl': '12px',
       },
     },
   },

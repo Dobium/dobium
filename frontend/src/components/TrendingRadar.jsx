@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
 
 const CATEGORIES = ['music', 'sports', 'entertainment', 'awards'];
-const CATEGORY_LABEL = { music: '🎵 Music', sports: '🏆 Sports', entertainment: '🎬 Movies & TV', awards: '🏅 Awards' };
+const CATEGORY_LABEL = { music: 'Music', sports: 'Sports', entertainment: 'Movies & TV', awards: 'Awards' };
 
 function plusDays(n) {
   const d = new Date(Date.now() + n * 86400000);

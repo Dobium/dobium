@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
 
-const CATEGORY_LABEL = { music: '🎵 Music', sports: '🏆 Sports', entertainment: '🎬 Movies & TV', awards: '🏅 Awards' };
+const CATEGORY_LABEL = { music: 'Music', sports: 'Sports', entertainment: 'Movies & TV', awards: 'Awards' };
 
 function StatCard({ label, value, accent }) {
   return (
