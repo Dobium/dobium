@@ -578,7 +578,7 @@ export default function MarketDetailPage() {
         {/* Left Column: Info, Price Chart & Controls */}
         <div className="flex-1 min-w-0 space-y-6 z-10 lg:h-full lg:overflow-y-auto lg:pr-2 custom-scrollbar">
           {homeLogo && awayLogo && (
-            <div className="flex items-center justify-center gap-6 py-6 px-8 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl max-w-xl shadow-2xl">
+            <div className="flex items-center justify-center gap-6 py-6 px-8 bg-slate-900/50  border border-slate-800 rounded-2xl max-w-xl shadow-2xl">
               <div className="flex flex-col items-center gap-2">
                 <img src={homeLogo} className="w-16 h-16 rounded-full object-cover border-2 border-slate-700 bg-slate-950 shadow-lg" alt="Home" />
                 <span className="text-sm text-white font-bold">{sportsMeta.home_team}</span>

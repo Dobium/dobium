@@ -147,7 +147,8 @@ export default function MarketCard({ market }) {
 
   return (
     <div
-      className="market-card group bg-slate-900/50 backdrop-blur-xl border border-slate-800 hover:border-yellow-500/50 transition-all duration-300 cursor-pointer rounded-xl p-4 flex flex-col gap-2.5"
+      className="market-card group border hover:border-yellow-500/50 transition-all duration-300 cursor-pointer rounded-xl p-4 flex flex-col gap-2.5"
+      style={{ background: 'var(--card)', borderColor: 'var(--line)' }}
       onClick={() => navigate(`/markets/${market.id}`)}
     >
       {/* Header: icon + title, leader % on right */}

@@ -40,6 +40,9 @@ export const api = {
     request(`/markets/${id}/resolve`, { method: 'POST', body: JSON.stringify({ winning_outcome_id: winningOutcomeId }) }),
 
   // Predictions
+  getPendingResolution: (radarKey) => request('/resolve/pending', { headers: { 'x-radar-key': radarKey } }),
+  resolveMarket: (marketId, winningOutcomeIds, radarKey) => request(`/markets/${marketId}/resolve`, { method: 'POST', body: JSON.stringify({ winning_outcome_ids: winningOutcomeIds }), headers: { 'x-radar-key': radarKey } }),
+
   seedCuratedMarkets: (radarKey) => request('/seed/curated-batch', { method: 'POST', headers: { 'x-radar-key': radarKey } }),
 
   joinWaitlist: (email) => request('/waitlist', { method: 'POST', body: JSON.stringify({ email }) }),

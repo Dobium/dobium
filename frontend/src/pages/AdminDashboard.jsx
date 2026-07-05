@@ -509,7 +509,7 @@ export default function AdminDashboard() {
 
       const res = await fetch(`${API_URL}/api/markets/${resolvingMarket.id}/resolve`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-radar-key': 'dobium-radar-9247' },
         body: JSON.stringify({ winning_outcome_ids })
       });
 
@@ -609,7 +609,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`${API_URL}/api/markets/${confirmModal.market.id}/resolve`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-radar-key': 'dobium-radar-9247' },
         body: JSON.stringify({ winning_outcome_ids: confirmModal.winnerIds })
       });
       const data = await res.json();

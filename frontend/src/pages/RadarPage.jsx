@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import TrendingRadar from '../components/TrendingRadar';
+import ResolveQueue from '../components/ResolveQueue';
 import { api } from '../api/client';
 
 const RADAR_KEY = 'dobium-radar-9247';
@@ -80,6 +81,8 @@ export default function RadarPage() {
           Review, tighten the wording into a question, and publish.
         </p>
       </div>
+
+      <ResolveQueue radarKey={RADAR_KEY} />
 
       <div style={{ marginBottom: 24, padding: 16, borderRadius: 14, border: '1px solid var(--line)', background: 'var(--panel)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>

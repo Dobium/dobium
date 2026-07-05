@@ -46,7 +46,7 @@ export default function NewsPage() {
         {filtered.map(item => {
           const color = CATEGORY_COLORS_LOCAL[item.category] || '#6366f1';
           return (
-            <div key={item.id} className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-6">
+            <div key={item.id} className="bg-slate-900/50  border border-slate-800 rounded-2xl p-6">
               <div className="flex items-start gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
