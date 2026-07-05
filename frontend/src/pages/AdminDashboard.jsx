@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { resizeImageFile } from '../lib/imageResizer';
 import AdminUserDashboard from '../components/AdminUserDashboard';
+import TrendingRadar from '../components/TrendingRadar';
 import AdminEventsDashboard from '../components/AdminEventsDashboard';
 import SportsDashboard from '../components/SportsDashboard';
 
@@ -692,6 +693,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
+      <TrendingRadar />
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-serif font-bold text-white mb-1">Admin Dashboard</h1>
