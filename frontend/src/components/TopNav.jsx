@@ -5,9 +5,9 @@ import { useWallet } from '../hooks/useWallet';
 const LINKS = [
   { label: 'Markets', to: '/' },
   { label: 'Explore', to: '/explore' },
-  { label: 'Chart Performance', to: '/leagues/leaderboard' },
+  { label: 'Charts', to: '/portfolio' },
   { label: 'Awards', to: '/explore?filter=awards' },
-  { label: 'Latest News', to: '/news' },
+  { label: 'News', to: '/news' },
 ];
 
 export default function TopNav() {

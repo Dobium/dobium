@@ -261,26 +261,11 @@ a {
   position: relative;
 }
 
-/* Main Content */
+/* Main Content — full width now that TopNav is the only nav (sidebar removed) */
 .main-content {
-  margin-left: 80px;
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-left: 0;
   position: relative;
   z-index: 1;
-}
-
-@media (max-width: 768px) {
-  .sidebar {
-    width: 0;
-  }
-
-  .sidebar:hover {
-    width: 280px;
-  }
-
-  .main-content {
-    margin-left: 0;
-  }
 }
 
 /* ========================================

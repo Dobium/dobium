@@ -9,6 +9,15 @@ const CATEGORY_ICONS = {
   finance: 'trending_up',
   technology: 'computer',
 };
+const CATEGORY_LABELS = {
+  sports: 'Sports',
+  music: 'Music',
+  entertainment: 'Movies & TV',
+  awards: 'Awards',
+  politics: 'Politics',
+  finance: 'Finance',
+  technology: 'Technology',
+};
 const DEFAULT_ICON = 'category';
 
 function CategoryIcon({ name, size = 16 }) {
@@ -89,29 +98,9 @@ export default function MarketCard({ market }) {
     : (market.outcomes || []);
   const isBinary = !isMultiType;
 
-  const leader = [...outcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
-  const leaderPct = Math.round(leader?.probability || 0);
-  const leaderLabel = isBinary ? 'CHANCE' : (normalizeOutcomeTitle(leader?.title || '') || '').split(' ')[0].toUpperCase();
-
-  // Close date → fuse label (field name may vary by schema)
-  const closeRaw = market.close_time || market.closes_at || market.end_time || market.close_date || null;
-  let fuseRow = null;
-  if (closeRaw) {
-    const close = new Date(closeRaw);
-    const daysLeft = Math.ceil((close - Date.now()) / 86400000);
-    if (daysLeft > 0) {
-      const isShort = daysLeft <= 7;
-      const dateStr = close.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      fuseRow = (
-        <div className="flex items-center justify-between text-[11px] pt-1">
-          <span className="font-semibold uppercase tracking-wide" style={{ color: isShort ? 'var(--no)' : 'var(--gold)' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 13, verticalAlign: '-2px', marginRight: 2 }}>{isShort ? 'bolt' : 'trending_up'}</span>{isShort ? 'Short resolution' : 'Long resolution'}
-          </span>
-          <span style={{ color: 'var(--muted)' }}>🕐 {dateStr} · {daysLeft}d left</span>
-        </div>
-      );
-    }
-  }
+  const volLabel = (market.total_volume || 0) >= 1000
+    ? `$${(market.total_volume / 1000).toFixed(market.total_volume >= 100000 ? 0 : 1)}K`
+    : `$${(market.total_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 
   let body;
   if (isBinary) {
@@ -156,53 +145,25 @@ export default function MarketCard({ market }) {
       style={{ background: 'var(--card)', borderColor: 'var(--line)' }}
       onClick={() => navigate(`/markets/${market.id}`)}
     >
-      {/* Header: icon + title, leader % on right */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2.5 min-w-0">
-          <span className="w-8 h-8 rounded-lg bg-slate-800/80 flex items-center justify-center text-base flex-shrink-0">
-            <CategoryIcon name={CATEGORY_ICONS[market.category] || DEFAULT_ICON} size={17} />
-          </span>
-          <h3 className="text-sm font-semibold text-white leading-snug line-clamp-2 group-hover:text-yellow-400 transition-colors">
-            {market.title}
-          </h3>
-        </div>
-        <div className="text-right flex-shrink-0">
-          <span className="block text-xl font-bold" style={{ color: isBinary ? (leaderPct >= 50 ? 'var(--yes)' : 'var(--no)') : 'var(--gold)', fontFamily: 'var(--mono)' }}>
-            {leaderPct}%
-          </span>
-          <span className="block text-[10px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-            {leaderLabel}
-          </span>
-        </div>
+      {/* Top row: category label on left, volume on right */}
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+          <CategoryIcon name={CATEGORY_ICONS[market.category] || DEFAULT_ICON} size={14} />
+          {CATEGORY_LABELS[market.category] || 'General'}
+        </span>
+        <span className="text-[11px] font-medium flex-shrink-0" style={{ color: 'var(--muted)' }}>
+          Vol: {volLabel}
+        </span>
       </div>
+
+      {/* Title */}
+      <h3 className="text-sm font-semibold text-white leading-snug line-clamp-2 group-hover:text-yellow-400 transition-colors">
+        {market.title}
+      </h3>
 
       <Sparkline market={market} outcomes={outcomes} isBinary={isBinary} />
 
       {body}
-
-      {fuseRow}
-
-      <div className="flex items-center justify-between pt-0.5">
-        <span style={{ fontFamily: 'var(--mono)', color: 'var(--gold)', fontSize: 12, fontWeight: 700 }}>
-          ${(market.total_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
-          <span style={{ color: 'var(--muted)', fontWeight: 500, fontSize: 11, marginLeft: 4 }}>vol</span>
-        </span>
-        {(() => {
-          const cRaw = market.close_time || market.closes_at || market.end_time || market.close_date || null;
-          const closed = market.status === 'resolved' || market.status === 'closed' || (cRaw && new Date(cRaw) < new Date());
-          return closed ? (
-            <span className="text-xs flex items-center gap-1" style={{ color: 'var(--muted)' }}>
-              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: 'var(--muted)' }}></span>
-              Closed
-            </span>
-          ) : (
-            <span className="text-xs flex items-center gap-1" style={{ color: 'var(--yes)' }}>
-              <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: 'var(--yes)' }}></span>
-              Live
-            </span>
-          );
-        })()}
-      </div>
     </div>
   );
 }
