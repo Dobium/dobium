@@ -31,6 +31,7 @@ const {
   ForecastLeague,
   LeagueMember,
   LeagueTimingWindow,
+  Comment,
   initializeDatabase
 } = require('./lib/database/models');
 const { sendEmail } = require('./lib/email');
@@ -1768,6 +1769,44 @@ async function executePredictionPlacement({ market_id, outcome_id, stake_amount,
   return prediction;
 }
 
+
+// ============================================================================
+// MARKET COMMENTS
+// ============================================================================
+app.get('/api/markets/:id/comments', async (req, res) => {
+  try {
+    const comments = await Comment.findAll({
+      where: { market_id: req.params.id },
+      order: [['created_at', 'ASC']]
+    });
+    res.json(comments);
+  } catch (error) {
+    console.error('Get comments error:', error);
+    res.status(500).json({ error: 'Failed to fetch comments' });
+  }
+});
+
+app.post('/api/markets/:id/comments', async (req, res) => {
+  try {
+    const { user_id, username, body, parent_id = null } = req.body;
+    if (!user_id || !body || !String(body).trim()) {
+      return res.status(400).json({ error: 'Missing user or comment body' });
+    }
+    const clean = String(body).trim().slice(0, 2000);
+    const comment = await Comment.create({
+      market_id: req.params.id,
+      user_id,
+      username: (username || 'trader').slice(0, 50),
+      body: clean,
+      parent_id
+    });
+    res.json(comment);
+  } catch (error) {
+    console.error('Post comment error:', error);
+    res.status(500).json({ error: 'Failed to post comment' });
+  }
+});
+
 app.post('/api/predictions', async (req, res) => {
   try {
     const {
@@ -1784,6 +1823,15 @@ app.post('/api/predictions', async (req, res) => {
 
     if (stake_amount <= 0) {
       return res.status(400).json({ error: 'Stake amount must be greater than zero' });
+    }
+
+    // Auto-close: reject trades on markets past their close date or not active
+    const guardMarket = await Market.findByPk(market_id);
+    if (!guardMarket) {
+      return res.status(404).json({ error: 'Market not found' });
+    }
+    if (guardMarket.status !== 'active' || (guardMarket.close_date && new Date(guardMarket.close_date) < new Date())) {
+      return res.status(400).json({ error: 'This market has closed and no longer accepts trades' });
     }
 
     // Ensure the user exists in the local DB (Supabase auth users may not be synced yet)
