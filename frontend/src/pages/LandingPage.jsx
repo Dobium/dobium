@@ -108,16 +108,8 @@ export default function LandingPage() {
             }}
           />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 18 }}>
-            <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style={{ height: 'clamp(40px,6.2vw,64px)', width: 'auto', marginRight: -4 }}>
-              <defs>
-                <linearGradient id="landingDG" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor="#F7D573" /><stop offset="1" stopColor="#D89B2B" />
-                </linearGradient>
-              </defs>
-              <path d="M11.5 7.5 h5 a8.5 8.5 0 0 1 0 17 h-5 Z" stroke="url(#landingDG)" strokeWidth="3.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
             <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 600, fontSize: 'clamp(44px,7vw,72px)', background: 'linear-gradient(180deg,#F7D573,var(--gold-2))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
-              obium
+              Dobium
             </span>
           </div>
 
