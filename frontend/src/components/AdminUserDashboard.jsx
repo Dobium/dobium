@@ -330,7 +330,7 @@ export default function AdminUserDashboard({ user, onBack }) {
     }
   };
 
-  const startingBalance = wallet?.paper_starting_balance || wallet?.paperStartingBalance || 100000;
+  const startingBalance = wallet?.paper_starting_balance || wallet?.paperStartingBalance || 100;
   const totalStaked = predictions.reduce((sum, p) => sum + (p.stake_amount || 0), 0);
   const settledPredictions = allPredictions.filter(p => p.status === 'won' || p.status === 'lost');
   const availableBalance = buyingPower;

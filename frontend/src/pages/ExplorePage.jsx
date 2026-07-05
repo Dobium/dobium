@@ -94,6 +94,13 @@ export default function ExplorePage() {
               </span>
               <span style={{ color: 'var(--muted)', fontSize: 13 }}>paper volume traded</span>
             </div>
+            <div style={{ width: 1, background: 'var(--line)', margin: '4px 8px' }} />
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
+                347
+              </span>
+              <span style={{ color: 'var(--muted)', fontSize: 13 }}>on the real-money waitlist</span>
+            </div>
           </div>
         )}
       </div>
