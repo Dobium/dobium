@@ -34,6 +34,7 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds }) {
   const width = 800;
   const height = 300;
   const padding = 20;
+  const rightGutter = 34; // room for the 0/25/50/75/100% axis labels
 
   const [hoverIdx, setHoverIdx] = useState(null);
   const svgRef = useRef(null);
@@ -87,7 +88,7 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds }) {
   const range = maxValue - minValue || 1;
 
   const getY = (value) => padding + ((maxValue - value) / range) * (height - 2 * padding);
-  const getX = (index, total) => padding + (index / (total - 1)) * (width - 2 * padding);
+  const getX = (index, total) => padding + (index / (total - 1)) * (width - 2 * padding - rightGutter);
 
   const handleMouseMove = (e) => {
     if (!svgRef.current) return;
@@ -130,7 +131,7 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds }) {
             key={ratio}
             x1={padding}
             y1={padding + ratio * (height - 2 * padding)}
-            x2={width - padding}
+            x2={width - padding - rightGutter}
             y2={padding + ratio * (height - 2 * padding)}
             stroke="#334155"
             strokeWidth="0.5"
@@ -138,6 +139,49 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds }) {
             opacity="0.3"
           />
         ))}
+
+        {/* Y-axis percentage labels (right side) */}
+        {[0, 0.25, 0.5, 0.75, 1].map(ratio => {
+          const value = Math.round(maxValue - ratio * range);
+          return (
+            <text
+              key={ratio}
+              x={width - padding - rightGutter + 6}
+              y={padding + ratio * (height - 2 * padding)}
+              dominantBaseline="middle"
+              fontSize="10"
+              fill="#64748b"
+              fontFamily="var(--mono, monospace)"
+            >
+              {value}%
+            </text>
+          );
+        })}
+
+        {/* X-axis date labels (bottom) */}
+        {priceHistory && priceHistory.length >= 2 && (() => {
+          const tickCount = Math.min(5, priceHistory.length);
+          const step = (priceHistory.length - 1) / (tickCount - 1);
+          return Array.from({ length: tickCount }, (_, i) => {
+            const idx = Math.round(i * step);
+            const snap = priceHistory[idx];
+            if (!snap) return null;
+            const x = getX(idx, dataLength);
+            const label = new Date(snap.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return (
+              <text
+                key={i}
+                x={x}
+                y={height - 4}
+                textAnchor={i === 0 ? 'start' : i === tickCount - 1 ? 'end' : 'middle'}
+                fontSize="10"
+                fill="#64748b"
+              >
+                {label}
+              </text>
+            );
+          });
+        })()}
 
         {/* Lines for each outcome */}
         {histories.map((h, idx) => {
@@ -312,7 +356,10 @@ export default function MarketDetailPage() {
       const isMultiMultiple = marketType === 'multi_multiple' || marketType === 'multi_single';
       const hasYesNoPairs = localOutcomes.some(o => o.id?.endsWith('_yes'));
       const chartOutcomes = (isMultiMultiple && hasYesNoPairs) ? localOutcomes.filter(o => o.id?.endsWith('_yes')) : localOutcomes;
-      const top2 = [...chartOutcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0)).slice(0, 4).map(o => o.id);
+      // Binary Yes/No markets: default to just the leading side (one clean line, not a mirrored pair).
+      // Multi-candidate markets: show up to 3 leaders.
+      const defaultCount = chartOutcomes.length <= 2 ? 1 : 3;
+      const top2 = [...chartOutcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0)).slice(0, defaultCount).map(o => o.id);
       setSelectedIds(top2);
     }
   }, [market, selectedIds.length]);
@@ -492,7 +539,7 @@ export default function MarketDetailPage() {
           <span>Back</span>
         </button>
         <div className="flex items-center gap-3">
-          {market && <h1 className="text-xl md:text-2xl font-serif font-bold text-white truncate">{market.title}</h1>}
+          {market && <h1 className="text-xl md:text-2xl font-bold text-white truncate">{market.title}</h1>}
           {market && (
             <div className="hidden sm:flex items-center gap-3 shrink-0">
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${CATEGORY_COLORS[market.category] || 'from-slate-500 to-slate-600'} text-white`}>
@@ -625,7 +672,7 @@ export default function MarketDetailPage() {
           {/* Price Chart */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-serif font-bold text-white">Price History</h2>
+              <h2 className="text-lg font-bold text-white">Price History</h2>
             </div>
             <PriceChart selectedIds={selectedIds}
               outcomes={chartOutcomes}
@@ -711,7 +758,7 @@ export default function MarketDetailPage() {
             const visibleCards = activePos.slice(currentIdx, currentIdx + 3);
 
             return (
-              <div className="mt-6 border border-slate-800/80 bg-slate-900/30 rounded-xl p-4 font-serif">
+              <div className="mt-6 border border-slate-800/80 bg-slate-900/30 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
@@ -768,7 +815,7 @@ export default function MarketDetailPage() {
         </div>
 
         {/* Right Column: Outcomes — scrolls independently */}
-        <div className="w-full lg:w-[450px] font-serif lg:h-full lg:overflow-y-auto lg:pr-1 custom-scrollbar">
+        <div className="w-full lg:w-[450px] lg:h-full lg:overflow-y-auto lg:pr-1 custom-scrollbar">
           {market && (() => {
             const panelBinary = outcomes.length === 2;
             const sel = selectedOutcome;
@@ -893,7 +940,7 @@ export default function MarketDetailPage() {
             );
           })()}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-serif font-bold text-white">Outcomes</h2>
+            <h2 className="text-xl font-bold text-white">Outcomes</h2>
             {outcomes.length >= 10 && (
               <div className="relative w-48 sm:w-64">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -1280,13 +1327,13 @@ export default function MarketDetailPage() {
               <div className="space-y-8">
                 {unresolvedOutcomesList.length > 0 && (
                   <div>
-                    {isPartiallyResolved && <h3 className="text-sm font-serif font-bold text-slate-400 uppercase tracking-wider mb-4">Open Options</h3>}
+                    {isPartiallyResolved && <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Open Options</h3>}
                     {renderOutcomesBlock(unresolvedOutcomesList)}
                   </div>
                 )}
                 {resolvedOutcomesList.length > 0 && (
                   <div className={unresolvedOutcomesList.length > 0 ? 'pt-6 border-t border-slate-800' : ''}>
-                    <h3 className="text-sm font-serif font-bold text-slate-400 uppercase tracking-wider mb-4">Resolved Options</h3>
+                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Resolved Options</h3>
                     {renderOutcomesBlock(resolvedOutcomesList)}
                   </div>
                 )}

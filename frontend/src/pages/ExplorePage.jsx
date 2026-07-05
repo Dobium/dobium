@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import MarketCard from '../components/MarketCard';
+import { MarketGridSkeleton } from '../components/MarketCardSkeleton';
 import WaitlistCard from '../components/WaitlistCard';
 import { useMarkets } from '../hooks/useMarkets';
 
@@ -143,9 +144,7 @@ export default function ExplorePage() {
 
       {/* ── Markets grid ── */}
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-3 border-slate-700 border-t-yellow-400 rounded-full animate-spin" />
-        </div>
+        <MarketGridSkeleton count={9} />
       ) : filtered.length === 0 ? (
         <p style={{ color: 'var(--muted)', textAlign: 'center', padding: '48px 0' }}>
           No markets match — try another category.

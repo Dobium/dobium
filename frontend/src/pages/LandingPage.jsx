@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useMarkets } from '../hooks/useMarkets';
 import MarketCard from '../components/MarketCard';
+import { MarketGridSkeleton } from '../components/MarketCardSkeleton';
 import WaitlistCard from '../components/WaitlistCard';
 
 // Shown in the hero stats until the waitlist count is wired to the database.
@@ -211,8 +212,8 @@ export default function LandingPage() {
         )}
 
         {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-3 border-slate-700 border-t-yellow-400 rounded-full animate-spin" />
+          <div style={{ marginTop: 64 }}>
+            <MarketGridSkeleton count={6} />
           </div>
         )}
       </div>

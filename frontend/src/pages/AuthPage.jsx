@@ -59,7 +59,7 @@ export default function AuthPage() {
 
         {view === 'login' && (
           <>
-            <h1 className="auth-title font-serif font-extrabold text-white text-2xl md:text-3xl text-center mb-1">Welcome back</h1>
+            <h1 className="auth-title font-extrabold text-white text-2xl md:text-3xl text-center mb-1">Welcome back</h1>
             <p className="auth-subtitle">Sign in to your account</p>
 
             {/* Google — primary CTA */}
@@ -115,7 +115,7 @@ export default function AuthPage() {
 
         {view === 'signup' && (
           <>
-            <h1 className="auth-title font-serif font-extrabold text-white text-2xl md:text-3xl text-center mb-1">Create account</h1>
+            <h1 className="auth-title font-extrabold text-white text-2xl md:text-3xl text-center mb-1">Create account</h1>
             <p className="auth-subtitle">Join Samsa Prediction Markets</p>
 
             {/* Google — primary CTA */}
