@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 import ExplorePage from './pages/ExplorePage';
+import PulsePage from './pages/PulsePage';
 import MarketDetailPage from './pages/MarketDetailPage';
 import NewsPage from './pages/NewsPage';
 import SettingsPage from './pages/SettingsPage';
@@ -36,6 +37,7 @@ function AppRoutes() {
           <Route path="/portfolio" element={session ? <DashboardPage /> : <Navigate to="/explore" replace />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/explore" element={<ExplorePage />} />
+          <Route path="/pulse" element={<PulsePage />} />
           <Route path="/markets/:id" element={<MarketDetailPage />} />
           <Route path="/leagues" element={<LeaguesPage />} />
           <Route path="/leagues/leaderboard" element={<GlobalLeaderboardPage />} />

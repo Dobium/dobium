@@ -158,7 +158,7 @@ export default function AdminDashboard() {
   const [digestPreviewLoading, setDigestPreviewLoading] = useState(false);
   const [digestUserId, setDigestUserId] = useState('');
 
-  const adminAccount = 'donotreply.dobium@gmail.com';
+  const ADMIN_ACCOUNTS = ['donotreply.dobium@gmail.com', 'neel.bolaram@gmail.com'];
   const rawApiUrl = import.meta.env.VITE_API_URL || '';
   const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
 
@@ -176,7 +176,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const userEmail = session?.user?.email;
-    if (userEmail === adminAccount) {
+    if (ADMIN_ACCOUNTS.includes(userEmail)) {
       setIsAdmin(true);
       fetch(`${API_URL}/api/health`)
         .then(res => res.json())
@@ -184,7 +184,7 @@ export default function AdminDashboard() {
         .catch(() => setHealth({ ok: false, error: 'Cannot connect to API' }));
       fetchMarkets();
       fetchPredictions();
-      fetch(`${API_URL}/api/admin/users?adminEmail=${encodeURIComponent(adminAccount)}`)
+      fetch(`${API_URL}/api/admin/users?adminEmail=${encodeURIComponent(userEmail)}`)
         .then(res => res.json())
         .then(data => setUsers(Array.isArray(data) ? data : []))
         .catch(console.error);

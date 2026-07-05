@@ -33,6 +33,7 @@ const {
   LeagueTimingWindow,
   Comment,
   MarketSuggestion,
+  Waitlist,
   initializeDatabase
 } = require('./lib/database/models');
 const { sendEmail } = require('./lib/email');
@@ -84,6 +85,9 @@ const PORT = process.env.PORT || 3001;
 const Stripe = require('stripe');
 const stripeSecret = (process.env.STRIPE_SECRET_KEY || '').trim();
 const stripe = stripeSecret ? Stripe(stripeSecret) : null;
+// Admin accounts allowed to use /admin and admin endpoints
+const ADMIN_EMAILS = ['donotreply.dobium@gmail.com', 'neel.bolaram@gmail.com'];
+
 // Hard-coded: every user starts with $100 paper money (env override intentionally disabled)
 const PAPER_TRADING_STARTING_BALANCE = 100;
 
@@ -1814,6 +1818,66 @@ app.post('/api/markets/:id/comments', async (req, res) => {
 const { runMarketScout } = require('./jobs/market-scout');
 
 // Vercel Cron hits this daily; also callable manually from the admin
+// ============================================================================
+// WAITLIST — real-money signup (own database, no Supabase table dependency)
+// ============================================================================
+app.post('/api/waitlist', async (req, res) => {
+  try {
+    const email = (req.body?.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Enter a valid email address.' });
+    }
+    const [entry, created] = await Waitlist.findOrCreate({ where: { email }, defaults: { email } });
+    res.json({ ok: true, already: !created });
+  } catch (error) {
+    console.error('Waitlist signup error:', error);
+    res.status(500).json({ error: "Couldn't save your spot — please try again." });
+  }
+});
+
+app.get('/api/waitlist/count', async (req, res) => {
+  try {
+    const count = await Waitlist.count();
+    res.json({ count });
+  } catch (error) {
+    console.error('Waitlist count error:', error);
+    res.status(500).json({ error: 'Failed to fetch count' });
+  }
+});
+
+// ============================================================================
+// PULSE — public lightweight stats (paper money + waitlist tracking)
+// ============================================================================
+app.get('/api/pulse', async (req, res) => {
+  try {
+    const [userCount, waitlistCount, markets, txCount] = await Promise.all([
+      User.count(),
+      Waitlist.count(),
+      Market.findAll({ attributes: ['id', 'status', 'total_volume', 'category'] }),
+      Transaction.count(),
+    ]);
+    const totalVolume = markets.reduce((sum, m) => sum + Number(m.total_volume || 0), 0);
+    const activeMarkets = markets.filter(m => m.status === 'active').length;
+    const byCategory = {};
+    for (const m of markets) {
+      byCategory[m.category] = (byCategory[m.category] || 0) + 1;
+    }
+    res.json({
+      users: userCount,
+      waitlist: waitlistCount,
+      markets_total: markets.length,
+      markets_active: activeMarkets,
+      paper_volume_traded: totalVolume,
+      transactions: txCount,
+      markets_by_category: byCategory,
+      generated_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Pulse error:', error);
+    res.status(500).json({ error: 'Failed to load stats' });
+  }
+});
+
 app.get('/api/cron/market-scout', async (req, res) => {
   try {
     const result = await runMarketScout();
@@ -2768,7 +2832,7 @@ app.delete('/api/users/:id/notifications', async (req, res) => {
 app.get('/api/admin/users', async (req, res) => {
   try {
     const { adminEmail } = req.query;
-    if (adminEmail !== 'donotreply.dobium@gmail.com') {
+    if (!ADMIN_EMAILS.includes(adminEmail)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
@@ -2821,7 +2885,7 @@ app.get('/api/admin/users', async (req, res) => {
 app.get('/api/admin/preview-digest', async (req, res) => {
   try {
     const { adminEmail, userId } = req.query;
-    if (adminEmail !== 'donotreply.dobium@gmail.com') {
+    if (!ADMIN_EMAILS.includes(adminEmail)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
@@ -2863,7 +2927,7 @@ app.post('/api/admin/send-email', async (req, res) => {
     const { to, subject, text, html, adminEmail, heading, greeting, callout, cta } = req.body;
 
     // Verify admin identity
-    if (adminEmail !== 'donotreply.dobium@gmail.com') {
+    if (!ADMIN_EMAILS.includes(adminEmail)) {
       return res.status(403).json({ error: 'Forbidden — admin access required' });
     }
 
@@ -3007,7 +3071,7 @@ app.post('/api/admin/send-broadcast', async (req, res) => {
       subject, heading, heroIcon, body: bodyText, callout, questions, newsUpdates, ctaLabel, ctaUrl, externalEmails
     } = req.body;
 
-    if (adminEmail !== 'donotreply.dobium@gmail.com') {
+    if (!ADMIN_EMAILS.includes(adminEmail)) {
       return res.status(403).json({ error: 'Forbidden — admin access required' });
     }
 
@@ -3127,7 +3191,7 @@ app.post('/api/admin/send-broadcast', async (req, res) => {
 
 const checkAdmin = (req, res, next) => {
   const adminEmail = req.query.adminEmail || req.body.adminEmail;
-  if (adminEmail !== 'donotreply.dobium@gmail.com') {
+  if (!ADMIN_EMAILS.includes(adminEmail)) {
     return res.status(403).json({ error: 'Forbidden — admin access required' });
   }
   next();

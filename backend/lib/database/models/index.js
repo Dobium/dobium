@@ -23,6 +23,7 @@ const MainEventMarket = require('./MainEventMarket');
 const GlobalScore = require('./GlobalScore');
 const Comment = require('./Comment');
 const MarketSuggestion = require('./MarketSuggestion');
+const Waitlist = require('./Waitlist');
 
 // ============================================================================
 // DEFINE RELATIONSHIPS
@@ -145,6 +146,7 @@ module.exports = {
   sequelize,
   Comment,
   MarketSuggestion,
+  Waitlist,
   User,
   Transaction,
   Market,
