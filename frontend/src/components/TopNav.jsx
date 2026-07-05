@@ -46,14 +46,13 @@ export default function TopNav() {
         onClick={() => navigate('/')}
         style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', flexShrink: 0 }}
       >
-        <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style={{ height: 22, width: 'auto' }}>
+        <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style={{ height: 24, width: 'auto', marginRight: -3 }}>
           <defs>
             <linearGradient id="navGoldG" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0" stopColor="#F7D573" /><stop offset="1" stopColor="#D89B2B" />
             </linearGradient>
           </defs>
-          <path d="M4 23 L12 15 L18 20 L28 8" stroke="url(#navGoldG)" strokeWidth="3.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx="28" cy="8" r="3.2" fill="url(#navGoldG)" />
+          <path d="M11.5 7.5 h5 a8.5 8.5 0 0 1 0 17 h-5 Z" stroke="url(#navGoldG)" strokeWidth="3.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 600, fontSize: 21, background: 'linear-gradient(180deg,#F7D573,var(--gold-2))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
           obium
