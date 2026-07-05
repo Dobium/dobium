@@ -9,7 +9,7 @@ function plusDays(n) {
   return d.toISOString().slice(0, 10);
 }
 
-export default function TrendingRadar() {
+export default function TrendingRadar({ radarKey }) {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
@@ -19,7 +19,7 @@ export default function TrendingRadar() {
 
   const load = useCallback(async () => {
     try {
-      const data = await api.getSuggestions('pending');
+      const data = await api.getSuggestions('pending', radarKey);
       setSuggestions(Array.isArray(data) ? data : []);
     } catch { setSuggestions([]); }
     setLoading(false);
@@ -30,7 +30,7 @@ export default function TrendingRadar() {
   const scanNow = async () => {
     setScanning(true); setScanMsg('');
     try {
-      const r = await api.runMarketScout();
+      const r = await api.runMarketScout(radarKey);
       setScanMsg(`Scanned ${r.scanned} trending items · ${r.filtered_out} removed by harm filter · ${r.new_suggestions} new`);
       await load();
     } catch (e) {
@@ -59,7 +59,7 @@ export default function TrendingRadar() {
         ],
         is_trending: true,
       });
-      await api.setSuggestionStatus(s.id, 'published');
+      await api.setSuggestionStatus(s.id, 'published', radarKey);
       setSuggestions(prev => prev.filter(x => x.id !== s.id));
     } catch (e) {
       setScanMsg(`Publish failed: ${e.message}`);
@@ -70,7 +70,7 @@ export default function TrendingRadar() {
   const dismiss = async (s) => {
     setBusy(prev => ({ ...prev, [s.id]: true }));
     try {
-      await api.setSuggestionStatus(s.id, 'dismissed');
+      await api.setSuggestionStatus(s.id, 'dismissed', radarKey);
       setSuggestions(prev => prev.filter(x => x.id !== s.id));
     } catch { /* leave in list */ }
     setBusy(prev => ({ ...prev, [s.id]: false }));
