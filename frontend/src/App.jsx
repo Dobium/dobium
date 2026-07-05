@@ -5,6 +5,7 @@ import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 import ExplorePage from './pages/ExplorePage';
 import PulsePage from './pages/PulsePage';
+import RadarPage from './pages/RadarPage';
 import MarketDetailPage from './pages/MarketDetailPage';
 import NewsPage from './pages/NewsPage';
 import SettingsPage from './pages/SettingsPage';
@@ -38,6 +39,7 @@ function AppRoutes() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/pulse" element={<PulsePage />} />
+          <Route path="/radar" element={<RadarPage />} />
           <Route path="/markets/:id" element={<MarketDetailPage />} />
           <Route path="/leagues" element={<LeaguesPage />} />
           <Route path="/leagues/leaderboard" element={<GlobalLeaderboardPage />} />
