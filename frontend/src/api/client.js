@@ -40,6 +40,10 @@ export const api = {
     request(`/markets/${id}/resolve`, { method: 'POST', body: JSON.stringify({ winning_outcome_id: winningOutcomeId }) }),
 
   // Predictions
+  getSuggestions: (status = 'pending') => request(`/market-suggestions?status=${status}`),
+  runMarketScout: () => request('/cron/market-scout'),
+  setSuggestionStatus: (id, status) => request(`/market-suggestions/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) }),
+
   getComments: (marketId) => request(`/markets/${marketId}/comments`),
   postComment: (marketId, data) => request(`/markets/${marketId}/comments`, { method: 'POST', body: JSON.stringify(data) }),
 

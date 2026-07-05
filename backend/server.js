@@ -32,6 +32,7 @@ const {
   LeagueMember,
   LeagueTimingWindow,
   Comment,
+  MarketSuggestion,
   initializeDatabase
 } = require('./lib/database/models');
 const { sendEmail } = require('./lib/email');
@@ -1804,6 +1805,54 @@ app.post('/api/markets/:id/comments', async (req, res) => {
   } catch (error) {
     console.error('Post comment error:', error);
     res.status(500).json({ error: 'Failed to post comment' });
+  }
+});
+
+// ============================================================================
+// MARKET SCOUT — trending suggestions
+// ============================================================================
+const { runMarketScout } = require('./jobs/market-scout');
+
+// Vercel Cron hits this daily; also callable manually from the admin
+app.get('/api/cron/market-scout', async (req, res) => {
+  try {
+    const result = await runMarketScout();
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    console.error('Market scout error:', error);
+    res.status(500).json({ error: 'Scout run failed' });
+  }
+});
+
+app.get('/api/market-suggestions', async (req, res) => {
+  try {
+    const status = req.query.status || 'pending';
+    const suggestions = await MarketSuggestion.findAll({
+      where: { status },
+      order: [['score', 'DESC'], ['created_at', 'DESC']],
+      limit: 60
+    });
+    res.json(suggestions);
+  } catch (error) {
+    console.error('Get suggestions error:', error);
+    res.status(500).json({ error: 'Failed to fetch suggestions' });
+  }
+});
+
+app.post('/api/market-suggestions/:id/status', async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['pending', 'dismissed', 'published'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    const suggestion = await MarketSuggestion.findByPk(req.params.id);
+    if (!suggestion) return res.status(404).json({ error: 'Suggestion not found' });
+    suggestion.status = status;
+    await suggestion.save();
+    res.json(suggestion);
+  } catch (error) {
+    console.error('Update suggestion error:', error);
+    res.status(500).json({ error: 'Failed to update suggestion' });
   }
 });
 

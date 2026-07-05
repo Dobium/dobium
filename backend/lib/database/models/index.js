@@ -22,6 +22,7 @@ const MainEvent = require('./MainEvent');
 const MainEventMarket = require('./MainEventMarket');
 const GlobalScore = require('./GlobalScore');
 const Comment = require('./Comment');
+const MarketSuggestion = require('./MarketSuggestion');
 
 // ============================================================================
 // DEFINE RELATIONSHIPS
@@ -143,6 +144,7 @@ async function initializeDatabase(force = false) {
 module.exports = {
   sequelize,
   Comment,
+  MarketSuggestion,
   User,
   Transaction,
   Market,
