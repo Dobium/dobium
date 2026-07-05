@@ -88,6 +88,19 @@ const stripe = stripeSecret ? Stripe(stripeSecret) : null;
 // Admin accounts allowed to use /admin and admin endpoints
 const ADMIN_EMAILS = ['donotreply.dobium@gmail.com', 'neel.bolaram@gmail.com'];
 
+// Passphrase gate for /radar (the market-suggestion review queue).
+// NOTE: since this repo is public, this is a light lock, not real secrecy —
+// it stops anyone stumbling onto the page/API, not a determined reader of the source.
+// Move this to a private env var once Vercel/hosting access is sorted.
+const RADAR_KEY = 'dobium-radar-9247';
+function requireRadarKey(req, res, next) {
+  const key = req.headers['x-radar-key'] || req.query.key;
+  if (key !== RADAR_KEY) {
+    return res.status(403).json({ error: 'Invalid or missing radar key' });
+  }
+  next();
+}
+
 // Hard-coded: every user starts with $100 paper money (env override intentionally disabled)
 const PAPER_TRADING_STARTING_BALANCE = 100;
 
@@ -1878,7 +1891,7 @@ app.get('/api/pulse', async (req, res) => {
   }
 });
 
-app.get('/api/cron/market-scout', async (req, res) => {
+app.get('/api/cron/market-scout', requireRadarKey, async (req, res) => {
   try {
     const result = await runMarketScout();
     res.json({ ok: true, ...result });
@@ -1888,7 +1901,7 @@ app.get('/api/cron/market-scout', async (req, res) => {
   }
 });
 
-app.get('/api/market-suggestions', async (req, res) => {
+app.get('/api/market-suggestions', requireRadarKey, async (req, res) => {
   try {
     const status = req.query.status || 'pending';
     const suggestions = await MarketSuggestion.findAll({
@@ -1903,7 +1916,7 @@ app.get('/api/market-suggestions', async (req, res) => {
   }
 });
 
-app.post('/api/market-suggestions/:id/status', async (req, res) => {
+app.post('/api/market-suggestions/:id/status', requireRadarKey, async (req, res) => {
   try {
     const { status } = req.body;
     if (!['pending', 'dismissed', 'published'].includes(status)) {

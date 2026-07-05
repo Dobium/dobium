@@ -44,9 +44,9 @@ export const api = {
   getWaitlistCount: () => request('/waitlist/count'),
   getPulse: () => request('/pulse'),
 
-  getSuggestions: (status = 'pending') => request(`/market-suggestions?status=${status}`),
-  runMarketScout: () => request('/cron/market-scout'),
-  setSuggestionStatus: (id, status) => request(`/market-suggestions/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) }),
+  getSuggestions: (status = 'pending', radarKey) => request(`/market-suggestions?status=${status}`, { headers: { 'x-radar-key': radarKey } }),
+  runMarketScout: (radarKey) => request('/cron/market-scout', { headers: { 'x-radar-key': radarKey } }),
+  setSuggestionStatus: (id, status, radarKey) => request(`/market-suggestions/${id}/status`, { method: 'POST', body: JSON.stringify({ status }), headers: { 'x-radar-key': radarKey } }),
 
   getComments: (marketId) => request(`/markets/${marketId}/comments`),
   postComment: (marketId, data) => request(`/markets/${marketId}/comments`, { method: 'POST', body: JSON.stringify(data) }),
