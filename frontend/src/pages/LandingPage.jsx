@@ -1,13 +1,11 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMarkets } from '../hooks/useMarkets';
-import { api } from '../api/client';
 import MarketCard from '../components/MarketCard';
 import { MarketGridSkeleton } from '../components/MarketCardSkeleton';
 import WaitlistCard from '../components/WaitlistCard';
 
-// Shown in the hero stats until the live waitlist count loads.
-const WAITLIST_COUNT_FALLBACK = 347;
+// Shown in the hero stats until the waitlist count is wired to the database.
+const WAITLIST_COUNT = 347;
 
 function leaderOf(market) {
   const outcomes = market.outcomes || [];
@@ -46,30 +44,29 @@ function Ticker({ markets }) {
       style={{
         overflow: 'hidden',
         borderBottom: '1px solid var(--line)',
-        background: 'rgba(18,23,41,.85)',
+        background: 'rgba(14,22,49,.8)',
       }}
     >
-      <div className="dbm-ticker-track" style={{ display: 'inline-flex', whiteSpace: 'nowrap', padding: '8px 0' }}>
+      <div className="dbm-ticker-track" style={{ display: 'inline-flex', whiteSpace: 'nowrap', padding: '9px 0' }}>
         {loop.map((it, i) => (
           <span
             key={`${it.id}-${i}`}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '0 22px', fontSize: 11.5,
-              fontFamily: 'var(--mono)', color: 'var(--muted)',
-              borderRight: '1px solid var(--line)',
+              padding: '0 26px', fontSize: 12.5, color: 'var(--text)',
+              borderRight: '1px solid rgba(33,48,92,.55)',
             }}
           >
             <span
               style={{
                 display: 'inline-block', maxWidth: 250,
                 overflow: 'hidden', textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap', verticalAlign: 'middle', color: 'var(--text)',
+                whiteSpace: 'nowrap', verticalAlign: 'middle', fontWeight: 500,
               }}
             >
               {it.title}
             </span>
-            <span style={{ fontWeight: 600, color: it.delta < 0 ? 'var(--no)' : 'var(--yes)' }}>
+            <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: it.delta < 0 ? 'var(--no)' : 'var(--yes)' }}>
               {it.pct}¢ {it.delta < 0 ? '▼' : '▲'}
             </span>
           </span>
@@ -87,160 +84,139 @@ function Ticker({ markets }) {
 export default function LandingPage() {
   const { markets, loading } = useMarkets();
   const navigate = useNavigate();
-  const [waitlistCount, setWaitlistCount] = useState(null);
-
-  useEffect(() => {
-    api.getWaitlistCount()
-      .then(d => setWaitlistCount(d?.count ?? null))
-      .catch(() => setWaitlistCount(null));
-  }, []);
 
   const totalVolume = markets.reduce((s, m) => s + (m.total_volume || 0), 0);
   const topMarkets = [...markets]
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
-    .slice(0, 3);
+    .slice(0, 6);
 
   const scrollToWaitlist = () =>
     document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-  const volLabel = totalVolume >= 1000000
-    ? `$${(totalVolume / 1000000).toFixed(1)}M`
-    : totalVolume >= 1000
-      ? `$${(totalVolume / 1000).toFixed(1)}K`
-      : `$${totalVolume.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 
   return (
     <div>
       <Ticker markets={markets} />
 
-      <div className="max-w-6xl mx-auto px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto p-6 lg:p-8">
         {/* ── Hero ── */}
-        <div style={{ textAlign: 'center', padding: '84px 24px 64px', position: 'relative' }}>
+        <div style={{ textAlign: 'center', padding: '64px 24px 40px', position: 'relative' }}>
           <div
             style={{
-              position: 'absolute', top: -40, left: '50%', transform: 'translateX(-50%)',
-              width: 640, height: 340,
-              background: 'radial-gradient(ellipse at center,rgba(232,196,104,.08),transparent 65%)',
+              position: 'absolute', top: -60, left: '50%', transform: 'translateX(-50%)',
+              width: 580, height: 320,
+              background: 'radial-gradient(ellipse at center,rgba(240,192,74,.10),transparent 65%)',
               pointerEvents: 'none',
             }}
           />
-          <h1 style={{
-            fontFamily: 'var(--wordmark)', fontWeight: 400,
-            fontSize: 'clamp(34px,5.4vw,52px)', lineHeight: 1.18,
-            margin: '0 0 20px', color: 'var(--text)',
-          }}>
-            The entertainment<br />
-            <span style={{
-              background: 'linear-gradient(180deg, var(--gold-text), var(--gold-2))',
-              WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
-            }}>
-              prediction market
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 18 }}>
+            <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 600, fontSize: 'clamp(44px,7vw,72px)', background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
+              Dobium
             </span>
-          </h1>
+          </div>
 
-          <p style={{ color: 'var(--muted)', fontSize: 14.5, maxWidth: 470, margin: '0 auto 30px', lineHeight: 1.6 }}>
-            High-fidelity paper trading on pop culture, awards, and entertainment
-            events. Trade your convictions with zero risk.
+          <p style={{ color: 'var(--text)', fontSize: 'clamp(18px,2.6vw,24px)', fontWeight: 400, maxWidth: 620, margin: '0 auto 12px', opacity: .93 }}>
+            The entertainment prediction market
+          </p>
+          <p style={{ color: 'var(--muted)', fontSize: 14.5, maxWidth: 520, margin: '0 auto 34px', lineHeight: 1.6 }}>
+            Trade on music drops, box office, awards and the biggest moments in culture
+            — with $100 paper money. <span style={{ color: 'var(--gold)' }}><span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: '-2px', marginRight: 2 }}>bolt</span>World Cup markets are live.</span>
           </p>
 
           {/* CTA buttons */}
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 70 }}>
+          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 42 }}>
             <button
               onClick={() => navigate('/explore')}
               style={{
-                background: 'var(--gold)', color: '#1a1405',
-                fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 13,
-                border: 'none', borderRadius: 6, padding: '12px 22px',
-                cursor: 'pointer', boxShadow: '0 4px 18px rgba(232,196,104,.22)',
+                background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))',
+                color: '#1a1405', fontWeight: 700, fontSize: 15,
+                border: 'none', borderRadius: 12, padding: '13px 26px',
+                cursor: 'pointer', boxShadow: '0 6px 22px rgba(240,192,74,.28)',
               }}
             >
-              Start Predicting
+              Start Predicting →
             </button>
             <button
               onClick={scrollToWaitlist}
               style={{
-                background: 'transparent', color: 'var(--text)',
-                fontFamily: 'var(--mono)', fontWeight: 600, fontSize: 13,
-                border: '1px solid var(--line)', borderRadius: 6, padding: '12px 22px',
+                background: 'rgba(17,26,57,.65)', color: 'var(--text)',
+                fontWeight: 600, fontSize: 15,
+                border: '1px solid var(--line)', borderRadius: 12, padding: '13px 26px',
                 cursor: 'pointer',
               }}
             >
-              Join Waitlist
+              Join Waitlist for Real Money
             </button>
           </div>
 
-          {/* Stats strip — single bordered panel, three columns */}
+          {/* Stats row */}
           {!loading && (
-            <div className="dbm-panel" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', textAlign: 'left' }}>
-              {[
-                { label: 'Paper Volume Traded', value: volLabel, gold: true },
-                { label: 'Live Markets', value: markets.length.toLocaleString('en-US') },
-                { label: 'Waitlist Count', value: (waitlistCount ?? WAITLIST_COUNT_FALLBACK).toLocaleString('en-US') },
-              ].map((s, i) => (
-                <div key={s.label} style={{ padding: '20px 26px', borderLeft: i > 0 ? '1px solid var(--line)' : 'none' }}>
-                  <span className="dbm-stat-label">{s.label}</span>
-                  <span style={{
-                    display: 'block', marginTop: 8,
-                    fontFamily: 'var(--mono)', fontWeight: 600, fontSize: 24,
-                    color: s.gold ? 'var(--gold)' : 'var(--text)',
-                  }}>
-                    {s.value}
-                  </span>
-                </div>
-              ))}
+            <div style={{ display: 'flex', gap: 18, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'stretch' }}>
+              <div style={{ textAlign: 'center', minWidth: 120 }}>
+                <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>
+                  ${totalVolume.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                </span>
+                <span style={{ color: 'var(--muted)', fontSize: 13 }}>paper volume traded</span>
+              </div>
+              <div style={{ width: 1, background: 'var(--line)' }} />
+              <div style={{ textAlign: 'center', minWidth: 100 }}>
+                <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>
+                  {markets.length}
+                </span>
+                <span style={{ color: 'var(--muted)', fontSize: 13 }}>live markets</span>
+              </div>
+              <div style={{ width: 1, background: 'var(--line)' }} />
+              <div style={{ textAlign: 'center', minWidth: 130 }}>
+                <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>
+                  {WAITLIST_COUNT}
+                </span>
+                <span style={{ color: 'var(--muted)', fontSize: 13 }}>on the real-money waitlist</span>
+              </div>
             </div>
           )}
         </div>
         {/* ── /Hero ── */}
 
-        {/* ── Secure Early Access ── */}
-        <WaitlistCard />
+        {/* ── Waitlist (the #1 priority element) ── */}
+        <div id="waitlist" style={{ scrollMarginTop: 24, padding: '14px 0 6px' }}>
+          <WaitlistCard />
+        </div>
 
-        {/* ── Trending Markets ── */}
-        <div style={{ marginTop: 56, paddingBottom: 40 }}>
-          <div style={{
-            display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-            flexWrap: 'wrap', gap: 8, marginBottom: 18,
-            borderBottom: '1px solid var(--line)', paddingBottom: 14,
-          }}>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 17, color: 'var(--text)', margin: 0 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--gold)' }}>trending_up</span>
-              Trending Markets
-            </h2>
-            <button
-              onClick={() => navigate('/explore')}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--muted)',
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--gold)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}
-            >
-              View All →
-            </button>
-          </div>
-
-          {loading ? (
-            <MarketGridSkeleton count={3} />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* ── Live Markets preview ── */}
+        {!loading && topMarkets.length > 0 && (
+          <div style={{ marginTop: 64 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 22 }}>
+              <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 28, color: 'var(--text)', margin: 0 }}>
+                Live Markets
+              </h2>
+              <span style={{ color: 'var(--muted)', fontSize: 13 }}>
+                Sorted by <span style={{ color: 'var(--gold)', fontWeight: 600 }}>volume</span> · updates live
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-auto">
               {topMarkets.map((m) => <MarketCard key={m.id} market={m} />)}
             </div>
-          )}
-        </div>
-      </div>
+            <div style={{ textAlign: 'center', marginTop: 30 }}>
+              <button
+                onClick={() => navigate('/explore')}
+                style={{
+                  background: 'transparent', color: 'var(--gold)',
+                  fontWeight: 600, fontSize: 14,
+                  border: '1px solid var(--gold)', borderRadius: 12, padding: '11px 24px',
+                  cursor: 'pointer',
+                }}
+              >
+                See all markets →
+              </button>
+            </div>
+          </div>
+        )}
 
-      {/* ── Footer ── */}
-      <footer style={{
-        borderTop: '1px solid var(--line)', marginTop: 40,
-        padding: '26px 32px', display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', flexWrap: 'wrap', gap: 10,
-      }}>
-        <span style={{ fontFamily: 'var(--wordmark)', fontSize: 17, color: 'var(--text)' }}>Dobium</span>
-        <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-          © {new Date().getFullYear()} Dobium Prediction Markets. High-fidelity paper trading.
-        </span>
-      </footer>
+        {loading && (
+          <div style={{ marginTop: 64 }}>
+            <MarketGridSkeleton count={6} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
