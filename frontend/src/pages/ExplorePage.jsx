@@ -6,12 +6,21 @@ import WaitlistCard from '../components/WaitlistCard';
 import { useMarkets } from '../hooks/useMarkets';
 
 const CHIPS = [
-  { id: 'all', label: 'All' },
-  { id: 'music', label: 'Music' },
-  { id: 'sports', label: 'Sports' },
-  { id: 'entertainment', label: 'Movies & TV' },
-  { id: 'awards', label: 'Awards' },
+  { id: 'all', label: 'All', icon: null },
+  { id: 'short', label: 'Short resolution', icon: 'bolt' },
+  { id: 'long', label: 'Long resolution', icon: 'trending_up' },
+  { id: 'music', label: 'Music', icon: 'music_note' },
+  { id: 'sports', label: 'Sports', icon: 'trophy' },
+  { id: 'entertainment', label: 'Movies & TV', icon: 'movie' },
+  { id: 'awards', label: 'Awards', icon: 'award_star' },
 ];
+
+// Same close-date fallbacks MarketCard uses, so fuse filters match the fuse labels.
+function daysLeft(m) {
+  const raw = m.close_time || m.closes_at || m.end_time || m.close_date || null;
+  if (!raw) return null;
+  return Math.ceil((new Date(raw) - Date.now()) / 86400000);
+}
 
 export default function ExplorePage() {
   const { markets, loading } = useMarkets();
@@ -23,46 +32,78 @@ export default function ExplorePage() {
 
   const filtered = [...markets]
     .filter((m) => {
-      const chipMatch = chip === 'all' ? true : m.category === chip;
+      const d = daysLeft(m);
+      const chipMatch =
+        chip === 'all' ? true :
+        chip === 'short' ? d !== null && d > 0 && d <= 7 :
+        chip === 'long' ? d !== null && d > 7 :
+        m.category === chip;
       const searchMatch = !search || m.title?.toLowerCase().includes(search.toLowerCase());
       return chipMatch && searchMatch;
     })
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 
   return (
-    <div className="max-w-6xl mx-auto p-6 lg:p-8">
+    <div className="max-w-7xl mx-auto p-6 lg:p-8">
 
-      {/* ── Heading ── */}
-      <h1 style={{
-        fontFamily: 'var(--wordmark)', fontWeight: 400, fontSize: 'clamp(28px,4vw,36px)',
-        color: 'var(--text)', margin: '10px 0 24px',
-      }}>
-        Explore Markets
-      </h1>
-
-      {/* ── Search left + filter pills right ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
-        <div style={{ position: 'relative', flex: '0 1 340px', minWidth: 240 }}>
-          <span className="material-symbols-outlined" style={{
-            position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-            fontSize: 16, color: 'var(--gold)',
-          }}>
-            search
+      {/* ── Hero ── */}
+      <div style={{ textAlign: 'center', padding: '64px 24px 48px', position: 'relative' }}>
+        <div style={{
+          position: 'absolute', top: -60, left: '50%', transform: 'translateX(-50%)',
+          width: 580, height: 320,
+          background: 'radial-gradient(ellipse at center,rgba(240,192,74,.10),transparent 65%)',
+          pointerEvents: 'none',
+        }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 18 }}>
+            <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 600, fontSize: 'clamp(44px,7vw,72px)', background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
+            Dobium
           </span>
-          <input
-            type="text"
-            placeholder="Search markets..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              width: '100%',
-              background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 6,
-              padding: '10px 14px 10px 36px',
-              color: 'var(--text)', fontSize: 13.5, outline: 'none',
-            }}
-          />
         </div>
+        <p style={{ color: 'var(--text)', fontSize: 'clamp(17px,2.4vw,22px)', fontWeight: 400, maxWidth: 580, margin: '0 auto 10px', opacity: .92 }}>
+          The entertainment prediction market
+        </p>
+        <p style={{ color: 'var(--muted)', fontSize: 14, maxWidth: 480, margin: '0 auto 36px' }}>
+          Trade on music drops, box office, awards and the biggest moments in culture — with $100 paper money.
+        </p>
+        {!loading && (
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
+                {markets.length}
+              </span>
+              <span style={{ color: 'var(--muted)', fontSize: 13 }}>live markets</span>
+            </div>
+            <div style={{ width: 1, background: 'var(--line)', margin: '4px 8px' }} />
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
+                ${markets.reduce((s, m) => s + (m.total_volume || 0), 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+              </span>
+              <span style={{ color: 'var(--muted)', fontSize: 13 }}>paper volume traded</span>
+            </div>
+            <div style={{ width: 1, background: 'var(--line)', margin: '4px 8px' }} />
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
+                347
+              </span>
+              <span style={{ color: 'var(--muted)', fontSize: 13 }}>on the real-money waitlist</span>
+            </div>
+          </div>
+        )}
+      </div>
+      {/* ── /Hero ── */}
 
+      {/* ── Live Markets heading ── */}
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+        <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 28, color: 'var(--text)', margin: 0 }}>
+          Live Markets
+        </h2>
+        <span style={{ color: 'var(--muted)', fontSize: 13 }}>
+          Sorted by <span style={{ color: 'var(--gold)', fontWeight: 600 }}>volume</span> · updates live
+        </span>
+      </div>
+
+      {/* ── Filter chips + search ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 26 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {CHIPS.map((c) => {
             const active = chip === c.id;
@@ -71,18 +112,34 @@ export default function ExplorePage() {
                 key={c.id}
                 onClick={() => setChip(c.id)}
                 style={{
-                  padding: '8px 14px', borderRadius: 5,
-                  fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+                  padding: '8px 15px', borderRadius: 999,
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer',
                   border: `1px solid ${active ? 'var(--gold)' : 'var(--line)'}`,
-                  background: active ? 'var(--gold-dim)' : 'var(--panel)',
+                  background: active ? 'var(--gold-dim)' : 'rgba(17,26,57,.5)',
                   color: active ? 'var(--gold)' : 'var(--muted)',
                   transition: 'all .15s ease',
                 }}
               >
+                {c.icon && <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: '-2px', marginRight: 4 }}>{c.icon}</span>}
                 {c.label}
               </button>
             );
           })}
+        </div>
+        <div className="relative search-container">
+          <input
+            type="text"
+            placeholder="Search markets..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="search-input pl-11 pr-4 py-2.5 bg-slate-900/50 border border-slate-800 text-white placeholder:text-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500/20"
+          />
+          <span className="absolute left-4 top-1/2 transform -translate-y-1/2" style={{ color: 'var(--gold)' }}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+          </span>
         </div>
       </div>
 
@@ -94,7 +151,7 @@ export default function ExplorePage() {
           No markets match — try another category.
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-auto">
           {filtered.map((m) => <MarketCard key={m.id} market={m} />)}
         </div>
       )}

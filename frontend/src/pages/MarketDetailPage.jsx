@@ -336,24 +336,6 @@ export default function MarketDetailPage() {
   const [positionSlideIdx, setPositionSlideIdx] = useState(0);
   const chartDropdownRef = useRef(null);
 
-  // Recent Activity — the latest trades on this market, newest first.
-  const [recentTrades, setRecentTrades] = useState([]);
-  useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
-    api.getPredictions(id)
-      .then(data => {
-        if (cancelled) return;
-        const preds = Array.isArray(data) ? data : (data?.predictions || []);
-        const rows = [...preds]
-          .sort((a, b) => new Date(b.created_at || b.createdAt || 0) - new Date(a.created_at || a.createdAt || 0))
-          .slice(0, 8);
-        setRecentTrades(rows);
-      })
-      .catch(() => { });
-    return () => { cancelled = true; };
-  }, [id, market?.total_volume]);
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (chartDropdownRef.current && !chartDropdownRef.current.contains(event.target)) {
@@ -547,52 +529,22 @@ export default function MarketDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 lg:h-[100dvh] flex flex-col lg:overflow-hidden">
-      {/* Header: back button + category badges + market title */}
-      <div className="shrink-0 pb-4 pt-1 mb-2">
+      {/* Header: back button + market title */}
+      <div className="shrink-0 z-30 sticky top-0 bg-slate-950/90 backdrop-blur-md pb-3 pt-1 mb-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 border-b border-slate-800/60">
         <button
           onClick={() => navigate(-1)}
-          className="mb-3 flex items-center gap-2 transition-colors"
-          style={{ color: 'var(--muted)' }}
-          onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}
+          className="mb-2 flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
         >
           <span>←</span>
           <span>Back</span>
         </button>
-        {market && (
-          <div className="flex items-center gap-2 mb-3">
-            <span style={{
-              fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6,
-              textTransform: 'capitalize', color: 'var(--text)',
-              background: 'var(--card-hover)', border: '1px solid var(--line)',
-              borderRadius: 4, padding: '3px 9px',
-            }}>
-              {market.category}
-            </span>
-            {market.category !== 'entertainment' && ['awards', 'music', 'streaming'].includes(market.category) && (
-              <span style={{
-                fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6,
-                textTransform: 'capitalize', color: 'var(--muted)',
-                background: 'var(--panel)', border: '1px solid var(--line)',
-                borderRadius: 4, padding: '3px 9px',
-              }}>
-                Entertainment
-              </span>
-            )}
-          </div>
-        )}
-        <div className="flex items-center gap-3 flex-wrap">
-          {market && (
-            <h1 style={{
-              fontFamily: 'var(--wordmark)', fontWeight: 400,
-              fontSize: 'clamp(22px,3vw,30px)', lineHeight: 1.25,
-              color: 'var(--text)', margin: 0,
-            }}>
-              {market.title}
-            </h1>
-          )}
+        <div className="flex items-center gap-3">
+          {market && <h1 className="text-xl md:text-2xl font-bold text-white truncate">{market.title}</h1>}
           {market && (
             <div className="hidden sm:flex items-center gap-3 shrink-0">
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${CATEGORY_COLORS[market.category] || 'from-slate-500 to-slate-600'} text-white`}>
+                {market.category}
+              </span>
               {sportsMeta && sportsMeta.match_state ? (
                 <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded border ${sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time' ? 'bg-slate-800 text-slate-300 border-slate-700' :
                   sportsMeta.match_state === 'overtime' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
@@ -671,12 +623,7 @@ export default function MarketDetailPage() {
           <div>
             {market && (
               <div className="flex sm:hidden items-center gap-3 mb-3">
-                <span style={{
-                  fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6,
-                  textTransform: 'capitalize', color: 'var(--text)',
-                  background: 'var(--card-hover)', border: '1px solid var(--line)',
-                  borderRadius: 4, padding: '3px 9px',
-                }}>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${CATEGORY_COLORS[market.category] || 'from-slate-500 to-slate-600'} text-white`}>
                   {market.category}
                 </span>
                 {sportsMeta && sportsMeta.match_state ? (
@@ -705,7 +652,7 @@ export default function MarketDetailPage() {
                 )}
               </div>
             )}
-            <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.6, maxWidth: 640 }}>{displayDescription}</p>
+            <p className="text-slate-400 text-sm md:text-base">{displayDescription}</p>
           </div>
 
           {market.status === 'resolved' && (
@@ -723,34 +670,9 @@ export default function MarketDetailPage() {
             </div>
           )}
           {/* Price Chart */}
-          <div className="dbm-panel p-6 mb-6" style={{ background: 'var(--panel)' }}>
-            <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
-              {(() => {
-                const lead = sortedOutcomes[0];
-                const leadPct = Math.round(lead?.probability || 0);
-                const leadTitle = (lead?.title || '').replace(/\s*\(Yes\)$/i, '');
-                const vol = market.total_volume || 0;
-                const volLabel = vol >= 1000000 ? `$${(vol / 1000000).toFixed(1)}M`
-                  : vol >= 1000 ? `$${(vol / 1000).toFixed(1)}K`
-                    : `$${vol.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-                return (
-                  <div className="flex items-baseline gap-3">
-                    <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 17, color: 'var(--yes)' }}>
-                      {leadPct}% {leadTitle}
-                    </span>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--muted)' }}>
-                      Vol: {volLabel}
-                    </span>
-                  </div>
-                );
-              })()}
-              <div className="flex gap-1" style={{ background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 6, padding: 3 }}>
-                {['1D', '1W', '1M', 'ALL'].map(range => (
-                  <button key={range} className={`dbm-range-tab ${range === '1M' ? 'active' : ''}`}>
-                    {range}
-                  </button>
-                ))}
-              </div>
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-white">Price History</h2>
             </div>
             <PriceChart selectedIds={selectedIds}
               outcomes={chartOutcomes}
@@ -806,53 +728,17 @@ export default function MarketDetailPage() {
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Recent Activity */}
-          <div className="dbm-panel p-6" style={{ background: 'var(--panel)' }}>
-            <h2 style={{ fontWeight: 700, fontSize: 15.5, color: 'var(--text)', margin: '0 0 16px' }}>Recent Activity</h2>
-            {recentTrades.length === 0 ? (
-              <p style={{ color: 'var(--muted)', fontSize: 13 }}>No trades yet — be the first to take a position.</p>
-            ) : (
-              <div>
-                <div style={{
-                  display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr',
-                  fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: 0.8,
-                  textTransform: 'uppercase', color: 'var(--muted)',
-                  paddingBottom: 10, borderBottom: '1px solid var(--line)',
-                }}>
-                  <span>Action</span><span>Contracts</span><span>Price</span><span style={{ textAlign: 'right' }}>Time</span>
-                </div>
-                {recentTrades.map((t, i) => {
-                  const o = (market.outcomes || []).find(x => x.id === t.outcome_id);
-                  const rawTitle = (o?.title || '').replace(/\s*\((Yes|No)\)$/i, '');
-                  const isNoSide = /(^|_)no$/i.test(t.outcome_id || '') || (o?.title || '').toLowerCase() === 'no';
-                  const sideLabel = (o?.title || '').toLowerCase() === 'yes' || /_yes$/i.test(t.outcome_id || '') ? 'Yes'
-                    : isNoSide ? 'No' : rawTitle || '—';
-                  const price = Math.round(t.odds_at_prediction || 0);
-                  const contracts = price > 0 ? Math.round((t.stake_amount || 0) / (price / 100)) : 0;
-                  const ts = new Date(t.created_at || t.createdAt || Date.now());
-                  const mins = Math.max(0, Math.round((Date.now() - ts.getTime()) / 60000));
-                  const timeLabel = mins < 1 ? 'just now' : mins < 60 ? `${mins}m ago`
-                    : mins < 1440 ? `${Math.round(mins / 60)}h ago` : `${Math.round(mins / 1440)}d ago`;
-                  return (
-                    <div key={t.id || i} style={{
-                      display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr',
-                      alignItems: 'center', padding: '11px 0',
-                      borderBottom: i < recentTrades.length - 1 ? '1px solid rgba(37,44,68,.5)' : 'none',
-                      fontSize: 13,
-                    }}>
-                      <span style={{ fontWeight: 600, color: isNoSide ? 'var(--no)' : 'var(--yes)' }}>
-                        Buy {sideLabel}
-                      </span>
-                      <span style={{ fontFamily: 'var(--mono)', color: 'var(--text)' }}>{contracts.toLocaleString('en-US')}</span>
-                      <span style={{ fontFamily: 'var(--mono)', color: 'var(--text)' }}>{price}¢</span>
-                      <span style={{ fontFamily: 'var(--mono)', color: 'var(--muted)', textAlign: 'right' }}>{timeLabel}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <div className="flex bg-slate-800/50 p-1 rounded-lg border border-slate-700/50">
+              {['1D', '1W', '1M', 'ALL'].map(range => (
+                <button
+                  key={range}
+                  className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${range === 'ALL' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}
+                >
+                  {range}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* User Positions Carousel */}
@@ -937,29 +823,26 @@ export default function MarketDetailPage() {
             const selPos = sel ? (userPositions[sel.id] || 0) : 0;
             const priceOf = (o) => Math.round(o?.probability || 0);
             return (
-              <div className="mb-5 dbm-panel p-4" style={{ background: 'var(--panel)' }}>
-                {/* Buy / Sell segmented tabs */}
-                <div className="flex mb-4" style={{ background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 6, padding: 3 }}>
+              <div className="mb-5 rounded-2xl border border-slate-700/70 bg-slate-900/60 p-4 shadow-2xl" style={{ fontFamily: 'inherit' }}>
+                {/* Buy / Sell tabs */}
+                <div className="flex border-b border-slate-700/60 mb-4">
                   {['buy', 'sell'].map(t => (
                     <button key={t} onClick={() => setPanelTab(t)}
-                      className="flex-1 py-2 text-sm font-bold capitalize transition-all"
-                      style={{
-                        borderRadius: 4, border: 'none', cursor: 'pointer',
-                        background: panelTab === t ? 'var(--card-hover)' : 'transparent',
-                        color: panelTab === t ? 'var(--text)' : 'var(--muted)',
-                      }}>
+                      className="flex-1 pb-2.5 text-sm font-bold capitalize transition-all"
+                      style={{ color: panelTab === t ? '#fff' : 'var(--muted)', borderBottom: panelTab === t ? '2px solid var(--gold)' : '2px solid transparent' }}>
                       {t}
                     </button>
                   ))}
                 </div>
 
                 {marketClosed && (
-                  <div className="mb-3 rounded-md px-3 py-2 text-xs" style={{ border: '1px solid var(--line)', background: 'var(--bg)', color: 'var(--muted)' }}>
-                    This market has closed and is awaiting resolution — trading is disabled.
+                  <div className="mb-3 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-xs text-slate-300">
+                    ⏱ This market has closed and is awaiting resolution — trading is disabled.
                   </div>
                 )}
 
                 {/* Pick side */}
+                <div className="text-xs font-semibold text-slate-400 mb-2">Pick side</div>
                 {panelBinary ? (
                   <div className="flex gap-2 mb-4">
                     {outcomes.map((o) => {
@@ -968,100 +851,85 @@ export default function MarketDetailPage() {
                       return (
                         <button key={o.id} disabled={marketClosed}
                           onClick={() => setSelectedOutcome(active ? null : o)}
-                          className="flex-1 py-3 px-3 rounded-md text-left transition-all disabled:opacity-40"
+                          className="flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all disabled:opacity-40"
                           style={yes
-                            ? { border: `1.5px solid ${active ? 'var(--yes)' : 'var(--line)'}`, background: active ? 'var(--yes-dim)' : 'transparent' }
-                            : { border: `1.5px solid ${active ? 'var(--no)' : 'var(--line)'}`, background: active ? 'var(--no-dim)' : 'transparent' }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: yes ? 'var(--yes)' : 'var(--no)' }}>{o.title}</div>
-                          <div style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 19, color: yes ? 'var(--yes)' : 'var(--no)', marginTop: 2 }}>{priceOf(o)}¢</div>
+                            ? { background: active ? 'rgba(45,212,167,.18)' : 'transparent', borderColor: active ? 'var(--yes)' : 'rgba(45,212,167,.4)', color: 'var(--yes)' }
+                            : { background: active ? 'rgba(255,92,114,.16)' : 'transparent', borderColor: active ? 'var(--no)' : 'rgba(255,92,114,.4)', color: 'var(--no)' }}>
+                          {o.title} {priceOf(o)}¢
                         </button>
                       );
                     })}
                   </div>
                 ) : sel ? (
-                  <div className="mb-4 flex items-center justify-between rounded-md px-3 py-2.5" style={{ border: '1px solid var(--gold)', background: 'var(--gold-dim)' }}>
-                    <span className="text-sm font-semibold truncate pr-2" style={{ color: 'var(--text)' }}>{sel.title}</span>
-                    <span className="text-sm font-bold shrink-0" style={{ fontFamily: 'var(--mono)', color: 'var(--gold)' }}>{priceOf(sel)}¢</span>
+                  <div className="mb-4 flex items-center justify-between rounded-xl border border-yellow-500/40 bg-yellow-500/5 px-3 py-2.5">
+                    <span className="text-sm text-white font-semibold truncate pr-2">{sel.title}</span>
+                    <span className="text-sm font-bold shrink-0" style={{ color: 'var(--gold)' }}>{priceOf(sel)}¢</span>
                   </div>
                 ) : (
-                  <div className="mb-4 rounded-md px-3 py-2.5 text-xs" style={{ border: '1px solid var(--line)', background: 'var(--bg)', color: 'var(--muted)' }}>
+                  <div className="mb-4 rounded-xl border border-slate-700/60 bg-slate-800/40 px-3 py-2.5 text-xs text-slate-400">
                     Tap an outcome below to pick a side.
                   </div>
                 )}
 
                 {panelTab === 'buy' ? (
                   <form onSubmit={handleTrade} className="space-y-3">
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="text-xs font-medium" style={{ color: 'var(--muted)' }}>Investment Amount</label>
-                      {safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && (
-                        <span className="text-xs" style={{ fontFamily: 'var(--mono)', color: 'var(--muted)' }}>
-                          Balance: <button type="button" onClick={() => setStake(safeBuyingPower.toFixed(2))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--mono)', color: 'var(--text)' }}>${safeBuyingPower.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</button>
-                        </span>
-                      )}
-                    </div>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ fontFamily: 'var(--mono)', color: 'var(--muted)' }}>$</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
                         <input type="number" min="0.01" step="0.01" value={stake} disabled={marketClosed}
-                          onChange={e => setStake(e.target.value)} placeholder="100" required
-                          className="w-full rounded-md pl-7 pr-3 py-2.5 text-sm focus:outline-none disabled:opacity-40"
-                          style={{ fontFamily: 'var(--mono)', background: 'var(--bg)', border: '1px solid var(--line)', color: 'var(--text)' }} />
+                          onChange={e => setStake(e.target.value)} placeholder="0.00" required
+                          className="w-full bg-slate-950/70 border border-slate-600 rounded-xl pl-7 pr-14 py-2.5 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-yellow-500/50 focus:border-yellow-500 disabled:opacity-40" />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-bold">USD</span>
                       </div>
+                      {safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && (
+                        <button type="button" onClick={() => setStake(safeBuyingPower.toFixed(2))}
+                          className="px-3 rounded-xl text-xs bg-slate-800 border border-slate-600 text-slate-300 hover:text-white transition-colors">Max</button>
+                      )}
                     </div>
                     {sel && parseFloat(stake) > 0 && (() => {
                       const b = calculatePayoutBounds(parseFloat(stake), sel.probability || 50);
-                      const S = parseFloat(stake) || 0;
-                      const estShares = (sel.probability || 50) > 0 ? S / ((sel.probability || 50) / 100) : 0;
-                      const maxProfit = b.winReturn - S;
-                      const maxProfitPct = S > 0 ? (maxProfit / S) * 100 : 0;
                       return (
-                        <div className="rounded-md p-3" style={{ background: 'var(--bg)', border: '1px solid var(--line)', fontFamily: 'var(--mono)', fontSize: 12 }}>
-                          <div className="flex justify-between py-0.5"><span style={{ color: 'var(--muted)' }}>Est. Shares</span><span style={{ color: 'var(--text)', fontWeight: 600 }}>{estShares.toFixed(1)}</span></div>
-                          <div className="flex justify-between py-0.5"><span style={{ color: 'var(--muted)' }}>Potential Payout</span><span style={{ color: 'var(--text)', fontWeight: 600 }}>${b.winReturn.toFixed(2)}</span></div>
-                          <div className="flex justify-between py-0.5"><span style={{ color: 'var(--muted)' }}>Max Profit</span><span style={{ color: 'var(--yes)', fontWeight: 600 }}>+${maxProfit.toFixed(2)} ({maxProfitPct.toFixed(1)}%)</span></div>
-                          <div className="flex justify-between pt-2 mt-1.5" style={{ borderTop: '1px solid var(--line)' }}><span style={{ color: 'var(--muted)' }}>Total Cost</span><span style={{ color: 'var(--text)', fontWeight: 600 }}>${S.toFixed(2)}</span></div>
+                        <div className="rounded-xl bg-slate-800/50 border border-slate-700/50 p-3 space-y-1.5 text-xs">
+                          <div className="flex justify-between"><span className="text-slate-400">Average price</span><span className="text-white font-semibold">{priceOf(sel)}¢</span></div>
+                          <div className="flex justify-between"><span className="text-slate-400">Potential return if {sel.title} wins</span><span className="font-bold" style={{ color: 'var(--yes)' }}>${b.winReturn.toFixed(2)}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-400">Refunded if it loses</span><span className="font-semibold" style={{ color: 'var(--no)' }}>${b.loseRefund.toFixed(2)}</span></div>
                         </div>
                       );
                     })()}
-                    {tradeMsg && <p className="text-xs" style={{ color: tradeMsg.startsWith('✅') ? 'var(--yes)' : 'var(--no)' }}>{tradeMsg}</p>}
+                    {tradeMsg && <p className={`text-xs ${tradeMsg.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>{tradeMsg}</p>}
                     <button type="submit" disabled={marketClosed || tradeLoading || !sel || !parseFloat(stake)}
-                      className="w-full py-3 rounded-md text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                      style={{ background: 'var(--gold)', color: '#1a1405', border: 'none', boxShadow: '0 4px 16px rgba(232,196,104,.2)' }}>
+                      className="w-full py-3 rounded-xl text-sm font-extrabold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))', color: '#1a1405' }}>
                       {tradeLoading ? 'Placing...' : 'Place Trade'}
                     </button>
-                    <p className="text-center" style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', lineHeight: 1.6, margin: 0 }}>
-                      By trading, you agree to the Terms of Service.
-                    </p>
                   </form>
                 ) : (
                   <div className="space-y-3">
                     {!sel ? (
-                      <p className="text-xs" style={{ color: 'var(--muted)' }}>Pick the side you hold to sell it.</p>
+                      <p className="text-xs text-slate-400">Pick the side you hold to sell it.</p>
                     ) : selPos <= 0 ? (
-                      <p className="text-xs" style={{ color: 'var(--muted)' }}>You have no position on {sel.title} to sell.</p>
+                      <p className="text-xs text-slate-400">You have no position on {sel.title} to sell.</p>
                     ) : (
                       <>
                         <div className="flex gap-2">
                           <div className="relative flex-1">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ fontFamily: 'var(--mono)', color: 'var(--muted)' }}>$</span>
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
                             <input type="number" min="0.01" max={selPos} step="0.01" value={sellAmount}
                               onChange={e => setSellAmount(e.target.value)} placeholder={`Max $${selPos.toFixed(2)}`}
-                              className="w-full rounded-md pl-7 pr-3 py-2.5 text-sm focus:outline-none"
-                              style={{ fontFamily: 'var(--mono)', background: 'var(--bg)', border: '1px solid var(--line)', color: 'var(--text)' }} />
+                              className="w-full bg-slate-950/70 border border-slate-600 rounded-xl pl-7 pr-14 py-2.5 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-red-500/40 focus:border-red-500" />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-bold">USD</span>
                           </div>
                           <button type="button" onClick={() => setSellAmount(selPos.toFixed(2))}
-                            className="px-3 rounded-md text-xs font-semibold transition-colors"
-                            style={{ background: 'var(--card-hover)', border: '1px solid var(--line)', color: 'var(--text)' }}>Max</button>
+                            className="px-3 rounded-xl text-xs bg-slate-800 border border-slate-600 text-slate-300 hover:text-white transition-colors">Max</button>
                         </div>
                         {parseFloat(sellAmount) > 0 && (
-                          <div className="rounded-md p-3 text-xs" style={{ background: 'var(--bg)', border: '1px solid var(--line)', fontFamily: 'var(--mono)' }}>
-                            <div className="flex justify-between"><span style={{ color: 'var(--muted)' }}>You receive</span><span style={{ color: 'var(--text)', fontWeight: 600 }}>${calcPositionValue(parseFloat(sellAmount), userAvgEntry[sel.id] || 50, sel.probability || 50).toFixed(2)}</span></div>
+                          <div className="rounded-xl bg-slate-800/50 border border-slate-700/50 p-3 space-y-1.5 text-xs">
+                            <div className="flex justify-between"><span className="text-slate-400">You receive</span><span className="text-white font-semibold">${calcPositionValue(parseFloat(sellAmount), userAvgEntry[sel.id] || 50, sel.probability || 50).toFixed(2)}</span></div>
                           </div>
                         )}
-                        {sellMsg && <p className="text-xs" style={{ color: sellMsg.startsWith('✅') ? 'var(--yes)' : 'var(--no)' }}>{sellMsg}</p>}
+                        {sellMsg && <p className={`text-xs ${sellMsg.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>{sellMsg}</p>}
                         <button onClick={(e) => handleSell(e, sel.id)} disabled={sellLoading || !parseFloat(sellAmount) || parseFloat(sellAmount) > selPos}
-                          className="w-full py-3 rounded-md text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                          style={{ background: 'var(--no-dim)', border: '1px solid var(--no)', color: 'var(--no)' }}>
+                          className="w-full py-3 rounded-xl text-sm font-extrabold bg-red-500/20 border border-red-500/50 text-red-400 hover:bg-red-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
                           {sellLoading ? 'Selling...' : 'Confirm Sell'}
                         </button>
                       </>
@@ -1072,17 +940,18 @@ export default function MarketDetailPage() {
             );
           })()}
           <div className="flex items-center justify-between mb-4">
-            <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 400, fontSize: 21, color: 'var(--text)', margin: 0 }}>Outcomes</h2>
+            <h2 className="text-xl font-bold text-white">Outcomes</h2>
             {outcomes.length >= 10 && (
               <div className="relative w-48 sm:w-64">
-                <span className="material-symbols-outlined absolute inset-y-0 left-3 flex items-center pointer-events-none" style={{ fontSize: 16, color: 'var(--muted)', top: '50%', transform: 'translateY(-50%)' }}>search</span>
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
                 <input
                   type="text"
                   placeholder="Search outcomes..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 rounded-md text-sm focus:outline-none"
-                  style={{ background: 'var(--panel)', border: '1px solid var(--line)', color: 'var(--text)' }}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700/50 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
                 />
               </div>
             )}
@@ -1322,60 +1191,52 @@ export default function MarketDetailPage() {
 
             // Helper to render the trade form inline
             const renderTradeForm = (o) => (
-              <div className="px-4 pb-4 pt-3" style={{ borderTop: '1px solid var(--line)' }} onClick={e => e.stopPropagation()}>
+              <div className="px-4 pb-4 pt-3 border-t border-slate-700/50" onClick={e => e.stopPropagation()}>
+                <h3 className="text-sm font-bold text-white mb-3">
+                  Place Prediction &mdash; <span className={o.title && o.title.toLowerCase() === 'no' ? 'text-red-400' : 'text-green-400'}>{o.title}</span>
+                </h3>
                 <form onSubmit={handleTrade} className="space-y-3">
-                  <div>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <label className="block text-xs font-medium" style={{ color: 'var(--muted)' }}>Investment Amount</label>
-                      <span className="text-xs" style={{ fontFamily: 'var(--mono)', color: 'var(--muted)' }}>
-                        Balance: {buyingPowerLoading ? '...' : safeBuyingPower !== null
-                          ? <button type="button" onClick={() => session?.user?.id !== 'demo_user' && setStake(safeBuyingPower.toFixed(2))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--mono)', color: safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'var(--no)' : 'var(--text)' }}>${safeBuyingPower.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</button>
-                          : 'N/A'}
+                  {session && session.user && session.user.id && session.user.id !== 'demo_user' && (
+                    <div className={`flex items-center justify-between rounded-lg px-3 py-2 border ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'bg-red-500/10 border-red-500/40' : 'bg-slate-800/50 border-slate-700'}`}>
+                      <span className="text-slate-400 text-xs font-medium">Buying Power</span>
+                      <span className={`text-sm font-bold ${buyingPowerLoading ? 'text-slate-500' : buyingPower === null ? 'text-slate-500' : parseFloat(stake) > safeBuyingPower ? 'text-red-400' : 'text-green-400'}`}>
+                        {buyingPowerLoading ? '...' : safeBuyingPower !== null ? '$' + safeBuyingPower.toFixed(2) : 'N/A'}
                       </span>
                     </div>
+                  )}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-slate-300 text-xs font-medium">Stake Amount</label>
+                      {safeBuyingPower !== null && session && session.user && session.user.id && session.user.id !== 'demo_user' && (
+                        <button type="button" onClick={() => setStake(safeBuyingPower.toFixed(2))} className="text-xs text-yellow-500 hover:text-yellow-400 transition-colors">Max</button>
+                      )}
+                    </div>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ fontFamily: 'var(--mono)', color: 'var(--muted)' }}>$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
                       <input type="number" min="0.01" max={safeBuyingPower !== null && session && session.user && session.user.id !== 'demo_user' ? safeBuyingPower : undefined}
-                        step="0.01" value={stake} onChange={e => setStake(e.target.value)} placeholder="100" required
-                        className="w-full rounded-md px-4 pl-7 py-2.5 text-sm focus:outline-none"
-                        style={{
-                          fontFamily: 'var(--mono)', background: 'var(--bg)', color: 'var(--text)',
-                          border: `1px solid ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'var(--no)' : 'var(--line)'}`,
-                        }}
+                        step="0.01" value={stake} onChange={e => setStake(e.target.value)} placeholder="10.00" required
+                        className={`w-full bg-slate-900 border rounded-lg px-4 pl-7 py-2 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-1 ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'border-red-500 focus:ring-red-500/50' : 'border-slate-600 focus:ring-yellow-500/50 focus:border-yellow-500'}`}
                       />
                     </div>
                     {safeBuyingPower !== null && session && session.user && session.user.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower && (
-                      <p className="text-xs mt-1.5" style={{ color: 'var(--no)' }}>Exceeds available balance</p>
+                      <p className="text-red-400 text-xs mt-1.5 flex items-center gap-1"><span>!</span><span>Exceeds buying power</span></p>
                     )}
                   </div>
-                  {payout && (() => {
-                    const S = parseFloat(stake) || 0;
-                    const price = o.probability || 50;
-                    const estShares = price > 0 ? S / (price / 100) : 0;
-                    const maxProfit = payout.winReturn - S;
-                    const maxProfitPct = S > 0 ? (maxProfit / S) * 100 : 0;
-                    return (
-                      <div className="rounded-md p-3" style={{ background: 'var(--bg)', border: '1px solid var(--line)', fontFamily: 'var(--mono)', fontSize: 12 }}>
-                        <div className="flex justify-between items-center py-0.5"><span style={{ color: 'var(--muted)' }}>Est. Shares</span><span style={{ color: 'var(--text)', fontWeight: 600 }}>{estShares.toFixed(1)}</span></div>
-                        <div className="flex justify-between items-center py-0.5"><span style={{ color: 'var(--muted)' }}>Potential Payout</span><span style={{ color: 'var(--text)', fontWeight: 600 }}>${payout.winReturn.toFixed(2)}</span></div>
-                        <div className="flex justify-between items-center py-0.5"><span style={{ color: 'var(--muted)' }}>Max Profit</span><span style={{ color: 'var(--yes)', fontWeight: 600 }}>+${maxProfit.toFixed(2)} ({maxProfitPct.toFixed(1)}%)</span></div>
-                        <div className="flex justify-between items-center pt-2 mt-1.5" style={{ borderTop: '1px solid var(--line)' }}><span style={{ color: 'var(--muted)' }}>Total Cost</span><span style={{ color: 'var(--text)', fontWeight: 600 }}>${S.toFixed(2)}</span></div>
-                      </div>
-                    );
-                  })()}
-                  {tradeMsg && <div className="rounded-md p-2 text-xs" style={tradeMsg.startsWith('✅') ? { background: 'var(--yes-dim)', color: 'var(--yes)' } : { background: 'var(--no-dim)', color: 'var(--no)' }}>{tradeMsg}</div>}
+                  {payout && (
+                    <div className="bg-slate-800/40 border border-slate-700/50 rounded-lg p-3 space-y-1.5">
+                      <div className="flex justify-between items-center"><span className="text-green-400/80 text-xs">Expected Win:</span><span className="text-green-400 text-sm font-bold">${payout.winReturn.toFixed(2)}</span></div>
+                      <div className="flex justify-between items-center"><span className="text-red-400/80 text-xs">Expected Loss (Refund):</span><span className="text-red-400 text-sm font-bold">${payout.loseRefund.toFixed(2)}</span></div>
+                    </div>
+                  )}
+                  {tradeMsg && <div className={`rounded-lg p-2 text-xs ${tradeMsg.startsWith('✅') ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{tradeMsg}</div>}
                   {!session ? (
-                    <button type="button" onClick={openAuthModal} className="w-full text-sm font-bold py-2.5 rounded-md transition-all" style={{ background: 'var(--card-hover)', border: '1px solid var(--line)', color: 'var(--text)' }}>Sign in to trade</button>
+                    <button type="button" onClick={openAuthModal} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-sm font-bold py-2 rounded-lg transition-all">Sign in to trade</button>
                   ) : (
                     <button type="submit" disabled={tradeLoading || (safeBuyingPower !== null && session.user && session.user.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower)}
-                      className="w-full text-sm font-bold py-3 rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ background: 'var(--gold)', color: '#1a1405', border: 'none', boxShadow: '0 4px 16px rgba(232,196,104,.2)' }}>
-                      {tradeLoading ? 'Placing...' : 'Place Trade'}
+                      className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 disabled:from-slate-700 disabled:to-slate-700 text-slate-950 disabled:text-slate-500 text-sm font-bold py-2 rounded-lg transition-all">
+                      {tradeLoading ? 'Placing...' : 'Confirm Prediction'}
                     </button>
                   )}
-                  <p className="text-center" style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', lineHeight: 1.6, margin: 0 }}>
-                    By trading, you agree to the Terms of Service.
-                  </p>
                 </form>
               </div>
             );
@@ -1412,29 +1273,15 @@ export default function MarketDetailPage() {
                     {market.status === 'active' && (
                       <div className="flex items-center gap-2 shrink-0">
                         {!isResolvedYes && (
-                          <button
-                            className="rounded-md text-sm font-bold transition-all"
-                            style={{
-                              padding: '8px 16px', textAlign: 'center', lineHeight: 1.3,
-                              border: `1.5px solid ${yesSelected ? 'var(--yes)' : 'rgba(110,231,154,0.35)'}`,
-                              background: yesSelected ? 'var(--yes-dim)' : 'transparent',
-                              color: 'var(--yes)',
-                            }}
+                          <button className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all ${yesSelected ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/20' : 'border-green-500/60 text-green-400 hover:bg-green-500/10'}`}
                             onClick={() => setSelectedOutcome(yesSelected ? null : yes)}>
-                            Yes <span style={{ fontFamily: 'var(--mono)' }}>{Math.round(yes.probability || 0)}&cent;</span>
+                            Yes {Math.round(yes.probability || 0)}&cent;
                           </button>
                         )}
                         {!isResolvedYes && (
-                          <button
-                            className="rounded-md text-sm font-bold transition-all"
-                            style={{
-                              padding: '8px 16px', textAlign: 'center', lineHeight: 1.3,
-                              border: `1.5px solid ${noSelected ? 'var(--no)' : 'var(--line)'}`,
-                              background: noSelected ? 'var(--no-dim)' : 'transparent',
-                              color: noSelected ? 'var(--no)' : 'var(--muted)',
-                            }}
+                          <button className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all ${noSelected ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20' : 'border-red-500/60 text-red-400 hover:bg-red-500/10'}`}
                             onClick={() => setSelectedOutcome(noSelected ? null : no)}>
-                            No <span style={{ fontFamily: 'var(--mono)', color: 'var(--no)' }}>{Math.round(no.probability || 0)}&cent;</span>
+                            No {Math.round(no.probability || 0)}&cent;
                           </button>
                         )}
                       </div>
