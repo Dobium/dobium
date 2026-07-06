@@ -47,7 +47,7 @@ const slides = [
 ];
 
 export default function AuthModal() {
-  const { session, isAuthModalOpen, closeAuthModal, login, loginWithGoogle, signup, resetPassword, isNewSignup, clearNewSignup } = useAuth();
+  const { session, isAuthModalOpen, authModalView, closeAuthModal, login, loginWithGoogle, signup, resetPassword, isNewSignup, clearNewSignup } = useAuth();
   const [view, setView] = useState('login'); // login | signup | confirm | reset
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -57,6 +57,10 @@ export default function AuthModal() {
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    if (isAuthModalOpen) setView(authModalView === 'signup' ? 'signup' : 'login');
+  }, [isAuthModalOpen, authModalView]);
 
   useEffect(() => {
     if (!isAuthModalOpen) return;

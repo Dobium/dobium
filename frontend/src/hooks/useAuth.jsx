@@ -28,6 +28,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [isNewSignup, setIsNewSignup] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalView, setAuthModalView] = useState('login');
 
   useEffect(() => {
     // Fetch session — always resolve loading even if Supabase is misconfigured
@@ -155,11 +156,14 @@ export function AuthProvider({ children }) {
     setSession(null);
   };
 
-  const openAuthModal = useCallback(() => setIsAuthModalOpen(true), []);
+  const openAuthModal = useCallback((view = 'login') => {
+    setAuthModalView(view);
+    setIsAuthModalOpen(true);
+  }, []);
   const closeAuthModal = useCallback(() => setIsAuthModalOpen(false), []);
 
   return (
-    <AuthContext.Provider value={{ session, loading, isNewSignup, clearNewSignup, login, loginWithGoogle, signup, resetPassword, logout, isAuthModalOpen, openAuthModal, closeAuthModal }}>
+    <AuthContext.Provider value={{ session, loading, isNewSignup, clearNewSignup, login, loginWithGoogle, signup, resetPassword, logout, isAuthModalOpen, authModalView, openAuthModal, closeAuthModal }}>
       {children}
     </AuthContext.Provider>
   );
