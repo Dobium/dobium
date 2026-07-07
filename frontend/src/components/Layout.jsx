@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import TopNav from './TopNav';
+import Footer from './Footer';
 import PaperTradingDisclaimer from './PaperTradingDisclaimer';
 import AuthModal from './AuthModal';
 import ResolutionModal from './ResolutionModal';
@@ -12,9 +13,12 @@ export default function Layout() {
   return (
     <>
       <PaperTradingDisclaimer />
-      <div className="main-content" style={{ background: 'var(--bg)' }}>
+      <div className="main-content" style={{ background: 'var(--bg)', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <TopNav />
-        <Outlet />
+        <div style={{ flex: 1 }}>
+          <Outlet />
+        </div>
+        <Footer />
       </div>
       <AuthModal />
       <ResolutionModal />

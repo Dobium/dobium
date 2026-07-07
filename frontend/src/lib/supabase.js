@@ -16,7 +16,7 @@ function getConfig() {
 const { url, anonKey } = getConfig();
 
 if (!url || !anonKey) {
-  console.warn('[Samsa] Supabase config missing — auth will be unavailable.');
+  console.warn('[Dobium] Supabase config missing — auth will be unavailable.');
 }
 
 export const supabase = createClient(url || 'https://placeholder.supabase.co', anonKey || 'placeholder', {
