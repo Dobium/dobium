@@ -31,9 +31,25 @@ export default function Footer() {
           Dobium
         </span>
 
-        <span style={{ color: '#D2C5AF', fontSize: 12.5 }}>
-          © 2026 Dobium Prediction Markets. High-fidelity paper trading.
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 18 }}>
+          <span style={{ color: '#D2C5AF', fontSize: 12.5 }}>
+            © 2026 Dobium Prediction Markets. High-fidelity paper trading.
+          </span>
+          <nav style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
+            {['Terms', 'Privacy', 'Discord', 'Documentation', 'Support'].map((label) => (
+              <a
+                key={label}
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                style={{ color: '#B5AB9B', fontSize: 12, transition: 'color .15s ease' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#FFDF9B')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = '#B5AB9B')}
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
+        </div>
       </div>
     </footer>
   );

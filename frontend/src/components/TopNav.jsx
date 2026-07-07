@@ -41,9 +41,9 @@ function ProfileMenu({ session, balance }) {
 
   const itemStyle = {
     display: 'block', width: '100%', textAlign: 'left',
-    padding: '10px 14px', background: 'none', border: 'none',
-    color: 'var(--text)', fontSize: 13, fontWeight: 500, cursor: 'pointer',
-    borderRadius: 8, transition: 'background .12s ease',
+    padding: '13px 18px', background: 'none', border: 'none',
+    color: '#DCE1FF', fontSize: 14, fontWeight: 400, cursor: 'pointer',
+    transition: 'background .12s ease',
   };
 
   return (
@@ -54,17 +54,17 @@ function ProfileMenu({ session, balance }) {
       onMouseLeave={scheduleClose}
     >
       <div style={{ textAlign: 'right', lineHeight: 1.2, cursor: 'pointer' }} onClick={() => setOpen(o => !o)}>
-        <span style={{ display: 'block', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 14, color: 'var(--gold)' }}>
+        <span style={{ display: 'block', fontFamily: 'var(--mono)', fontWeight: 500, fontSize: 15, color: '#DCE1FF' }}>
           ${Number(balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
-        <span style={{ fontSize: 11, color: 'var(--muted)' }}>Paper portfolio</span>
       </div>
       <button
         onClick={() => setOpen(o => !o)}
         style={{
-          width: 32, height: 32, borderRadius: 999, flexShrink: 0, cursor: 'pointer',
-          background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))',
-          color: '#1a1405', fontWeight: 700, fontSize: 14, border: 'none',
+          width: 34, height: 34, borderRadius: 999, flexShrink: 0, cursor: 'pointer',
+          background: '#0B1229',
+          color: '#FFDF9B', fontWeight: 700, fontSize: 14,
+          border: '1.5px solid #F0C04A',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
@@ -74,12 +74,12 @@ function ProfileMenu({ session, balance }) {
       {open && (
         <div
           style={{
-            position: 'absolute', top: 'calc(100% + 10px)', right: 0, minWidth: 200,
-            background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 12,
-            boxShadow: '0 12px 30px rgba(0,0,0,.45)', padding: 6, zIndex: 60,
+            position: 'absolute', top: 'calc(100% + 10px)', right: 0, minWidth: 210,
+            background: '#181E36', border: '1px solid #2D344C', borderRadius: 6,
+            boxShadow: '0 12px 30px rgba(0,0,0,.45)', overflow: 'hidden', zIndex: 60,
           }}
         >
-          <div style={{ padding: '8px 14px 10px', borderBottom: '1px solid var(--line)', marginBottom: 6 }}>
+          <div style={{ padding: '10px 18px 11px', borderBottom: '1px solid #0B1229' }}>
             <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {displayName}
             </div>
@@ -91,7 +91,7 @@ function ProfileMenu({ session, balance }) {
           </div>
           <button
             style={itemStyle}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--card-hover)'}
+            onMouseEnter={e => e.currentTarget.style.background = '#1E2540'}
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
             onClick={() => { setOpen(false); navigate('/portfolio'); }}
           >
@@ -99,20 +99,101 @@ function ProfileMenu({ session, balance }) {
           </button>
           <button
             style={itemStyle}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--card-hover)'}
+            onMouseEnter={e => e.currentTarget.style.background = '#1E2540'}
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
             onClick={() => { setOpen(false); navigate('/settings'); }}
           >
             Settings
           </button>
-          <div style={{ borderTop: '1px solid var(--line)', margin: '6px 0' }} />
+          <div style={{ borderTop: '1px solid #0B1229' }} />
           <button
-            style={{ ...itemStyle, color: 'var(--no)' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--no-dim)'}
+            style={itemStyle}
+            onMouseEnter={e => e.currentTarget.style.background = '#1E2540'}
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
             onClick={() => { setOpen(false); logout(); navigate('/'); }}
           >
-            Log out
+            Sign Out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Logged-out version of the avatar dropdown — matches the reference mockup:
+// $100.00 + gold-ringed avatar, menu with Sign In / Sign Up.
+function GuestMenu({ balance, openAuthModal }) {
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef(null);
+  const wrapRef = useRef(null);
+
+  const cancelClose = () => { if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; } };
+  const scheduleClose = () => { cancelClose(); closeTimer.current = setTimeout(() => setOpen(false), 160); };
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const itemStyle = {
+    display: 'block', width: '100%', textAlign: 'left',
+    padding: '13px 18px', background: 'none', border: 'none',
+    color: '#DCE1FF', fontSize: 14, fontWeight: 400, cursor: 'pointer',
+    transition: 'background .12s ease',
+  };
+
+  return (
+    <div
+      ref={wrapRef}
+      style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}
+      onMouseEnter={() => { cancelClose(); setOpen(true); }}
+      onMouseLeave={scheduleClose}
+    >
+      <span
+        onClick={() => setOpen(o => !o)}
+        style={{ fontFamily: 'var(--mono)', fontWeight: 500, fontSize: 15, color: '#DCE1FF', cursor: 'pointer' }}
+      >
+        ${Number(balance || 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </span>
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-label="Account menu"
+        style={{
+          width: 34, height: 34, borderRadius: 999, flexShrink: 0, cursor: 'pointer',
+          background: '#0B1229', border: '1.5px solid #F0C04A',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#FFDF9B' }}>person</span>
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: 'absolute', top: 'calc(100% + 10px)', right: 0, minWidth: 210,
+            background: '#181E36', border: '1px solid #2D344C', borderRadius: 6,
+            boxShadow: '0 12px 30px rgba(0,0,0,.45)', overflow: 'hidden', zIndex: 60,
+          }}
+        >
+          <button
+            style={itemStyle}
+            onMouseEnter={e => e.currentTarget.style.background = '#1E2540'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            onClick={() => { setOpen(false); openAuthModal('login'); }}
+          >
+            Sign In
+          </button>
+          <div style={{ borderTop: '1px solid #0B1229' }} />
+          <button
+            style={itemStyle}
+            onMouseEnter={e => e.currentTarget.style.background = '#1E2540'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            onClick={() => { setOpen(false); openAuthModal('signup'); }}
+          >
+            Sign Up
           </button>
         </div>
       )}
@@ -199,28 +280,7 @@ export default function TopNav() {
       {session ? (
         <ProfileMenu session={session} balance={balance} />
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <button
-            onClick={() => openAuthModal('login')}
-            style={{
-              background: 'transparent', color: 'var(--yes)', fontWeight: 700, fontSize: 13.5,
-              border: '1.5px solid var(--yes)', borderRadius: 999, padding: '9px 20px',
-              cursor: 'pointer', whiteSpace: 'nowrap',
-            }}
-          >
-            Log in
-          </button>
-          <button
-            onClick={() => openAuthModal('signup')}
-            style={{
-              background: 'var(--yes)', color: '#0A1128', fontWeight: 700, fontSize: 13.5,
-              border: 'none', borderRadius: 999, padding: '9px 20px',
-              cursor: 'pointer', whiteSpace: 'nowrap',
-            }}
-          >
-            Sign up
-          </button>
-        </div>
+        <GuestMenu balance={balance} openAuthModal={openAuthModal} />
       )}
     </div>
   );
