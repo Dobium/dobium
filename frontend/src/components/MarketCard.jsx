@@ -24,7 +24,8 @@ function CategoryIcon({ name, size = 16 }) {
   return <span className="material-symbols-outlined" style={{ fontSize: size, lineHeight: 1 }}>{name}</span>;
 }
 
-const BINARY_COLORS = ['#2dd4a7', '#ff5c72'];
+const SPARK_UP = '#4AE176';
+const SPARK_DOWN = '#FFB4AB';
 const MULTI_COLORS = ['#e0b53d', '#a855f7', '#06b6d4', '#ec4899'];
 
 function normalizeOutcomeTitle(title) {
@@ -55,7 +56,6 @@ function generateLinePath(data, width, height) {
 function Sparkline({ market, outcomes, isBinary }) {
   const width = 280;
   const height = 44;
-  const palette = isBinary ? BINARY_COLORS : MULTI_COLORS;
   const history = market?.price_history || [];
   const count = isBinary ? 1 : Math.min(outcomes.length, 3);
 
@@ -66,12 +66,16 @@ function Sparkline({ market, outcomes, isBinary }) {
     } else {
       data = [o.probability ?? 50, o.probability ?? 50];
     }
+    // Mockup behavior: binary sparklines are green when trending up, rose when down.
+    const stroke = isBinary
+      ? (data[data.length - 1] >= data[0] ? SPARK_UP : SPARK_DOWN)
+      : MULTI_COLORS[idx % MULTI_COLORS.length];
     return (
       <path
         key={o.id}
         d={generateLinePath(data, width, height)}
         fill="none"
-        stroke={palette[idx % palette.length]}
+        stroke={stroke}
         strokeWidth="1.5"
         strokeLinecap="round"
         opacity="0.9"
@@ -109,13 +113,19 @@ export default function MarketCard({ market }) {
         {outcomes.slice(0, 2).map((o, idx) => (
           <button
             key={o.id}
-            style={idx === 0
-              ? { background: 'var(--yes-dim)', borderColor: 'rgba(45,212,167,0.35)', color: 'var(--yes)' }
-              : { background: 'var(--no-dim)', borderColor: 'rgba(255,92,114,0.35)', color: 'var(--no)' }}
-            className="flex-1 rounded-lg px-3 py-1.5 border text-sm font-medium transition-all active:scale-95"
+            style={{
+              fontFamily: 'var(--mono)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: idx === 0 ? '#1D323D' : '#251B32',
+              color: idx === 0 ? '#48D773' : '#CF9290',
+              border: 'none', borderRadius: 4,
+              padding: '9px 12px', fontSize: 12.5,
+            }}
+            className="flex-1 transition-all active:scale-95"
             onClick={(e) => e.stopPropagation()}
           >
-            {normalizeOutcomeTitle(o.title)} <span style={{ fontFamily: 'var(--mono)' }}>{Math.round(o.probability || 0)}¢</span>
+            <span>{normalizeOutcomeTitle(o.title)}</span>
+            <span>{Math.round(o.probability || 0)}¢</span>
           </button>
         ))}
       </div>
@@ -141,17 +151,19 @@ export default function MarketCard({ market }) {
 
   return (
     <div
-      className="market-card group border hover:border-yellow-500/50 transition-all duration-300 cursor-pointer rounded-xl p-4 flex flex-col gap-2.5"
-      style={{ background: 'var(--card)', borderColor: 'var(--line)' }}
+      className="market-card group transition-all duration-300 cursor-pointer p-4 flex flex-col gap-2.5"
+      style={{ background: '#181E36', border: '1px solid #33312E', borderRadius: 6 }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#FFDF9B')}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#33312E')}
       onClick={() => navigate(`/markets/${market.id}`)}
     >
       {/* Top row: category label on left, volume on right */}
       <div className="flex items-center justify-between gap-3">
-        <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-          <CategoryIcon name={CATEGORY_ICONS[market.category] || DEFAULT_ICON} size={14} />
+        <span className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-wide" style={{ color: '#948D87', fontFamily: 'var(--mono)' }}>
+          <CategoryIcon name={CATEGORY_ICONS[market.category] || DEFAULT_ICON} size={13} />
           {CATEGORY_LABELS[market.category] || 'General'}
         </span>
-        <span className="text-[11px] font-medium flex-shrink-0" style={{ color: 'var(--muted)' }}>
+        <span className="text-[10.5px] flex-shrink-0" style={{ color: '#9D968D', fontFamily: 'var(--mono)' }}>
           Vol: {volLabel}
         </span>
       </div>

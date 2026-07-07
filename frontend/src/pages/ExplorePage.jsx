@@ -61,9 +61,10 @@ export default function ExplorePage() {
             placeholder="Search markets..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="search-input w-full pl-11 pr-4 py-2.5 bg-slate-900/50 border border-slate-800 text-white placeholder:text-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500/20"
+            className="search-input w-full pl-11 pr-4 py-2.5 focus:outline-none"
+            style={{ background: '#181E36', border: '1px solid #33312E', borderRadius: 6, color: '#DCE1FF', fontSize: 13.5 }}
           />
-          <span className="absolute left-4 top-1/2 transform -translate-y-1/2" style={{ color: 'var(--gold)' }}>
+          <span className="absolute left-4 top-1/2 transform -translate-y-1/2" style={{ color: '#8E94AF' }}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round"
                 d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -78,15 +79,15 @@ export default function ExplorePage() {
                 key={c.id}
                 onClick={() => setChip(c.id)}
                 style={{
-                  padding: '8px 15px', borderRadius: 999,
-                  fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                  border: `1px solid ${active ? 'var(--gold)' : 'var(--line)'}`,
-                  background: active ? 'var(--gold-dim)' : 'rgba(17,26,57,.5)',
-                  color: active ? 'var(--gold)' : 'var(--muted)',
-                  transition: 'all .15s ease',
+                  fontFamily: 'var(--mono)',
+                  padding: '7px 13px', borderRadius: 4,
+                  fontSize: 12, cursor: 'pointer',
+                  border: 'none',
+                  background: '#2D344C',
+                  color: active ? '#FFDF9B' : '#8E94AF',
+                  transition: 'color .15s ease',
                 }}
               >
-                {c.icon && <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: '-2px', marginRight: 4 }}>{c.icon}</span>}
                 {c.label}
               </button>
             );
