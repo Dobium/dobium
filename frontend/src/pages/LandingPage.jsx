@@ -166,7 +166,7 @@ export default function LandingPage() {
 
           {/* Featured trending carousel (mockup) */}
           {!loading && (
-            <div style={{ marginBottom: 40 }}>
+            <div style={{ marginBottom: 44, maxWidth: 1120, marginLeft: 'auto', marginRight: 'auto' }}>
               <FeaturedCarousel markets={markets} />
             </div>
           )}
