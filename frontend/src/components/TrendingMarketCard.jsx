@@ -1,19 +1,11 @@
 import { useNavigate } from 'react-router-dom';
+import { bucketLabel } from '../lib/categories';
 
 // Trending market card — used ONLY on the landing page.
 // Pixel-matched to the approved mockup: mono category chip + thumbnail on top,
 // title, then a divider and a Yes/No price row with volume on the right.
 // (ExplorePage keeps the shared MarketCard with sparklines.)
 
-const CATEGORY_LABELS = {
-  sports: 'Sports',
-  music: 'Music Awards',
-  entertainment: 'Movies & TV',
-  awards: 'Awards',
-  politics: 'Politics',
-  finance: 'Finance',
-  technology: 'Technology',
-};
 
 function compactMoney(n) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
@@ -65,7 +57,7 @@ export default function TrendingMarketCard({ market }) {
             whiteSpace: 'nowrap',
           }}
         >
-          {CATEGORY_LABELS[market.category] || 'General'}
+          {bucketLabel(market.category)}
         </span>
         {market.image_url && (
           <img

@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import TrendingMarketCard from '../components/TrendingMarketCard';
 import { MarketGridSkeleton } from '../components/MarketCardSkeleton';
 import WaitlistCard from '../components/WaitlistCard';
+import FeaturedCarousel from '../components/FeaturedCarousel';
 
 // Shown if the live waitlist count can't be fetched.
 const WAITLIST_FALLBACK = 347;
@@ -159,6 +160,17 @@ export default function LandingPage() {
             prediction market
           </h1>
 
+          <p style={{ color: '#D2C5AF', fontSize: 13.5, margin: '-26px auto 34px', maxWidth: 460 }}>
+            High-stakes predictions on the culture that moves you.
+          </p>
+
+          {/* Featured trending carousel (mockup) */}
+          {!loading && (
+            <div style={{ marginBottom: 40 }}>
+              <FeaturedCarousel markets={markets} />
+            </div>
+          )}
+
           {/* CTA buttons */}
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 96 }}>
             <button
@@ -187,7 +199,7 @@ export default function LandingPage() {
                 cursor: 'pointer',
               }}
             >
-              Join Waitlist
+              Join Waitlist for Real Money
             </button>
           </div>
 
