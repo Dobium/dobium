@@ -6,6 +6,7 @@ import { useWallet } from '../hooks/useWallet';
 import { api } from '../api/client';
 import CommentsSection from '../components/CommentsSection';
 import { CATEGORY_COLORS, formatCurrency, formatDate } from '../store/storage';
+import { bucketLabel } from '../lib/categories';
 
 export function getOutcomeColor(o, outcomes) {
   if (!outcomes || outcomes.length === 0) return '#3b82f6';
@@ -562,7 +563,7 @@ export default function MarketDetailPage() {
           {market && (
             <div className="hidden sm:flex items-center gap-3 shrink-0">
               <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#D2C5AF', background: '#2D344C', borderRadius: 3, padding: '4px 9px', textTransform: 'capitalize' }}>
-                {market.category}
+                {bucketLabel(market.category)}
               </span>
               {sportsMeta && sportsMeta.match_state ? (
                 <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded border ${sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time' ? 'bg-slate-800 text-slate-300 border-slate-700' :
@@ -643,7 +644,7 @@ export default function MarketDetailPage() {
             {market && (
               <div className="flex sm:hidden items-center gap-3 mb-3">
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#D2C5AF', background: '#2D344C', borderRadius: 3, padding: '4px 9px', textTransform: 'capitalize' }}>
-                  {market.category}
+                  {bucketLabel(market.category)}
                 </span>
                 {sportsMeta && sportsMeta.match_state ? (
                   <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded border ${sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time' ? 'bg-slate-800 text-slate-300 border-slate-700' :

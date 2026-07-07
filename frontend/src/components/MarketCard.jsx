@@ -1,24 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-
-const CATEGORY_ICONS = {
-  sports: 'trophy',
-  music: 'music_note',
-  entertainment: 'movie',
-  awards: 'award_star',
-  politics: 'account_balance',
-  finance: 'trending_up',
-  technology: 'computer',
-};
-const CATEGORY_LABELS = {
-  sports: 'Sports',
-  music: 'Music',
-  entertainment: 'Movies & TV',
-  awards: 'Awards',
-  politics: 'Politics',
-  finance: 'Finance',
-  technology: 'Technology',
-};
-const DEFAULT_ICON = 'category';
+import { bucketLabel, bucketIcon } from '../lib/categories';
 
 function CategoryIcon({ name, size = 16 }) {
   return <span className="material-symbols-outlined" style={{ fontSize: size, lineHeight: 1 }}>{name}</span>;
@@ -160,8 +141,8 @@ export default function MarketCard({ market }) {
       {/* Top row: category label on left, volume on right */}
       <div className="flex items-center justify-between gap-3">
         <span className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-wide" style={{ color: '#948D87', fontFamily: 'var(--mono)' }}>
-          <CategoryIcon name={CATEGORY_ICONS[market.category] || DEFAULT_ICON} size={13} />
-          {CATEGORY_LABELS[market.category] || 'General'}
+          <CategoryIcon name={bucketIcon(market.category)} size={13} />
+          {bucketLabel(market.category)}
         </span>
         <span className="text-[10.5px] flex-shrink-0" style={{ color: '#9D968D', fontFamily: 'var(--mono)' }}>
           Vol: {volLabel}

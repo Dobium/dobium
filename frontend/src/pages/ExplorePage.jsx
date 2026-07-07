@@ -4,40 +4,37 @@ import MarketCard from '../components/MarketCard';
 import { MarketGridSkeleton } from '../components/MarketCardSkeleton';
 import WaitlistCard from '../components/WaitlistCard';
 import { useMarkets } from '../hooks/useMarkets';
+import { categoryBucket } from '../lib/categories';
 
+// Three buckets only — we're a music & media prediction market.
+// Everything news-driven (sports, tech, elections…) lives under Trending.
 const CHIPS = [
-  { id: 'all', label: 'All', icon: null },
-  { id: 'short', label: 'Short resolution', icon: 'bolt' },
-  { id: 'long', label: 'Long resolution', icon: 'trending_up' },
-  { id: 'music', label: 'Music', icon: 'music_note' },
-  { id: 'sports', label: 'Sports', icon: 'trophy' },
-  { id: 'entertainment', label: 'Movies & TV', icon: 'movie' },
-  { id: 'awards', label: 'Awards', icon: 'award_star' },
+  { id: 'all', label: 'All' },
+  { id: 'trending', label: 'Trending' },
+  { id: 'music', label: 'Music' },
+  { id: 'media', label: 'Media' },
 ];
 
-// Same close-date fallbacks MarketCard uses, so fuse filters match the fuse labels.
-function daysLeft(m) {
-  const raw = m.close_time || m.closes_at || m.end_time || m.close_date || null;
-  if (!raw) return null;
-  return Math.ceil((new Date(raw) - Date.now()) / 86400000);
+// Old links like /explore?filter=awards or ?filter=sports keep working
+// by collapsing legacy categories into the bucket they now belong to.
+function normalizeFilter(f) {
+  if (!f) return 'all';
+  const v = f.toLowerCase();
+  if (['all', 'trending', 'music', 'media'].includes(v)) return v;
+  return categoryBucket(v);
 }
 
 export default function ExplorePage() {
   const { markets, loading } = useMarkets();
   const [searchParams] = useSearchParams();
   const urlFilter = searchParams.get('filter');
-  const [chip, setChip] = useState(urlFilter || 'all');
-  useEffect(() => { setChip(urlFilter || 'all'); }, [urlFilter]);
+  const [chip, setChip] = useState(normalizeFilter(urlFilter));
+  useEffect(() => { setChip(normalizeFilter(urlFilter)); }, [urlFilter]);
   const [search, setSearch] = useState('');
 
   const filtered = [...markets]
     .filter((m) => {
-      const d = daysLeft(m);
-      const chipMatch =
-        chip === 'all' ? true :
-        chip === 'short' ? d !== null && d > 0 && d <= 7 :
-        chip === 'long' ? d !== null && d > 7 :
-        m.category === chip;
+      const chipMatch = chip === 'all' ? true : categoryBucket(m.category) === chip;
       const searchMatch = !search || m.title?.toLowerCase().includes(search.toLowerCase());
       return chipMatch && searchMatch;
     })
