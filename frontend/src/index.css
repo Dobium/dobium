@@ -71,13 +71,13 @@ a {
 }
 
 .dm-serif-text-regular {
-  font-family: "DM Serif Text", serif;
+  font-family: "Hanken Grotesk", sans-serif;
   font-weight: 400;
   font-style: normal;
 }
 
 .dm-serif-text-regular-italic {
-  font-family: "DM Serif Text", serif;
+  font-family: "Hanken Grotesk", sans-serif;
   font-weight: 400;
   font-style: italic;
 }
@@ -86,7 +86,7 @@ a {
 .text-2xl.font-bold,
 .text-xl.font-bold,
 .text-lg.font-bold {
-  font-family: "DM Serif Text", serif;
+  font-family: "Hanken Grotesk", sans-serif;
 }
 
 /* ========================================
@@ -726,7 +726,7 @@ a,
 }
 
 .auth-title {
-  font-family: "DM Serif Text", serif;
+  font-family: "Hanken Grotesk", sans-serif;
   font-size: 22px;
   font-weight: 700;
   text-align: center;
@@ -778,7 +778,7 @@ a,
   border-radius: 8px;
   padding: 10px 14px;
   color: #f1f5f9;
-  font-family: "Jost", sans-serif;
+  font-family: "Hanken Grotesk", sans-serif;
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -804,7 +804,7 @@ a,
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-family: "Jost", sans-serif;
+  font-family: "Hanken Grotesk", sans-serif;
   font-size: 14px;
   font-weight: 600;
   padding: 10px 20px;

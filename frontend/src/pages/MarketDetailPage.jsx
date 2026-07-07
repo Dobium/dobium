@@ -11,8 +11,8 @@ export function getOutcomeColor(o, outcomes) {
   if (!outcomes || outcomes.length === 0) return '#3b82f6';
   if (outcomes.length === 2) {
     const t = o && o.title ? o.title.toLowerCase() : '';
-    if (t === 'yes') return '#22c55e';
-    if (t === 'no') return '#ef4444';
+    if (t === 'yes') return '#4AE176';
+    if (t === 'no') return '#FFB4AB';
   }
   const idx = outcomes.findIndex(function (x) { return x.id === o.id; });
   const colors = [
@@ -258,6 +258,17 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds }) {
   );
 }
 
+function timeAgo(ts) {
+  const diff = Date.now() - new Date(ts).getTime();
+  if (!isFinite(diff) || diff < 0) return '';
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
 function calcPositionValue(stake, entryProbPct, currentProbPct) {
   const pEntry = entryProbPct / 100;
   const pCurrent = currentProbPct / 100;
@@ -324,6 +335,7 @@ export default function MarketDetailPage() {
   const [userPositions, setUserPositions] = useState({});
   const [userAvgEntry, setUserAvgEntry] = useState({}); // weighted avg entry prob per outcome
   const [resolvedPositions, setResolvedPositions] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [sellingOutcomeId, setSellingOutcomeId] = useState(null);
   const [sellAmount, setSellAmount] = useState('');
   const [sellLoading, setSellLoading] = useState(false);
@@ -405,8 +417,15 @@ export default function MarketDetailPage() {
         setUserPositions(positions);
         setUserAvgEntry(avgEntry);
         setResolvedPositions(resolved);
+
+        // Recent market-wide trades for the activity table (mockup)
+        const recent = allPredictions
+          .filter(pr => pr.created_at)
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .slice(0, 8);
+        setRecentActivity(recent);
       })
-      .catch(() => { setUserPositions({}); setUserAvgEntry({}); setResolvedPositions([]); });
+      .catch(() => { setUserPositions({}); setUserAvgEntry({}); setResolvedPositions([]); setRecentActivity([]); });
   }, [market?.id, session]);
 
   if (loading) return <div className="loading-center"><div className="spinner" /></div>;
@@ -542,7 +561,7 @@ export default function MarketDetailPage() {
           {market && <h1 className="text-xl md:text-2xl font-bold text-white truncate">{market.title}</h1>}
           {market && (
             <div className="hidden sm:flex items-center gap-3 shrink-0">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${CATEGORY_COLORS[market.category] || 'from-slate-500 to-slate-600'} text-white`}>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#D2C5AF', background: '#2D344C', borderRadius: 3, padding: '4px 9px', textTransform: 'capitalize' }}>
                 {market.category}
               </span>
               {sportsMeta && sportsMeta.match_state ? (
@@ -623,7 +642,7 @@ export default function MarketDetailPage() {
           <div>
             {market && (
               <div className="flex sm:hidden items-center gap-3 mb-3">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${CATEGORY_COLORS[market.category] || 'from-slate-500 to-slate-600'} text-white`}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#D2C5AF', background: '#2D344C', borderRadius: 3, padding: '4px 9px', textTransform: 'capitalize' }}>
                   {market.category}
                 </span>
                 {sportsMeta && sportsMeta.match_state ? (
@@ -652,7 +671,7 @@ export default function MarketDetailPage() {
                 )}
               </div>
             )}
-            <p className="text-slate-400 text-sm md:text-base">{displayDescription}</p>
+            <p style={{ color: '#B7A77E', fontSize: 13.5, lineHeight: 1.65 }}>{displayDescription}</p>
           </div>
 
           {market.status === 'resolved' && (
@@ -670,9 +689,21 @@ export default function MarketDetailPage() {
             </div>
           )}
           {/* Price Chart */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-white">Price History</h2>
+          <div className="rounded-lg p-6 mb-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div style={{ fontFamily: 'var(--mono)', display: 'flex', alignItems: 'baseline', gap: 14 }}>
+                {(() => {
+                  const leader = outcomes[0];
+                  return leader ? (
+                    <span style={{ color: '#48D773', fontSize: 17, fontWeight: 700 }}>
+                      {Math.round(leader.probability || 0)}% {leader.title}
+                    </span>
+                  ) : null;
+                })()}
+                <span style={{ color: '#9D968D', fontSize: 12 }}>
+                  Vol: ${(market.total_volume || 0) >= 1000000 ? ((market.total_volume || 0) / 1000000).toFixed(1) + 'M' : (market.total_volume || 0) >= 1000 ? ((market.total_volume || 0) / 1000).toFixed(1) + 'K' : (market.total_volume || 0).toLocaleString()}
+                </span>
+              </div>
             </div>
             <PriceChart selectedIds={selectedIds}
               outcomes={chartOutcomes}
@@ -692,6 +723,34 @@ export default function MarketDetailPage() {
               )}
             </div>
           </div>
+          {/* Recent Activity (mockup) */}
+          {recentActivity.length > 0 && (
+            <div className="rounded-lg p-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+              <h2 className="text-base font-bold mb-4" style={{ color: '#DCE1FF' }}>Recent Activity</h2>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>
+                <div style={{ display: 'flex', color: '#948D87', fontSize: 11, paddingBottom: 9, borderBottom: '1px solid rgba(45,52,76,.7)' }}>
+                  <span style={{ flex: 2 }}>Action</span>
+                  <span style={{ flex: 1.4 }}>Amount</span>
+                  <span style={{ flex: 1 }}>Price</span>
+                  <span style={{ flex: 1, textAlign: 'right' }}>Time</span>
+                </div>
+                {recentActivity.map((tr, i) => {
+                  const o = outcomes.find(x => x.id === tr.outcome_id);
+                  const t = (o?.title || '').toLowerCase();
+                  const actionColor = t.startsWith('yes') ? '#48D773' : t.startsWith('no') ? '#FFB4AB' : '#DCE1FF';
+                  return (
+                    <div key={tr.id || i} style={{ display: 'flex', padding: '10px 0', borderBottom: i < recentActivity.length - 1 ? '1px solid rgba(45,52,76,.4)' : 'none' }}>
+                      <span style={{ flex: 2, color: actionColor, fontWeight: 600 }}>Buy {o?.title || '—'}</span>
+                      <span style={{ flex: 1.4, color: '#DCE1FF' }}>${(tr.stake_amount || 0).toFixed(2)}</span>
+                      <span style={{ flex: 1, color: '#DCE1FF' }}>{Math.round(tr.odds_at_prediction || 0)}¢</span>
+                      <span style={{ flex: 1, textAlign: 'right', color: '#B7A77E' }}>{timeAgo(tr.created_at)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Controls: Dropdown & Timeline */}
           <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 ">
             <div className="relative" ref={chartDropdownRef}>
@@ -729,11 +788,16 @@ export default function MarketDetailPage() {
               )}
             </div>
 
-            <div className="flex bg-slate-800/50 p-1 rounded-lg border border-slate-700/50">
+            <div className="flex gap-1 p-1 rounded" style={{ background: '#0B1229', border: '1px solid #33312E' }}>
               {['1D', '1W', '1M', 'ALL'].map(range => (
                 <button
                   key={range}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${range === 'ALL' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}
+                  style={{
+                    fontFamily: 'var(--mono)', fontSize: 11, padding: '5px 11px', borderRadius: 3,
+                    background: range === 'ALL' ? '#F0C04A' : 'transparent',
+                    color: range === 'ALL' ? '#4A3600' : '#8E94AF',
+                    border: 'none', cursor: 'pointer', fontWeight: 600,
+                  }}
                 >
                   {range}
                 </button>
@@ -823,13 +887,17 @@ export default function MarketDetailPage() {
             const selPos = sel ? (userPositions[sel.id] || 0) : 0;
             const priceOf = (o) => Math.round(o?.probability || 0);
             return (
-              <div className="mb-5 rounded-2xl border border-slate-700/70 bg-slate-900/60 p-4 shadow-2xl" style={{ fontFamily: 'inherit' }}>
-                {/* Buy / Sell tabs */}
-                <div className="flex border-b border-slate-700/60 mb-4">
+              <div className="mb-5 rounded-lg p-4" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+                {/* Buy / Sell segmented tabs (mockup) */}
+                <div className="flex gap-1 p-1 rounded mb-4" style={{ background: '#0B1229', border: '1px solid #33312E' }}>
                   {['buy', 'sell'].map(t => (
                     <button key={t} onClick={() => setPanelTab(t)}
-                      className="flex-1 pb-2.5 text-sm font-bold capitalize transition-all"
-                      style={{ color: panelTab === t ? '#fff' : 'var(--muted)', borderBottom: panelTab === t ? '2px solid var(--gold)' : '2px solid transparent' }}>
+                      className="flex-1 py-2 text-sm font-semibold capitalize transition-all rounded"
+                      style={{
+                        background: panelTab === t ? '#DCE1FF' : 'transparent',
+                        color: panelTab === t ? '#0B1229' : '#8E94AF',
+                        border: 'none', cursor: 'pointer',
+                      }}>
                       {t}
                     </button>
                   ))}
@@ -841,8 +909,7 @@ export default function MarketDetailPage() {
                   </div>
                 )}
 
-                {/* Pick side */}
-                <div className="text-xs font-semibold text-slate-400 mb-2">Pick side</div>
+                {/* Pick side (mockup stacked boxes) */}
                 {panelBinary ? (
                   <div className="flex gap-2 mb-4">
                     {outcomes.map((o) => {
@@ -851,11 +918,17 @@ export default function MarketDetailPage() {
                       return (
                         <button key={o.id} disabled={marketClosed}
                           onClick={() => setSelectedOutcome(active ? null : o)}
-                          className="flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all disabled:opacity-40"
-                          style={yes
-                            ? { background: active ? 'rgba(45,212,167,.18)' : 'transparent', borderColor: active ? 'var(--yes)' : 'rgba(45,212,167,.4)', color: 'var(--yes)' }
-                            : { background: active ? 'rgba(255,92,114,.16)' : 'transparent', borderColor: active ? 'var(--no)' : 'rgba(255,92,114,.4)', color: 'var(--no)' }}>
-                          {o.title} {priceOf(o)}¢
+                          className="flex-1 transition-all disabled:opacity-40"
+                          style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                            padding: '13px 8px', borderRadius: 6, cursor: 'pointer',
+                            fontFamily: 'var(--mono)',
+                            background: active ? (yes ? '#12271F' : '#2A1620') : '#0B1229',
+                            border: `1.5px solid ${active ? (yes ? '#48D773' : '#FFB4AB') : '#33312E'}`,
+                            color: yes ? '#48D773' : '#CF9290',
+                          }}>
+                          <span style={{ fontSize: 13.5, fontWeight: 700 }}>{o.title}</span>
+                          <span style={{ fontSize: 12.5, opacity: .9 }}>{priceOf(o)}¢</span>
                         </button>
                       );
                     })}
@@ -873,12 +946,17 @@ export default function MarketDetailPage() {
 
                 {panelTab === 'buy' ? (
                   <form onSubmit={handleTrade} className="space-y-3">
+                    <div style={{ fontFamily: 'var(--mono)', display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#948D87' }}>
+                      <span>Investment Amount</span>
+                      <span>Balance: ${(safeBuyingPower !== null ? safeBuyingPower : 100).toFixed(2)}</span>
+                    </div>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
                         <input type="number" min="0.01" step="0.01" value={stake} disabled={marketClosed}
                           onChange={e => setStake(e.target.value)} placeholder="0.00" required
-                          className="w-full bg-slate-950/70 border border-slate-600 rounded-xl pl-7 pr-14 py-2.5 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-yellow-500/50 focus:border-yellow-500 disabled:opacity-40" />
+                          className="w-full pl-7 pr-14 py-2.5 text-sm placeholder:text-slate-600 focus:outline-none disabled:opacity-40"
+                          style={{ background: '#0B1229', border: '1px solid #33312E', borderRadius: 6, color: '#DCE1FF', fontFamily: 'var(--mono)' }} />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-bold">USD</span>
                       </div>
                       {safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && (
@@ -889,19 +967,23 @@ export default function MarketDetailPage() {
                     {sel && parseFloat(stake) > 0 && (() => {
                       const b = calculatePayoutBounds(parseFloat(stake), sel.probability || 50);
                       return (
-                        <div className="rounded-xl bg-slate-800/50 border border-slate-700/50 p-3 space-y-1.5 text-xs">
-                          <div className="flex justify-between"><span className="text-slate-400">Average price</span><span className="text-white font-semibold">{priceOf(sel)}¢</span></div>
-                          <div className="flex justify-between"><span className="text-slate-400">Potential return if {sel.title} wins</span><span className="font-bold" style={{ color: 'var(--yes)' }}>${b.winReturn.toFixed(2)}</span></div>
-                          <div className="flex justify-between"><span className="text-slate-400">Refunded if it loses</span><span className="font-semibold" style={{ color: 'var(--no)' }}>${b.loseRefund.toFixed(2)}</span></div>
+                        <div className="p-3 space-y-2" style={{ background: '#0B1229', border: '1px solid #33312E', borderRadius: 6, fontFamily: 'var(--mono)', fontSize: 11.5 }}>
+                          <div className="flex justify-between"><span style={{ color: '#948D87' }}>Avg. Price</span><span style={{ color: '#DCE1FF' }}>{priceOf(sel)}¢</span></div>
+                          <div className="flex justify-between"><span style={{ color: '#948D87' }}>Potential Payout</span><span style={{ color: '#48D773' }}>+${b.winReturn.toFixed(2)}</span></div>
+                          <div className="flex justify-between"><span style={{ color: '#948D87' }}>Max Profit</span><span style={{ color: '#48D773' }}>+${b.winProfit.toFixed(2)} ({parseFloat(stake) > 0 ? ((b.winProfit / parseFloat(stake)) * 100).toFixed(1) : '0.0'}%)</span></div>
+                          <div className="flex justify-between" style={{ borderTop: '1px solid rgba(45,52,76,.7)', paddingTop: 8 }}><span style={{ color: '#948D87' }}>Total Cost</span><span style={{ color: '#DCE1FF' }}>${parseFloat(stake).toFixed(2)}</span></div>
                         </div>
                       );
                     })()}
                     {tradeMsg && <p className={`text-xs ${tradeMsg.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>{tradeMsg}</p>}
                     <button type="submit" disabled={marketClosed || tradeLoading || !sel || !parseFloat(stake)}
-                      className="w-full py-3 rounded-xl text-sm font-extrabold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                      style={{ background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))', color: '#1a1405' }}>
+                      className="w-full py-3 text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ background: '#F0C04A', color: '#4A3600', borderRadius: 6, fontFamily: 'var(--mono)', fontWeight: 700, border: 'none' }}>
                       {tradeLoading ? 'Placing...' : 'Place Trade'}
                     </button>
+                    <p style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: '#B7A77E', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
+                      By trading, you agree to the Terms of Service.
+                    </p>
                   </form>
                 ) : (
                   <div className="space-y-3">
