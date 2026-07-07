@@ -54,7 +54,7 @@ export default function AuthPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <img src="/Logo-Title.png" alt="Samsa Prediction Markets" style={{ height: 50 }} />
+          <img src="/Logo-Title.png" alt="Dobium Prediction Markets" style={{ height: 50 }} />
         </div>
 
         {view === 'login' && (
@@ -116,7 +116,7 @@ export default function AuthPage() {
         {view === 'signup' && (
           <>
             <h1 className="auth-title font-extrabold text-white text-2xl md:text-3xl text-center mb-1">Create account</h1>
-            <p className="auth-subtitle">Join Samsa Prediction Markets</p>
+            <p className="auth-subtitle">Join Dobium Prediction Markets</p>
 
             {/* Google — primary CTA */}
             <button className="btn-google" onClick={handleGoogle} disabled={loading}>

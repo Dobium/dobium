@@ -46,65 +46,31 @@ export default function ExplorePage() {
   return (
     <div className="max-w-7xl mx-auto p-6 lg:p-8">
 
-      {/* ── Hero ── */}
-      <div style={{ textAlign: 'center', padding: '64px 24px 48px', position: 'relative' }}>
-        <div style={{
-          position: 'absolute', top: -60, left: '50%', transform: 'translateX(-50%)',
-          width: 580, height: 320,
-          background: 'radial-gradient(ellipse at center,rgba(240,192,74,.10),transparent 65%)',
-          pointerEvents: 'none',
-        }} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 18 }}>
-            <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 600, fontSize: 'clamp(44px,7vw,72px)', background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
-            Dobium
+      {/* ── Page header (matches mockup: clean H1, no duplicate hero) ── */}
+      <div style={{ padding: '28px 0 22px' }}>
+        <h1 style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 'clamp(28px,4vw,38px)', color: 'var(--text)', margin: 0 }}>
+          Explore Markets
+        </h1>
+      </div>
+
+      {/* ── Search (left) + filter chips (right) ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 26 }}>
+        <div className="relative search-container" style={{ flex: '1 1 260px', maxWidth: 420 }}>
+          <input
+            type="text"
+            placeholder="Search markets..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="search-input w-full pl-11 pr-4 py-2.5 bg-slate-900/50 border border-slate-800 text-white placeholder:text-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500/20"
+          />
+          <span className="absolute left-4 top-1/2 transform -translate-y-1/2" style={{ color: 'var(--gold)' }}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
           </span>
         </div>
-        <p style={{ color: 'var(--text)', fontSize: 'clamp(17px,2.4vw,22px)', fontWeight: 400, maxWidth: 580, margin: '0 auto 10px', opacity: .92 }}>
-          The entertainment prediction market
-        </p>
-        <p style={{ color: 'var(--muted)', fontSize: 14, maxWidth: 480, margin: '0 auto 36px' }}>
-          Trade on music drops, box office, awards and the biggest moments in culture — with $100 paper money.
-        </p>
-        {!loading && (
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <div style={{ textAlign: 'center' }}>
-              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
-                {markets.length}
-              </span>
-              <span style={{ color: 'var(--muted)', fontSize: 13 }}>live markets</span>
-            </div>
-            <div style={{ width: 1, background: 'var(--line)', margin: '4px 8px' }} />
-            <div style={{ textAlign: 'center' }}>
-              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
-                ${markets.reduce((s, m) => s + (m.total_volume || 0), 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
-              </span>
-              <span style={{ color: 'var(--muted)', fontSize: 13 }}>paper volume traded</span>
-            </div>
-            <div style={{ width: 1, background: 'var(--line)', margin: '4px 8px' }} />
-            <div style={{ textAlign: 'center' }}>
-              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
-                347
-              </span>
-              <span style={{ color: 'var(--muted)', fontSize: 13 }}>on the real-money waitlist</span>
-            </div>
-          </div>
-        )}
-      </div>
-      {/* ── /Hero ── */}
-
-      {/* ── Live Markets heading ── */}
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
-        <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 28, color: 'var(--text)', margin: 0 }}>
-          Live Markets
-        </h2>
-        <span style={{ color: 'var(--muted)', fontSize: 13 }}>
-          Sorted by <span style={{ color: 'var(--gold)', fontWeight: 600 }}>volume</span> · updates live
-        </span>
-      </div>
-
-      {/* ── Filter chips + search ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 26 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' }}>
           {CHIPS.map((c) => {
             const active = chip === c.id;
             return (
@@ -125,21 +91,6 @@ export default function ExplorePage() {
               </button>
             );
           })}
-        </div>
-        <div className="relative search-container">
-          <input
-            type="text"
-            placeholder="Search markets..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="search-input pl-11 pr-4 py-2.5 bg-slate-900/50 border border-slate-800 text-white placeholder:text-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500/20"
-          />
-          <span className="absolute left-4 top-1/2 transform -translate-y-1/2" style={{ color: 'var(--gold)' }}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round"
-                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
-          </span>
         </div>
       </div>
 
