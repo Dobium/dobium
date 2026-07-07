@@ -36,17 +36,18 @@ function historyFor(market, outcome) {
 }
 
 function MiniChart({ market, outcomes }) {
-  const W = 320; const H = 120; const PAD = 6;
+  const W = 420; const H = 210; const PAD = 8; const AXIS = 40;
   const series = outcomes.map((o, i) => ({
     id: o.id,
     color: LINE_COLORS[i % LINE_COLORS.length],
     data: historyFor(market, o),
   }));
+  const plotW = W - PAD * 2 - AXIS;
   const path = (data) => {
     const n = data.length;
     return data
       .map((v, i) => {
-        const x = PAD + (i / (n - 1)) * (W - PAD * 2);
+        const x = PAD + (i / (n - 1)) * plotW;
         const y = PAD + (1 - v / 100) * (H - PAD * 2);
         return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
       })
@@ -59,19 +60,28 @@ function MiniChart({ market, outcomes }) {
 
   return (
     <div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="none" style={{ height: 110 }}>
-        {[0.25, 0.5, 0.75].map((r) => (
-          <line key={r} x1={PAD} x2={W - PAD} y1={PAD + r * (H - PAD * 2)} y2={PAD + r * (H - PAD * 2)}
-            stroke="#2D344C" strokeWidth="0.6" strokeDasharray="3,4" opacity="0.5" />
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="xMidYMid meet" style={{ maxHeight: 230 }}>
+        {/* Dobium watermark, like the mockup */}
+        <text x={W - AXIS - 10} y={26} textAnchor="end" fontSize="15" fontWeight="700"
+          fill="#DCE1FF" opacity="0.10" fontFamily="Hanken Grotesk, sans-serif">Dobium</text>
+        {[0, 0.25, 0.5, 0.75, 1].map((r) => (
+          <g key={r}>
+            <line x1={PAD} x2={PAD + plotW} y1={PAD + r * (H - PAD * 2)} y2={PAD + r * (H - PAD * 2)}
+              stroke="#2D344C" strokeWidth="0.6" strokeDasharray="3,4" opacity="0.45" />
+            <text x={PAD + plotW + 8} y={PAD + r * (H - PAD * 2)} dominantBaseline="middle"
+              fontSize="9.5" fill="#8E94AF" fontFamily="JetBrains Mono, monospace">
+              {Math.round((1 - r) * 100)}%
+            </text>
+          </g>
         ))}
         {series.map((sr) => {
           const n = sr.data.length;
-          const lastX = PAD + (W - PAD * 2);
+          const lastX = PAD + plotW;
           const lastY = PAD + (1 - sr.data[n - 1] / 100) * (H - PAD * 2);
           return (
             <g key={sr.id}>
-              <path d={path(sr.data)} fill="none" stroke={sr.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx={lastX} cy={lastY} r="2.6" fill={sr.color} />
+              <path d={path(sr.data)} fill="none" stroke={sr.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx={lastX} cy={lastY} r="3.2" fill={sr.color} />
             </g>
           );
         })}
@@ -119,23 +129,23 @@ export default function FeaturedCarousel({ markets }) {
     <div
       onClick={() => navigate(`/markets/${market.id}`)}
       style={{
-        maxWidth: 940, margin: '0 auto', textAlign: 'left', cursor: 'pointer',
+        margin: '0 auto', textAlign: 'left', cursor: 'pointer',
         background: '#181E36', border: '1px solid #33312E', borderRadius: 8,
-        padding: '20px 22px 18px',
+        padding: '26px 30px 24px', minHeight: 330,
       }}
     >
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 26 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 34 }}>
         {/* Left: tag, title, outcomes table, volume */}
-        <div style={{ flex: '1.2 1 320px', minWidth: 280 }}>
+        <div style={{ flex: '1.05 1 340px', minWidth: 300, display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#D2C5AF', background: '#2D344C', borderRadius: 3, padding: '4px 9px' }}>
             {bucketLabel(market.category)}
           </span>
-          <h3 style={{ color: '#DCE1FF', fontSize: 16.5, fontWeight: 600, margin: '12px 0 14px', lineHeight: 1.4 }}>
+          <h3 style={{ color: '#DCE1FF', fontSize: 19, fontWeight: 600, margin: '14px 0 18px', lineHeight: 1.4 }}>
             {market.title}
           </h3>
 
           {/* Outcomes mini-table */}
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 11.5 }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 12.5 }}>
             <div style={{ display: 'flex', color: '#948D87', fontSize: 10, paddingBottom: 7, borderBottom: '1px solid rgba(45,52,76,.7)' }}>
               <span style={{ flex: 2.1 }}>{binary ? 'Outcome' : 'Market'}</span>
               <span style={{ flex: 0.8, textAlign: 'center' }}>Yes</span>
@@ -145,8 +155,8 @@ export default function FeaturedCarousel({ markets }) {
             {rows.map((o) => {
               const p = Math.round(o.probability || 0);
               return (
-                <div key={o.id} style={{ display: 'flex', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid rgba(45,52,76,.35)' }}>
-                  <span style={{ flex: 2.1, color: '#DCE1FF', fontFamily: 'var(--wordmark)', fontSize: 12.5, paddingRight: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div key={o.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid rgba(45,52,76,.35)' }}>
+                  <span style={{ flex: 2.1, color: '#DCE1FF', fontFamily: 'var(--wordmark)', fontSize: 13.5, paddingRight: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {o.title}
                   </span>
                   <span style={{ flex: 0.8, textAlign: 'center' }}>
@@ -161,7 +171,7 @@ export default function FeaturedCarousel({ markets }) {
             })}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 16 }}>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: '#9D968D' }}>
               ${(market.total_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} vol
             </span>
@@ -172,7 +182,7 @@ export default function FeaturedCarousel({ markets }) {
         </div>
 
         {/* Right: legend + chart + carousel controls */}
-        <div style={{ flex: '1 1 300px', minWidth: 260 }}>
+        <div style={{ flex: '1 1 340px', minWidth: 300 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               {chartOutcomes.map((o, i) => (
@@ -198,16 +208,17 @@ export default function FeaturedCarousel({ markets }) {
             )}
           </div>
           <MiniChart market={market} outcomes={chartOutcomes} />
+
+          {/* Context blurb sits under the chart, mockup-style */}
+          {blurb && (
+            <p style={{ margin: '14px 0 0', paddingTop: 13, borderTop: '1px solid rgba(45,52,76,.6)', fontSize: 12, lineHeight: 1.65, color: '#B7A77E' }}>
+              <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10.5, letterSpacing: '0.06em', marginRight: 8, color: '#FFDF9B' }}>ABOUT</span>
+              {blurb.length > 170 ? `${blurb.slice(0, 170)}…` : blurb}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Context blurb */}
-      {blurb && (
-        <p style={{ margin: '16px 0 0', paddingTop: 14, borderTop: '1px solid rgba(45,52,76,.6)', fontSize: 12, lineHeight: 1.6, color: '#B7A77E' }}>
-          <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10.5, letterSpacing: '0.06em', marginRight: 8, color: '#FFDF9B' }}>ABOUT</span>
-          {blurb.length > 200 ? `${blurb.slice(0, 200)}…` : blurb}
-        </p>
-      )}
     </div>
   );
 }
