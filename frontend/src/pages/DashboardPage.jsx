@@ -388,7 +388,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Paper Trading Balance Skeleton */}
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-8">
+            <div className="rounded-md p-4 mb-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span style={{ color: 'rgb(212, 175, 55)' }}><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" /></svg></span>
@@ -400,7 +400,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Forecasting Stats Skeleton */}
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 mb-8">
+            <div className="rounded-md p-5 mb-8" style={{ background: '#181E36', border: '1px solid #33312E' }}>
               <div className="flex items-center gap-2 mb-4 opacity-50">
                 <span style={{ color: 'rgb(212, 175, 55)' }}><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg></span>
                 <span className="text-white font-bold">Your Forecasting Stats</span>
@@ -612,27 +612,63 @@ export default function DashboardPage() {
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Main Content (Left Side) */}
         <div className="flex-1">
-          {/* Account Selector & Value */}
-          <div className="mb-2">
-            <button className="flex items-center gap-2 text-white hover:bg-slate-800/50 px-3 py-2 rounded-lg transition-colors -ml-3">
-              <span className="text-2xl font-semibold">Portfolio</span>
-              <span className="text-slate-400">▾</span>
-            </button>
+          {/* ── Top stats row (mockup): big portfolio card + stacked cash/win-rate ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+            <div className="lg:col-span-2 relative overflow-hidden rounded-md p-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#948D87', marginBottom: 10 }}>
+                Total Portfolio Value
+              </span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 34, fontWeight: 600, color: '#DCE1FF', lineHeight: 1 }}>
+                  ${portfolioValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: todayChange >= 0 ? '#48D773' : '#FFB4AB' }}>
+                  {todayChange >= 0 ? '↗+$' : '↘-$'}{Math.abs(todayChange).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({todayChange >= 0 ? '' : '-'}{Math.abs(todayChangePercent).toFixed(1)}%)
+                </span>
+              </div>
+              <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 46, background: 'linear-gradient(180deg, transparent, rgba(11,18,41,.65))', pointerEvents: 'none' }} />
+            </div>
+            <div className="flex flex-col gap-4">
+              <div className="rounded-md p-5 flex-1" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+                <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#948D87', marginBottom: 8 }}>
+                  Available Cash
+                </span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 600, color: '#DCE1FF' }}>
+                  {walletLoading ? '…' : `$${availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                </span>
+              </div>
+              <div className="rounded-md p-5 flex-1" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+                <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#948D87', marginBottom: 8 }}>
+                  Win Rate
+                </span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 600, color: '#FFDF9B' }}>
+                  {accuracyPercent}%
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Portfolio Value */}
-          <div className="mb-1">
-            <h1 className="text-5xl font-bold text-white">${portfolioValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h1>
-          </div>
-          <div className="flex items-center gap-2 mb-8">
-            <span className={`font-medium ${todayChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {todayChange >= 0 ? '+$' : '-$'}{Math.abs(todayChange).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({todayChange >= 0 ? '+' : ''}{todayChangePercent.toFixed(2)}%)
-            </span>
-            <span className="text-slate-400">All Time</span>
-          </div>
-
-          {/* Portfolio Chart */}
-          <div className="mb-6">
+          {/* ── Performance History (mockup) ── */}
+          <div className="rounded-md p-6 mb-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+              <h2 className="text-base font-bold" style={{ color: '#DCE1FF' }}>Performance History</h2>
+              <div className="flex gap-1 p-1 rounded" style={{ background: '#0B1229', border: '1px solid #33312E' }}>
+                {['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'].map(range => (
+                  <button
+                    key={range}
+                    onClick={() => setSelectedRange(range)}
+                    style={{
+                      fontFamily: 'var(--mono)', fontSize: 11, padding: '5px 10px', borderRadius: 3,
+                      background: selectedRange === range ? '#F0C04A' : 'transparent',
+                      color: selectedRange === range ? '#4A3600' : '#8E94AF',
+                      border: 'none', cursor: 'pointer', fontWeight: 600,
+                    }}
+                  >
+                    {range}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="h-64 relative">
               <EquityChart
                 equityPoints={equityPoints}
@@ -642,29 +678,101 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Time Range Selector */}
-          <div className="flex items-center justify-between mb-8 border-b border-slate-800 pb-4">
-            <div className="flex gap-1">
-              {['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'].map(range => (
-                <button
-                  key={range}
-                  onClick={() => setSelectedRange(range)}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${selectedRange === range
-                    ? 'text-green-400 border-b-2 border-green-400'
-                    : 'text-slate-400 hover:text-white'
-                    }`}
-                >
-                  {range}
-                </button>
-              ))}
+          {/* ── Active Positions table (mockup) ── */}
+          <div className="rounded-md p-6 mb-8" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold" style={{ color: '#DCE1FF' }}>Active Positions</h2>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: '#D2C5AF' }}>
+                {Object.keys(groupedPredictions).length} active
+              </span>
             </div>
-            <button className="p-2 hover:bg-slate-800 rounded-lg transition-colors" style={{ color: 'rgb(212, 175, 55)' }}>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </button>
+            {(() => {
+              const rows = [];
+              Object.entries(groupedPredictions).forEach(([marketId, marketPredictions]) => {
+                const market = markets.find(m => m.id === marketId);
+                const outcomeMap = {};
+                marketPredictions.forEach(pred => {
+                  const oid = pred.outcome_id;
+                  if (!outcomeMap[oid]) outcomeMap[oid] = { totalStake: 0, weightedOdds: 0 };
+                  const st = pred.stake_amount || 0;
+                  outcomeMap[oid].totalStake += st;
+                  outcomeMap[oid].weightedOdds += (pred.odds_at_prediction || 50) * st;
+                });
+                Object.entries(outcomeMap).forEach(([outcomeId, data]) => {
+                  const outcome = market?.outcomes?.find(o => o.id === outcomeId);
+                  const currentProb = outcome?.probability ?? 50;
+                  const avgEntry = data.totalStake > 0 ? data.weightedOdds / data.totalStake : 50;
+                  const mtmValue = calcPositionValue(data.totalStake, avgEntry, currentProb);
+                  rows.push({
+                    marketId,
+                    title: market?.title || 'Unknown Market',
+                    side: outcome?.title || '—',
+                    amount: data.totalStake,
+                    avgEntry,
+                    mtmValue,
+                    pnl: mtmValue - data.totalStake,
+                  });
+                });
+              });
+
+              if (rows.length === 0) {
+                return <p style={{ color: '#948D87', fontSize: 13 }}>No open positions — pick a market on the Explore page to get started.</p>;
+              }
+
+              const sidePill = (side) => {
+                const t = (side || '').toLowerCase();
+                const isYes = t.startsWith('yes');
+                const isNo = t.startsWith('no');
+                return (
+                  <span style={{
+                    fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                    padding: '3px 8px', borderRadius: 3,
+                    background: isYes ? '#1D323D' : isNo ? '#2A1620' : '#2D344C',
+                    color: isYes ? '#48D773' : isNo ? '#FFB4AB' : '#D2C5AF',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {isYes ? 'Yes' : isNo ? 'No' : side}
+                  </span>
+                );
+              };
+
+              return (
+                <div style={{ overflowX: 'auto' }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 12, minWidth: 620 }}>
+                    <div style={{ display: 'flex', color: '#948D87', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', paddingBottom: 10, borderBottom: '1px solid rgba(45,52,76,.7)' }}>
+                      <span style={{ flex: 3 }}>Market</span>
+                      <span style={{ flex: 1 }}>Side</span>
+                      <span style={{ flex: 1.2, textAlign: 'right' }}>Amount</span>
+                      <span style={{ flex: 1.2, textAlign: 'right' }}>Avg Price</span>
+                      <span style={{ flex: 1.4, textAlign: 'right' }}>Current Value</span>
+                      <span style={{ flex: 1.2, textAlign: 'right' }}>P/L</span>
+                    </div>
+                    {rows.map((r, i) => (
+                      <div
+                        key={`${r.marketId}-${i}`}
+                        onClick={() => navigate(`/markets/${r.marketId}`)}
+                        style={{ display: 'flex', alignItems: 'center', padding: '12px 0', cursor: 'pointer', borderBottom: i < rows.length - 1 ? '1px solid rgba(45,52,76,.4)' : 'none' }}
+                      >
+                        <span style={{ flex: 3, color: '#DCE1FF', fontFamily: 'var(--wordmark)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, paddingRight: 10, overflow: 'hidden' }}>
+                          <span style={{ width: 5, height: 5, borderRadius: 999, background: '#FFDF9B', flexShrink: 0 }} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
+                        </span>
+                        <span style={{ flex: 1 }}>{sidePill(r.side)}</span>
+                        <span style={{ flex: 1.2, textAlign: 'right', color: '#DCE1FF' }}>${r.amount.toFixed(2)}</span>
+                        <span style={{ flex: 1.2, textAlign: 'right', color: '#DCE1FF' }}>{r.avgEntry.toFixed(1)}¢</span>
+                        <span style={{ flex: 1.4, textAlign: 'right', color: '#DCE1FF' }}>${r.mtmValue.toFixed(2)}</span>
+                        <span style={{ flex: 1.2, textAlign: 'right', color: r.pnl >= 0 ? '#48D773' : '#FFB4AB' }}>
+                          {r.pnl >= 0 ? '+' : '-'}${Math.abs(r.pnl).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                    <p style={{ color: '#948D87', fontSize: 11, marginTop: 12, fontFamily: 'var(--wordmark)' }}>
+                      Click a position to open its market — you can sell from the trade panel there.
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Paper Trading Balance */}
@@ -767,197 +875,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Right Sidebar */}
-        <div className="w-full lg:w-80 space-y-4">
-          {/* Positions Section */}
-          <div className="bg-slate-900/50  border border-slate-800 rounded-2xl overflow-hidden hover:border-slate-700 transition-colors">
-            <div className="p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                    d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-                </svg>
-                <h3 className="text-white font-semibold">Positions</h3>
-                <span className="text-slate-500 text-xs">{Object.keys(groupedPredictions).length} active</span>
-              </div>
-              {Object.keys(groupedPredictions).length === 0 ? (
-                <p className="text-slate-500 text-sm">No open positions</p>
-              ) : (
-                <div className="space-y-3">
-                  {Object.entries(groupedPredictions).map(([marketId, marketPredictions]) => {
-                    const market = markets.find(m => m.id === marketId);
-
-                    // Aggregate by outcome
-                    const outcomeMap = {};
-                    marketPredictions.forEach(pred => {
-                      const oid = pred.outcome_id;
-                      if (!outcomeMap[oid]) {
-                        outcomeMap[oid] = { totalStake: 0, weightedOdds: 0 };
-                      }
-                      const s = pred.stake_amount || 0;
-                      outcomeMap[oid].totalStake += s;
-                      outcomeMap[oid].weightedOdds += (pred.odds_at_prediction || 50) * s;
-                    });
-
-                    return (
-                      <div key={marketId} className="bg-slate-800/30 rounded-lg p-3">
-                        <p
-                          className="text-white text-sm font-medium mb-2 line-clamp-2 cursor-pointer hover:text-yellow-400 transition-colors"
-                          onClick={() => navigate(`/markets/${marketId}`)}
-                        >
-                          {market?.title || 'Unknown Market'}
-                        </p>
-                        <div className="space-y-2">
-                          {Object.entries(outcomeMap).map(([outcomeId, data]) => {
-                            const outcome = market?.outcomes?.find(o => o.id === outcomeId);
-                            const currentProb = outcome?.probability ?? 50;
-                            const avgEntry = data.totalStake > 0 ? data.weightedOdds / data.totalStake : 50;
-                            const mtmValue = calcPositionValue(data.totalStake, avgEntry, currentProb);
-                            const unrealizedPnl = mtmValue - data.totalStake;
-                            const sellKey = `${marketId}__${outcomeId}`;
-                            const isSelling = sellingKey === sellKey;
-                            const sellAmt = parseFloat(sellAmount) || 0;
-                            const previewReturn = isSelling && sellAmt > 0
-                              ? calcPositionValue(sellAmt, avgEntry, currentProb).toFixed(2)
-                              : null;
-                            const previewPnl = previewReturn !== null
-                              ? (parseFloat(previewReturn) - sellAmt).toFixed(2)
-                              : null;
-
-                            const handleSell = async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (!sellAmt || sellAmt <= 0) return;
-                              setSellLoading(true); setSellMsg('');
-                              try {
-                                const userId = session?.user?.id || 'demo_user';
-                                await api.sellPosition({
-                                  market_id: marketId,
-                                  outcome_id: outcomeId,
-                                  user_id: userId,
-                                  sell_amount: sellAmt,
-                                });
-                                setSellMsg(`✅ Sold $${sellAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-                                setTimeout(() => window.location.reload(), 1000);
-                              } catch (err) {
-                                setSellMsg(`❌ ${err.message}`);
-                              } finally {
-                                setSellLoading(false);
-                              }
-                            };
-
-                            return (
-                              <div key={outcomeId}>
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="text-slate-400">{outcome?.title || 'Unknown'}</span>
-                                  <div className="flex items-center gap-2">
-                                    <div className="text-right">
-                                      {/* Live MTM value — red if below cost, green if above */}
-                                      <span className={`font-semibold ${mtmValue < data.totalStake ? 'text-red-400' :
-                                        mtmValue > data.totalStake ? 'text-green-400' : 'text-slate-300'
-                                        }`}>
-                                        ${mtmValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                      </span>
-                                      {/* Unrealized P&L delta */}
-                                      <span className={`block text-[10px] leading-tight ${unrealizedPnl < 0 ? 'text-red-500' :
-                                        unrealizedPnl > 0 ? 'text-green-500' : 'text-slate-500'
-                                        }`}>
-                                        {unrealizedPnl >= 0 ? '+$' : '-$'}{Math.abs(unrealizedPnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                      </span>
-                                    </div>
-                                    <button
-                                      onClick={e => {
-                                        e.stopPropagation();
-                                        if (isSelling) {
-                                          setSellingKey(null); setSellAmount(''); setSellMsg('');
-                                        } else {
-                                          setSellingKey(sellKey); setSellAmount(''); setSellMsg('');
-                                        }
-                                      }}
-                                      className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${isSelling
-                                        ? 'bg-slate-700 text-slate-300'
-                                        : 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30'
-                                        }`}
-                                    >
-                                      {isSelling ? 'Cancel' : 'Sell'}
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* Inline sell panel */}
-                                {isSelling && (
-                                  <form
-                                    onSubmit={handleSell}
-                                    onClick={e => e.stopPropagation()}
-                                    className="mt-2 space-y-2"
-                                  >
-                                    <p className="text-slate-500 text-xs">Current: {currentProb.toFixed(1)}% · Entry: {avgEntry.toFixed(1)}%</p>
-                                    <div className="flex gap-1">
-                                      <div className="relative flex-1">
-                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs">$</span>
-                                        <input
-                                          type="number"
-                                          min="0.01"
-                                          max={data.totalStake}
-                                          step="0.01"
-                                          value={sellAmount}
-                                          onChange={e => setSellAmount(e.target.value)}
-                                          placeholder={`Max $${data.totalStake.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                                          className="w-full bg-slate-800 border border-slate-600 rounded pl-5 pr-2 py-1.5 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-red-500"
-                                        />
-                                      </div>
-                                      <button
-                                        type="button"
-                                        onClick={() => setSellAmount(data.totalStake.toFixed(2))}
-                                        className="px-2 py-1.5 text-xs bg-slate-800 border border-slate-600 rounded text-slate-400 hover:text-white transition-colors"
-                                      >
-                                        Max
-                                      </button>
-                                    </div>
-
-                                    {previewReturn && (
-                                      <div className="bg-slate-800 rounded p-2 space-y-1 text-xs">
-                                        <div className="flex justify-between">
-                                          <span className="text-slate-500">Receive:</span>
-                                          <span className="text-white font-medium">${parseFloat(previewReturn).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                          <span className="text-slate-500">P&L:</span>
-                                          <span className={`font-medium ${parseFloat(previewPnl) >= 0 ? 'text-green-400' : 'text-red-400'
-                                            }`}>
-                                            {parseFloat(previewPnl) >= 0 ? '+$' : '-$'}{Math.abs(parseFloat(previewPnl)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {sellMsg && (
-                                      <p className={`text-xs ${sellMsg.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>
-                                        {sellMsg}
-                                      </p>
-                                    )}
-
-                                    <button
-                                      type="submit"
-                                      disabled={sellLoading || !sellAmt || sellAmt <= 0 || sellAmt > data.totalStake}
-                                      className="w-full py-1.5 rounded text-xs font-semibold bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                                    >
-                                      {sellLoading ? 'Selling...' : 'Confirm Sell'}
-                                    </button>
-                                  </form>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
