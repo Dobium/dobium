@@ -1911,9 +1911,40 @@ app.put('/api/admin/markets/:id/price-source', requireRadarKey, async (req, res)
 });
 
 async function runPriceSync() {
-  const { getYesProbability, getSettlement } = require('./providers/pricing');
+  const { getYesProbability, getSettlement, fetchAllCandidates, bestMatch } = require('./providers/pricing');
   const results = [];
   const resolved = [];
+  const autoLinked = [];
+
+    // ── AUTO-LINK: find real-money twins for any unlinked binary market ──
+    // No manual tickers. Candidate lists are fetched once per run and every
+    // unlinked market is matched against them.
+    try {
+      const unlinked = await Market.findAll({
+        where: { status: 'active', price_source: null },
+        include: [{ model: Outcome, as: 'outcomes' }],
+      });
+      const binaryUnlinked = unlinked.filter(m => {
+        const o = m.outcomes || [];
+        return o.length === 2 && o.some(x => (x.title || '').toLowerCase().startsWith('yes'));
+      });
+      if (binaryUnlinked.length > 0) {
+        const candidates = await fetchAllCandidates();
+        for (const m of binaryUnlinked) {
+          const match = bestMatch(m.title, candidates);
+          if (match) {
+            const source = match.provider === 'kalshi'
+              ? { provider: 'kalshi', ticker: match.ref, auto: true, score: Math.round(match.score * 100) / 100, matched_title: match.title }
+              : { provider: 'polymarket', slug: match.ref, auto: true, score: Math.round(match.score * 100) / 100, matched_title: match.title };
+            await m.update({ price_source: JSON.stringify(source) });
+            autoLinked.push({ id: m.id, title: m.title, matched: match.title, provider: match.provider, score: source.score });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Auto-link error:', err.message);
+    }
+
     const linked = await Market.findAll({
       where: { status: 'active', price_source: { [Op.ne]: null } },
       include: [{ model: Outcome, as: 'outcomes' }],
@@ -1930,7 +1961,8 @@ async function runPriceSync() {
         // Dobium's copy the same way real trades already do — same payouts, same
         // emails, same price-history close. No manual click needed for linked markets.
         const settlement = await getSettlement(source);
-        if (settlement.settled) {
+        const resolveSafe = !source.auto || (source.score || 0) >= 0.8;
+        if (settlement.settled && resolveSafe) {
           const winningOutcome = settlement.result === 'yes' ? yes : no;
           await sequelize.transaction(async (t) => {
             const fresh = await Market.findByPk(market.id, { include: [{ model: Outcome, as: 'outcomes' }], transaction: t });
@@ -1953,7 +1985,7 @@ async function runPriceSync() {
         results.push({ id: market.id, error: err.message });
       }
     }
-    return { synced: results.filter(r => r.yes != null).length, autoResolved: resolved, results };
+    return { synced: results.filter(r => r.yes != null).length, autoLinked, autoResolved: resolved, results };
 }
 
 app.get('/api/cron/sync-prices', requireRadarKey, async (req, res) => {

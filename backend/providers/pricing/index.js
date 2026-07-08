@@ -88,4 +88,90 @@ async function getSettlement(source) {
   throw new Error(`Unknown provider: ${source.provider}`);
 }
 
-module.exports = { getYesProbability, getSettlement };
+// ── AUTO-MATCHING: find each Dobium market's real-money twin automatically ──
+// Instead of manually pasting tickers, the daily job pulls the open-market
+// listings from both exchanges and fuzzy-matches titles. Conservative
+// thresholds — a wrong link would sync wrong prices, so no match > weak match.
+
+const STOPWORDS = new Set(['will','the','a','an','in','on','by','before','after','of','at','be','to','for','and','or','is','it','its','their','with','vs','does','do','than','more','another','new','release','released','launch','launches','2026','2027']);
+
+function tokens(str) {
+  return (str || '').toLowerCase()
+    .replace(/november/g, 'nov').replace(/december/g, 'dec').replace(/january/g, 'jan')
+    .replace(/february/g, 'feb').replace(/september/g, 'sep').replace(/october/g, 'oct')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((t) => t && !STOPWORDS.has(t));
+}
+
+async function fetchKalshiCandidates() {
+  const out = [];
+  let cursor = null;
+  for (let page = 0; page < 3; page++) {
+    const url = `${KALSHI_BASE}/markets?status=open&limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
+    const res = await fetch(url);
+    if (!res.ok) break;
+    const data = await res.json();
+    for (const m of data.markets || []) {
+      out.push({ provider: 'kalshi', ref: m.ticker, title: `${m.title || ''} ${m.subtitle || ''}`.trim() });
+    }
+    cursor = data.cursor;
+    if (!cursor || (data.markets || []).length === 0) break;
+    await new Promise((r) => setTimeout(r, 300)); // gentle on their rate limits
+  }
+  return out;
+}
+
+async function fetchPolymarketCandidates() {
+  const out = [];
+  for (let offset = 0; offset < 1500; offset += 500) {
+    const res = await fetch(`${GAMMA_BASE}/markets?closed=false&limit=500&offset=${offset}`, {
+      headers: { 'User-Agent': BROWSER_UA },
+    });
+    if (!res.ok) break;
+    const arr = await res.json();
+    if (!Array.isArray(arr) || arr.length === 0) break;
+    for (const m of arr) out.push({ provider: 'polymarket', ref: m.slug, title: m.question || '' });
+    if (arr.length < 500) break;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  return out;
+}
+
+async function fetchAllCandidates() {
+  const [k, pm] = await Promise.all([
+    fetchKalshiCandidates().catch(() => []),
+    fetchPolymarketCandidates().catch(() => []),
+  ]);
+  return [...k, ...pm];
+}
+
+// Best fuzzy match for a Dobium title. Requirements to accept:
+//  - ≥60% of the Dobium title's meaningful tokens appear in the candidate
+//  - at least 3 overlapping tokens (so "Drake album" alone can't match)
+//  - clearly better than the runner-up (avoids ambiguous links)
+function bestMatch(marketTitle, candidates) {
+  const mt = [...new Set(tokens(marketTitle))];
+  if (mt.length < 3) return null;
+  let best = null;
+  let second = 0;
+  for (const c of candidates) {
+    if (!c.ref) continue;
+    const ct = new Set(tokens(c.title));
+    let inter = 0;
+    for (const t of mt) if (ct.has(t)) inter++;
+    const score = inter / mt.length;
+    if (!best || score > best.score) {
+      second = best ? best.score : second;
+      if (score > (best ? best.score : 0)) { second = best ? best.score : 0; best = { ...c, score, inter }; }
+    } else if (score > second) {
+      second = score;
+    }
+  }
+  if (!best) return null;
+  if (best.score < 0.6 || best.inter < 3) return null;
+  if (second > 0 && best.score - second < 0.1 && best.score < 0.85) return null; // ambiguous
+  return best;
+}
+
+module.exports = { getYesProbability, getSettlement, fetchAllCandidates, bestMatch };
