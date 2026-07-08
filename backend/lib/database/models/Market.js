@@ -58,6 +58,12 @@ const Market = sequelize.define('Market', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  price_source: {
+    // JSON string linking this market to a real-money market for price sync:
+    // {"provider":"kalshi","ticker":"KXOSCARPICTURE-26"} or {"provider":"polymarket","slug":"..."}
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   search_keywords: {
     type: DataTypes.TEXT,
     allowNull: true

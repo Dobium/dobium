@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import TrendingRadar from '../components/TrendingRadar';
 import ResolveQueue from '../components/ResolveQueue';
+import WaitlistAdmin from '../components/WaitlistAdmin';
+import PriceSyncPanel from '../components/PriceSyncPanel';
 import { api } from '../api/client';
 
 const RADAR_KEY = 'dobium-radar-9247';
@@ -118,6 +120,10 @@ export default function RadarPage() {
       </div>
 
       <TrendingRadar radarKey={RADAR_KEY} />
+      <div style={{ marginTop: 28 }}>
+        <WaitlistAdmin radarKey={RADAR_KEY} />
+        <PriceSyncPanel radarKey={RADAR_KEY} />
+      </div>
     </div>
   );
 }
