@@ -329,6 +329,7 @@ export default function MarketDetailPage() {
   const [userAvgEntry, setUserAvgEntry] = useState({}); // weighted avg entry prob per outcome
   const [resolvedPositions, setResolvedPositions] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [newsItems, setNewsItems] = useState([]);
   const [sellingOutcomeId, setSellingOutcomeId] = useState(null);
   const [sellAmount, setSellAmount] = useState('');
   const [sellLoading, setSellLoading] = useState(false);
@@ -420,6 +421,14 @@ export default function MarketDetailPage() {
       })
       .catch(() => { setUserPositions({}); setUserAvgEntry({}); setResolvedPositions([]); setRecentActivity([]); });
   }, [market?.id, session]);
+
+  // Live headlines for this market (Kalshi-style news tab)
+  useEffect(() => {
+    if (!market?.id) return;
+    api.getMarketNews(market.id)
+      .then((r) => setNewsItems(r?.items || []))
+      .catch(() => setNewsItems([]));
+  }, [market?.id]);
 
   if (loading) return <div className="loading-center"><div className="spinner" /></div>;
   if (error || !market) return <div className="empty-state"><p>Market not found.</p></div>;

@@ -9,6 +9,7 @@ export default function WaitlistCard() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState('idle'); // idle | saving | done | already | error
   const [message, setMessage] = useState('');
+  const [position, setPosition] = useState(null);
 
   const submit = async () => {
     const clean = email.trim().toLowerCase();
@@ -21,6 +22,7 @@ export default function WaitlistCard() {
     setMessage('');
     try {
       const result = await api.joinWaitlist(clean);
+      if (typeof result?.position === 'number') setPosition(result.position);
       setStatus(result?.already ? 'already' : 'done');
     } catch (err) {
       setStatus('error');
@@ -62,12 +64,12 @@ export default function WaitlistCard() {
         {joined ? (
           <div style={{ flex: '1 1 280px' }}>
             <p style={{ color: '#64EB87', fontWeight: 700, fontSize: 15, margin: 0 }}>
-              🎉 You&rsquo;re on the list.
+              🎉 You&rsquo;re {position ? <>#<span style={{ fontFamily: 'var(--mono)' }}>{position.toLocaleString('en-US')}</span></> : ''} on the waitlist.
             </p>
             <p style={{ color: '#D2C5AF', fontSize: 12.5, margin: '5px 0 0' }}>
               {status === 'already'
                 ? 'This email is already on the waitlist — your spot is safe.'
-                : "We'll email your invite when real-money trading opens."}
+                : 'Check your inbox for a confirmation. We\u2019ll email your invite when real-money trading opens.'}
             </p>
           </div>
         ) : (

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { api } from '../api/client';
 import { useNavigate } from 'react-router-dom';
 import { bucketLabel } from '../lib/categories';
 
@@ -97,6 +98,7 @@ function MiniChart({ market, outcomes }) {
 export default function FeaturedCarousel({ markets }) {
   const navigate = useNavigate();
   const [idx, setIdx] = useState(0);
+  const [newsByMarket, setNewsByMarket] = useState({});
   const timer = useRef(null);
 
   const featured = [...markets]
@@ -123,7 +125,22 @@ export default function FeaturedCarousel({ markets }) {
     if (timer.current) { clearInterval(timer.current); timer.current = setInterval(() => setIdx((i2) => (i2 + 1) % count), 10000); }
   };
 
-  const blurb = (market.description || '').replace(/\s+/g, ' ').trim();
+  // Fetch one real headline per slide (cached per market for the session)
+  useEffect(() => {
+    if (!market?.id || newsByMarket[market.id] !== undefined) return;
+    let alive = true;
+    api.getMarketNews(market.id)
+      .then((r) => { if (alive) setNewsByMarket((prev) => ({ ...prev, [market.id]: (r?.items || [])[0] || null })); })
+      .catch(() => { if (alive) setNewsByMarket((prev) => ({ ...prev, [market.id]: null })); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [market?.id]);
+
+  const headline = newsByMarket[market.id];
+  const blurb = headline
+    ? `${headline.title} — ${headline.source}`
+    : (market.description || '').replace(/\s+/g, ' ').trim();
+  const blurbLabel = headline ? 'NEWS' : 'ABOUT';
 
   return (
     <div
@@ -212,7 +229,7 @@ export default function FeaturedCarousel({ markets }) {
           {/* Context blurb sits under the chart, mockup-style */}
           {blurb && (
             <p style={{ margin: '14px 0 0', paddingTop: 13, borderTop: '1px solid rgba(45,52,76,.6)', fontSize: 12, lineHeight: 1.65, color: '#B7A77E' }}>
-              <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10.5, letterSpacing: '0.06em', marginRight: 8, color: '#FFDF9B' }}>ABOUT</span>
+              <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10.5, letterSpacing: '0.06em', marginRight: 8, color: '#FFDF9B' }}>{blurbLabel}</span>
               {blurb.length > 170 ? `${blurb.slice(0, 170)}…` : blurb}
             </p>
           )}

@@ -1834,6 +1834,115 @@ const { runMarketScout } = require('./jobs/market-scout');
 // ============================================================================
 // WAITLIST — real-money signup (own database, no Supabase table dependency)
 // ============================================================================
+// ============================================================================
+// MARKET NEWS — live Google News headlines per market (Kalshi-style),
+// cached in memory for 30 minutes. No API key required.
+// ============================================================================
+const newsCache = new Map(); // marketId -> { fetched: ts, items: [...] }
+const NEWS_TTL = 30 * 60 * 1000;
+
+function decodeEntities(str) {
+  return (str || '')
+    .replace(/<!\[CDATA\[(.*?)\]\]>/gs, '$1')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+}
+
+app.get('/api/markets/:id/news', async (req, res) => {
+  try {
+    const cached = newsCache.get(req.params.id);
+    if (cached && Date.now() - cached.fetched < NEWS_TTL) {
+      return res.json({ items: cached.items, cached: true });
+    }
+    const market = await Market.findByPk(req.params.id);
+    if (!market) return res.status(404).json({ error: 'Market not found' });
+
+    // search_keywords give the best query; otherwise strip the question framing from the title
+    const query = (market.search_keywords && market.search_keywords.trim())
+      || market.title.replace(/^will\s+/i, '').replace(/\?+$/, '').trim();
+    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
+    const rss = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; DobiumNews/1.0)' } });
+    if (!rss.ok) throw new Error(`Google News ${rss.status}`);
+    const xml = await rss.text();
+
+    const items = [];
+    const itemBlocks = xml.split('<item>').slice(1, 7);
+    for (const block of itemBlocks) {
+      const title = decodeEntities((block.match(/<title>([\s\S]*?)<\/title>/) || [])[1]);
+      const link = decodeEntities((block.match(/<link>([\s\S]*?)<\/link>/) || [])[1]);
+      const pubDate = decodeEntities((block.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1]);
+      const source = decodeEntities((block.match(/<source[^>]*>([\s\S]*?)<\/source>/) || [])[1]);
+      if (title && link) items.push({ title, link, source: source || 'Google News', published: pubDate || null });
+      if (items.length >= 4) break;
+    }
+    newsCache.set(req.params.id, { fetched: Date.now(), items });
+    res.json({ items });
+  } catch (error) {
+    console.error('Market news error:', error.message);
+    res.json({ items: [] }); // never break the page over news
+  }
+});
+
+// ============================================================================
+// PRICE SYNC — paper prices track real markets (Kalshi/Polymarket) so
+// positions gain and lose value as real events unfold. Runs on a Vercel cron.
+// Attach a source to a binary market via PUT /api/admin/markets/:id/price-source
+// ============================================================================
+app.put('/api/admin/markets/:id/price-source', requireRadarKey, async (req, res) => {
+  try {
+    const market = await Market.findByPk(req.params.id);
+    if (!market) return res.status(404).json({ error: 'Market not found' });
+    const { provider, ticker, slug } = req.body || {};
+    if (!provider) {
+      await market.update({ price_source: null });
+      return res.json({ ok: true, cleared: true });
+    }
+    if (provider === 'kalshi' && !ticker) return res.status(400).json({ error: 'Kalshi source needs a ticker' });
+    if (provider === 'polymarket' && !slug) return res.status(400).json({ error: 'Polymarket source needs a slug' });
+    await market.update({ price_source: JSON.stringify({ provider, ticker, slug }) });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Price source error:', error);
+    res.status(500).json({ error: 'Failed to save price source' });
+  }
+});
+
+app.get('/api/cron/sync-prices', requireRadarKey, async (req, res) => {
+  const { getYesProbability } = require('./providers/pricing');
+  const results = [];
+  try {
+    const linked = await Market.findAll({
+      where: { status: 'active', price_source: { [Op.ne]: null } },
+      include: [{ model: Outcome, as: 'outcomes' }],
+    });
+    for (const market of linked) {
+      try {
+        const source = JSON.parse(market.price_source);
+        const outcomes = market.outcomes || [];
+        const yes = outcomes.find(o => (o.title || '').toLowerCase().startsWith('yes'));
+        const no = outcomes.find(o => (o.title || '').toLowerCase().startsWith('no'));
+        if (!yes || !no) { results.push({ id: market.id, skipped: 'not binary' }); continue; }
+
+        const yesProb = await getYesProbability(source);
+        await Outcome.update({ probability: yesProb }, { where: { id: yes.id } });
+        await Outcome.update({ probability: Math.round((100 - yesProb) * 10) / 10 }, { where: { id: no.id } });
+        await PriceHistory.create({
+          market_id: market.id,
+          timestamp: new Date(),
+          prices: { [yes.id]: yesProb, [no.id]: Math.round((100 - yesProb) * 10) / 10 },
+        });
+        results.push({ id: market.id, title: market.title, yes: yesProb, source: source.provider });
+      } catch (err) {
+        results.push({ id: market.id, error: err.message });
+      }
+    }
+    res.json({ ok: true, synced: results.filter(r => r.yes != null).length, results });
+  } catch (error) {
+    console.error('Price sync error:', error);
+    res.status(500).json({ error: 'Price sync failed', results });
+  }
+});
+
 app.post('/api/waitlist', async (req, res) => {
   try {
     const email = (req.body?.email || '').trim().toLowerCase();
@@ -1841,10 +1950,62 @@ app.post('/api/waitlist', async (req, res) => {
       return res.status(400).json({ error: 'Enter a valid email address.' });
     }
     const [entry, created] = await Waitlist.findOrCreate({ where: { email }, defaults: { email } });
-    res.json({ ok: true, already: !created });
+    // Position = how many people joined at or before this entry (stable across duplicates)
+    const position = await Waitlist.count({
+      where: { created_at: { [Op.lte]: entry.created_at } }
+    });
+    const total = await Waitlist.count();
+    res.json({ ok: true, already: !created, position, count: total });
+
+    // Fire-and-forget emails — never block or fail the signup on email problems.
+    if (created && process.env.EMAIL_PASS) {
+      const { sendEmail } = require('./lib/email');
+      sendEmail({
+        to: email,
+        subject: `You're #${position} on the Dobium waitlist`,
+        text: `You're #${position} in line for early access to Dobium — the entertainment prediction market.\n\nYou'll get priority onboarding and an initial allocation of paper credits when real-money trading opens. Refer friends to move up the queue: https://dobium.com\n\n— The Dobium Team`,
+        html: `<div style="font-family:Arial,sans-serif;background:#0B1229;color:#DCE1FF;padding:32px;border-radius:8px;max-width:520px;margin:0 auto">
+          <h2 style="color:#FFDF9B;margin:0 0 6px">Dobium</h2>
+          <p style="font-size:15px;line-height:1.6">You're <strong style="color:#FFDF9B">#${position}</strong> in line for early access to <strong>Dobium</strong> — the entertainment prediction market.</p>
+          <p style="font-size:13px;color:#D2C5AF;line-height:1.6">You'll get priority onboarding and an initial allocation of paper credits when real-money trading opens. Refer friends to move up the queue.</p>
+          <p style="font-size:13px"><a href="https://dobium.com" style="color:#F0C04A">dobium.com</a></p>
+        </div>`
+      }).catch(err => console.error('Waitlist confirmation email failed:', err.message));
+
+      sendEmail({
+        to: ADMIN_EMAILS.join(','),
+        subject: `Dobium waitlist: ${email} joined (#${position} of ${total})`,
+        text: `New waitlist signup: ${email}\nPosition: #${position}\nTotal signups: ${total}\nTime: ${new Date().toISOString()}`
+      }).catch(err => console.error('Waitlist admin notification failed:', err.message));
+    }
   } catch (error) {
     console.error('Waitlist signup error:', error);
     res.status(500).json({ error: "Couldn't save your spot — please try again." });
+  }
+});
+
+// Full waitlist for the admin panel — who joined, when, in order. Radar-key gated.
+app.get('/api/admin/waitlist', requireRadarKey, async (req, res) => {
+  try {
+    const entries = await Waitlist.findAll({ order: [['created_at', 'ASC']] });
+    res.json({
+      count: entries.length,
+      entries: entries.map((e, i) => ({ id: e.id, email: e.email, created_at: e.created_at, position: i + 1 })),
+    });
+  } catch (error) {
+    console.error('Admin waitlist error:', error);
+    res.status(500).json({ error: 'Failed to load waitlist' });
+  }
+});
+
+// The "press a button" control — remove a single entry (typos, opt-outs, or post-launch cleanup).
+app.delete('/api/admin/waitlist/:id', requireRadarKey, async (req, res) => {
+  try {
+    const deleted = await Waitlist.destroy({ where: { id: req.params.id } });
+    res.json({ ok: true, deleted });
+  } catch (error) {
+    console.error('Admin waitlist delete error:', error);
+    res.status(500).json({ error: 'Failed to delete entry' });
   }
 });
 
