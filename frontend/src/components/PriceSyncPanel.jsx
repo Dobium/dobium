@@ -77,9 +77,12 @@ export default function PriceSyncPanel({ radarKey }) {
         </button>
       </div>
       <p style={{ color: '#948D87', fontSize: 12, marginBottom: 16, lineHeight: 1.55 }}>
-        Link a Yes/No market to its real-money twin and paper prices will track reality automatically
-        (every 30 min via cron). Kalshi: paste the market <strong style={{ color: '#D2C5AF' }}>ticker</strong> (e.g. KXOSCARPIC-26).
-        Polymarket: paste the URL <strong style={{ color: '#D2C5AF' }}>slug</strong> (the part after /event/).
+        Link a Yes/No market to its real-money twin: paper prices track reality automatically, and{' '}
+        <strong style={{ color: '#FFDF9B' }}>when the real market settles, this one resolves itself</strong> — same
+        outcome, no manual click, checked once a day via cron. Kalshi: paste the market{' '}
+        <strong style={{ color: '#D2C5AF' }}>ticker</strong> (e.g. KXOSCARPIC-26). Polymarket: paste the URL{' '}
+        <strong style={{ color: '#D2C5AF' }}>slug</strong> (the part after /event/). Markets with no real-money twin
+        still need a manual resolve — the Resolve Markets panel above now shows live news for those.
       </p>
       {msg && <p style={{ color: '#FFDF9B', fontSize: 12.5, fontFamily: 'var(--mono)' }}>{msg}</p>}
 

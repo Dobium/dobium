@@ -64,6 +64,27 @@ export default function ResolveQueue({ radarKey }) {
                     closed {new Date(m.close_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
                 </div>
+                {m.hasLiveSource && (
+                  <p style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: '#8E94AF', marginBottom: 8 }}>
+                    Linked to a real market — this resolves itself automatically once the real event settles (checked daily). No click needed here unless you want it done sooner.
+                  </p>
+                )}
+                {!m.hasLiveSource && m.news && m.news.length > 0 && (
+                  <div style={{ marginBottom: 10, padding: '8px 10px', background: 'rgba(11,18,41,.5)', borderRadius: 6, border: '1px solid rgba(45,52,76,.6)' }}>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: '#FFDF9B', letterSpacing: '0.05em' }}>LATEST NEWS — CHECK BEFORE RESOLVING</span>
+                    {m.news.map((n, i) => (
+                      <a key={i} href={n.link} target="_blank" rel="noopener noreferrer"
+                        style={{ display: 'block', fontSize: 12, color: '#D2C5AF', marginTop: 5, textDecoration: 'none', lineHeight: 1.4 }}>
+                        {n.title}
+                      </a>
+                    ))}
+                  </div>
+                )}
+                {!m.hasLiveSource && (!m.news || m.news.length === 0) && (
+                  <p style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: '#948D87', marginBottom: 8 }}>
+                    No recent headlines found — verify the outcome from an official source before resolving.
+                  </p>
+                )}
                 {isMultiMultiple ? (
                   <p className="text-xs text-amber-400/90">
                     This market needs a Yes/No pick per option — resolve it from the full admin dashboard once that's set up.

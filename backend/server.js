@@ -1911,8 +1911,9 @@ app.put('/api/admin/markets/:id/price-source', requireRadarKey, async (req, res)
 });
 
 async function runPriceSync() {
-  const { getYesProbability } = require('./providers/pricing');
+  const { getYesProbability, getSettlement } = require('./providers/pricing');
   const results = [];
+  const resolved = [];
     const linked = await Market.findAll({
       where: { status: 'active', price_source: { [Op.ne]: null } },
       include: [{ model: Outcome, as: 'outcomes' }],
@@ -1924,6 +1925,20 @@ async function runPriceSync() {
         const yes = outcomes.find(o => (o.title || '').toLowerCase().startsWith('yes'));
         const no = outcomes.find(o => (o.title || '').toLowerCase().startsWith('no'));
         if (!yes || !no) { results.push({ id: market.id, skipped: 'not binary' }); continue; }
+
+        // Check settlement FIRST: if the real market has a final answer, resolve
+        // Dobium's copy the same way real trades already do — same payouts, same
+        // emails, same price-history close. No manual click needed for linked markets.
+        const settlement = await getSettlement(source);
+        if (settlement.settled) {
+          const winningOutcome = settlement.result === 'yes' ? yes : no;
+          await sequelize.transaction(async (t) => {
+            const fresh = await Market.findByPk(market.id, { include: [{ model: Outcome, as: 'outcomes' }], transaction: t });
+            await resolveMarketInstance(fresh, [winningOutcome.id], { transaction: t });
+          });
+          resolved.push({ id: market.id, title: market.title, result: settlement.result, source: source.provider });
+          continue; // no need to also sync price on a market we just resolved
+        }
 
         const yesProb = await getYesProbability(source);
         await Outcome.update({ probability: yesProb }, { where: { id: yes.id } });
@@ -1938,7 +1953,7 @@ async function runPriceSync() {
         results.push({ id: market.id, error: err.message });
       }
     }
-    return { synced: results.filter(r => r.yes != null).length, results };
+    return { synced: results.filter(r => r.yes != null).length, autoResolved: resolved, results };
 }
 
 app.get('/api/cron/sync-prices', requireRadarKey, async (req, res) => {
@@ -2577,7 +2592,38 @@ app.get('/api/resolve/pending', requireRadarKey, async (req, res) => {
       include: [{ model: Outcome, as: 'outcomes' }],
       order: [['close_date', 'ASC']]
     });
-    res.json(markets.map(formatMarketResponse));
+    // Attach live headlines to each pending market — same source the per-market
+    // News card uses — so resolving is "confirm what the news already says"
+    // instead of guessing from memory. Markets linked to Kalshi/Polymarket
+    // (price_source) resolve automatically via the daily sync and normally
+    // won't even reach this queue.
+    const withEvidence = await Promise.all(markets.map(async (m) => {
+      const formatted = formatMarketResponse(m);
+      try {
+        const cached = newsCache.get(m.id);
+        if (cached && Date.now() - cached.fetched < NEWS_TTL) {
+          formatted.news = cached.items;
+        } else {
+          const query = (m.search_keywords && m.search_keywords.trim()) || m.title.replace(/^will\s+/i, '').replace(/\?+$/, '').trim();
+          const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
+          const rss = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; DobiumNews/1.0)' } });
+          const xml = rss.ok ? await rss.text() : '';
+          const items = [];
+          for (const block of xml.split('<item>').slice(1, 4)) {
+            const title = decodeEntities((block.match(/<title>([\s\S]*?)<\/title>/) || [])[1]);
+            const link = decodeEntities((block.match(/<link>([\s\S]*?)<\/link>/) || [])[1]);
+            if (title && link) items.push({ title, link });
+          }
+          newsCache.set(m.id, { fetched: Date.now(), items });
+          formatted.news = items;
+        }
+      } catch {
+        formatted.news = [];
+      }
+      formatted.hasLiveSource = !!m.price_source;
+      return formatted;
+    }));
+    res.json(withEvidence);
   } catch (error) {
     console.error('Pending resolution fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch pending markets' });

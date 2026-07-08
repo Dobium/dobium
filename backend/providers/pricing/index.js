@@ -47,4 +47,45 @@ async function getYesProbability(source) {
   return Math.min(99, Math.max(1, Math.round(pct * 10) / 10));
 }
 
-module.exports = { getYesProbability };
+// ── Settlement check: has the REAL market finished, and which side won? ──
+// Returns { settled: false } while still trading, or { settled: true, result: 'yes'|'no' }
+// once the real-world event has a final answer. This is what makes auto-resolution
+// safe: we only ever copy a result the real exchange has already finalized.
+async function getSettlement(source) {
+  if (source.provider === 'kalshi') {
+    const res = await fetch(`${KALSHI_BASE}/markets/${encodeURIComponent(source.ticker)}`);
+    if (!res.ok) throw new Error(`Kalshi ${res.status} for ${source.ticker}`);
+    const data = await res.json();
+    const m = data.market || data;
+    // Kalshi status lifecycle: unopened -> active -> closed -> settled/finalized
+    if (m.status === 'settled' || m.status === 'finalized') {
+      const result = (m.result || '').toLowerCase(); // 'yes' | 'no' | '' (voided)
+      if (result === 'yes' || result === 'no') return { settled: true, result };
+    }
+    return { settled: false };
+  }
+  if (source.provider === 'polymarket') {
+    const res = await fetch(`${GAMMA_BASE}/markets?slug=${encodeURIComponent(source.slug)}`, {
+      headers: { 'User-Agent': BROWSER_UA },
+    });
+    if (!res.ok) throw new Error(`Polymarket ${res.status} for ${source.slug}`);
+    const arr = await res.json();
+    const m = Array.isArray(arr) ? arr[0] : arr;
+    if (!m) throw new Error(`Polymarket: no market for slug ${source.slug}`);
+    // Polymarket has no simple boolean flag exposed via Gamma for "resolved" in all cases,
+    // so require BOTH closed=true AND the price to have converged near 0 or 1 —
+    // that convergence only happens post-resolution, never from normal trading noise.
+    if (m.closed === true) {
+      const outcomes = JSON.parse(m.outcomes || '[]');
+      const prices = JSON.parse(m.outcomePrices || '[]');
+      const yesIdx = outcomes.findIndex((o) => String(o).toLowerCase() === 'yes');
+      const yesPrice = Number(prices[yesIdx >= 0 ? yesIdx : 0]);
+      if (yesPrice >= 0.98) return { settled: true, result: 'yes' };
+      if (yesPrice <= 0.02) return { settled: true, result: 'no' };
+    }
+    return { settled: false };
+  }
+  throw new Error(`Unknown provider: ${source.provider}`);
+}
+
+module.exports = { getYesProbability, getSettlement };
