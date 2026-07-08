@@ -93,8 +93,9 @@ export default function RadarPage() {
           <div>
             <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Curated starter batch</div>
             <div style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 2 }}>
-              21 hand-picked, properly categorized markets (Drake, Travis Scott, Kanye, Oscars, Grammys, Netflix, HBO Max...).
-              Safe to click more than once — already-live markets are skipped automatically.
+              32 hand-picked markets — the original 21 (Drake, Travis Scott, Kanye, Oscars, Grammys, Netflix…) plus a new
+              Sonotrade-style batch: The Odyssey & Spider-Man box-office brackets, GTA VI, Playboi Carti / Don Toliver /
+              Kendrick / Rihanna album markets. Safe to click more than once — already-live markets are skipped.
             </div>
           </div>
           <button
