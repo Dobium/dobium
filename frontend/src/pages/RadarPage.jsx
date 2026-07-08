@@ -84,6 +84,8 @@ export default function RadarPage() {
         </p>
       </div>
 
+      <WaitlistAdmin radarKey={RADAR_KEY} />
+      <PriceSyncPanel radarKey={RADAR_KEY} />
       <ResolveQueue radarKey={RADAR_KEY} />
 
       <div style={{ marginBottom: 24, padding: 16, borderRadius: 14, border: '1px solid var(--line)', background: 'var(--panel)' }}>
@@ -120,10 +122,6 @@ export default function RadarPage() {
       </div>
 
       <TrendingRadar radarKey={RADAR_KEY} />
-      <div style={{ marginTop: 28 }}>
-        <WaitlistAdmin radarKey={RADAR_KEY} />
-        <PriceSyncPanel radarKey={RADAR_KEY} />
-      </div>
     </div>
   );
 }
