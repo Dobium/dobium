@@ -17,16 +17,8 @@ export function getOutcomeColor(o, outcomes) {
   }
   const idx = outcomes.findIndex(function (x) { return x.id === o.id; });
   const colors = [
-    '#3b82f6',
-    '#f59e0b',
-    '#8b5cf6',
-    '#06b6d4',
-    '#ec4899',
-    '#10b981',
-    '#f43f5e',
-    '#84cc16',
-    '#a855f7',
-    '#6366f1'
+    '#5CC8FF', '#FFDF9B', '#C792EA', '#4AE176', '#FF9EB8',
+    '#7FE3D2', '#F0A868', '#9BA8FF', '#D2C5AF', '#66D9E8',
   ];
   return colors[idx % colors.length] || '#3b82f6';
 }
@@ -120,7 +112,7 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds }) {
         <defs>
           {histories.map((h, idx) => (
             <linearGradient key={h.id} id={`gradient-${idx}`} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" style={{ stopColor: h.color, stopOpacity: 0.3 }} />
+              <stop offset="0%" style={{ stopColor: h.color, stopOpacity: 0.10 }} />
               <stop offset="100%" style={{ stopColor: h.color, stopOpacity: 0 }} />
             </linearGradient>
           ))}
@@ -151,7 +143,7 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds }) {
               y={padding + ratio * (height - 2 * padding)}
               dominantBaseline="middle"
               fontSize="10"
-              fill="#64748b"
+              fill="#8E94AF"
               fontFamily="var(--mono, monospace)"
             >
               {value}%
@@ -176,7 +168,7 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds }) {
                 y={height - 4}
                 textAnchor={i === 0 ? 'start' : i === tickCount - 1 ? 'end' : 'middle'}
                 fontSize="10"
-                fill="#64748b"
+                fill="#8E94AF"
               >
                 {label}
               </text>
@@ -245,10 +237,10 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds }) {
           {outcomes.filter(o => selectedIds.includes(o.id)).map(o => {
             const color = getOutcomeColor(o, outcomes);
             return (
-              <div key={o.id} className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-sm border border-slate-700" style={{ backgroundColor: color }}></span>
-                <span className="text-xs text-slate-300 font-medium">{o.title}</span>
-                <span className="text-xs font-bold" style={{ color }}>{Math.round(o.probability || 0)}%</span>
+              <div key={o.id} className="flex items-center gap-1.5" style={{ fontFamily: 'var(--mono)' }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: color, display: 'inline-block' }}></span>
+                <span style={{ fontSize: 11, color: '#D2C5AF' }}>{o.title}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color }}>{Math.round(o.probability || 0)}%</span>
               </div>
             );
           })}
@@ -694,10 +686,10 @@ export default function MarketDetailPage() {
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <div style={{ fontFamily: 'var(--mono)', display: 'flex', alignItems: 'baseline', gap: 14 }}>
                 {(() => {
-                  const leader = outcomes[0];
+                  const leader = [...chartOutcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
                   return leader ? (
                     <span style={{ color: '#48D773', fontSize: 17, fontWeight: 700 }}>
-                      {Math.round(leader.probability || 0)}% {leader.title}
+                      {Math.round(leader.probability || 0)}% {leader.title.replace(/\s*\((Yes|No)\)\s*$/i, '')}
                     </span>
                   ) : null;
                 })()}

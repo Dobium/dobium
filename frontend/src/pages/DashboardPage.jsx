@@ -292,7 +292,7 @@ function getResolvedReturn(pred) {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, openAuthModal } = useAuth();
   const { markets, loading: marketsLoading } = useMarkets();
   const { balance: buyingPower, wallet, loading: walletLoading, refetch: refetchWallet } = useWallet();
   const [selectedRange, setSelectedRange] = useState('1D');
@@ -345,6 +345,64 @@ export default function DashboardPage() {
     const interval = setInterval(fetchPredictions, 60_000);
     return () => clearInterval(interval);
   }, [fetchPredictions]);
+
+  // Signed-out visitors used to be silently bounced to /explore, which made
+  // the Charts nav link feel broken. Show a proper sign-in gate instead.
+  if (!session) {
+    const guestLabel = { display: 'block', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#948D87', marginBottom: 8 };
+    return (
+      <div className="max-w-7xl mx-auto p-6 lg:p-8">
+        {/* Mockup layout, guest defaults — so the Charts tab always shows the real page */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <div className="lg:col-span-2 relative overflow-hidden rounded-md p-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+            <span style={guestLabel}>Total Portfolio Value</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 34, fontWeight: 600, color: '#DCE1FF', lineHeight: 1 }}>$100.00</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: '#948D87' }}>starting paper balance</span>
+            </div>
+            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 46, background: 'linear-gradient(180deg, transparent, rgba(11,18,41,.65))', pointerEvents: 'none' }} />
+          </div>
+          <div className="flex flex-col gap-4">
+            <div className="rounded-md p-5 flex-1" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+              <span style={guestLabel}>Available Cash</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 600, color: '#DCE1FF' }}>$100.00</span>
+            </div>
+            <div className="rounded-md p-5 flex-1" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+              <span style={guestLabel}>Win Rate</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 600, color: '#FFDF9B' }}>—</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-md p-6 mb-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+            <h2 className="text-base font-bold" style={{ color: '#DCE1FF' }}>Performance History</h2>
+            <div className="flex gap-1 p-1 rounded" style={{ background: '#0B1229', border: '1px solid #33312E' }}>
+              {['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'].map(range => (
+                <span key={range} style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '5px 10px', borderRadius: 3, background: range === '1M' ? '#F0C04A' : 'transparent', color: range === '1M' ? '#4A3600' : '#8E94AF', fontWeight: 600 }}>{range}</span>
+              ))}
+            </div>
+          </div>
+          <div className="h-64 flex items-center justify-center" style={{ border: '1px dashed rgba(45,52,76,.7)', borderRadius: 6 }}>
+            <p style={{ color: '#948D87', fontSize: 13 }}>Your equity curve appears here once you start trading.</p>
+          </div>
+        </div>
+
+        <div className="rounded-md p-8 mb-8 text-center" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+          <h2 className="text-base font-bold mb-2" style={{ color: '#DCE1FF' }}>Active Positions</h2>
+          <p style={{ color: '#948D87', fontSize: 13, marginBottom: 18 }}>
+            Sign in to track your paper trading balance, performance history, and open positions — every new account starts with $100 in paper money.
+          </p>
+          <button
+            onClick={() => openAuthModal('login')}
+            style={{ background: '#F0C04A', color: '#4A3600', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 13.5, border: 'none', borderRadius: 6, padding: '12px 28px', cursor: 'pointer' }}
+          >
+            Sign In
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Show a skeleton dashboard exoskeleton during the initial data fetch
   if (!initialDataLoaded || !hasLoadedWallet || !hasLoadedMarkets) {
