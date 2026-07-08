@@ -1842,10 +1842,13 @@ const newsCache = new Map(); // marketId -> { fetched: ts, items: [...] }
 const NEWS_TTL = 30 * 60 * 1000;
 
 function decodeEntities(str) {
+  const named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', rsquo: '\u2019', lsquo: '\u2018', rdquo: '\u201D', ldquo: '\u201C', ndash: '\u2013', mdash: '\u2014', hellip: '\u2026' };
   return (str || '')
     .replace(/<!\[CDATA\[(.*?)\]\]>/gs, '$1')
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&([a-zA-Z]+);/g, (m, name) => named[name] ?? m)
+    .trim();
 }
 
 app.get('/api/markets/:id/news', async (req, res) => {
@@ -2077,6 +2080,52 @@ const CURATED_MARKETS = [
   { title: "Will MrBeast's next video hit 100M views within 7 days of upload?", category: 'entertainment', market_type: 'binary', close_date: '2026-08-05T00:00:00.000Z', outcomes: [{ title: 'Yes' }, { title: 'No' }] },
   { title: 'Oscar Best Picture 2027 — who wins?', category: 'awards', market_type: 'multi_single', close_date: '2027-03-14T00:00:00.000Z', outcomes: [{ title: 'The Odyssey', probability: 25 }, { title: 'Dune: Part Three', probability: 20 }, { title: 'Wild Horse Nine', probability: 20 }, { title: 'Fjord', probability: 15 }, { title: 'Other', probability: 20 }] },
   { title: 'Grammy Album of the Year 2027 — which artist wins?', category: 'awards', market_type: 'multi_single', close_date: '2027-02-01T00:00:00.000Z', outcomes: [{ title: 'Bad Bunny', probability: 30 }, { title: 'Taylor Swift', probability: 25 }, { title: 'Kendrick Lamar', probability: 20 }, { title: 'Other', probability: 25 }] },
+
+  // ── Sonotrade-style batch (July 2026): release questions + box-office brackets ──
+  { title: 'The Odyssey — opening weekend domestic box office?', category: 'entertainment', market_type: 'multi_single', close_date: '2026-07-20T12:00:00.000Z',
+    description: "Resolves by bracket based on the domestic (US/Canada) opening weekend gross for Christopher Nolan's 'The Odyssey' (opens July 17, 2026), per Box Office Mojo's final 3-day figure. Tracking projects an $80–100M open.",
+    search_keywords: 'The Odyssey Nolan box office opening weekend',
+    outcomes: [{ title: 'Under $80M', probability: 25 }, { title: '$80M–$100M', probability: 45 }, { title: 'Over $100M', probability: 30 }] },
+  { title: 'Spider-Man: Brand New Day — opening weekend domestic box office?', category: 'entertainment', market_type: 'multi_single', close_date: '2026-08-03T12:00:00.000Z',
+    description: "Resolves by bracket based on the domestic opening weekend gross for 'Spider-Man: Brand New Day' (opens July 31, 2026), per Box Office Mojo's final 3-day figure. Its first trailer set the all-time 24-hour record with 718M views.",
+    search_keywords: 'Spider-Man Brand New Day box office',
+    outcomes: [{ title: 'Under $150M', probability: 30 }, { title: '$150M–$200M', probability: 45 }, { title: 'Over $200M', probability: 25 }] },
+  { title: 'Will Spider-Man: Brand New Day cross $1 billion worldwide?', category: 'entertainment', market_type: 'binary', close_date: '2026-09-30T00:00:00.000Z',
+    description: "Resolves Yes if 'Spider-Man: Brand New Day' passes $1B in worldwide gross by September 30, 2026, per Box Office Mojo.",
+    search_keywords: 'Spider-Man Brand New Day box office worldwide',
+    outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will GTA VI launch on or before November 19, 2026?', category: 'entertainment', market_type: 'binary', close_date: '2026-11-20T00:00:00.000Z',
+    description: 'Resolves Yes if Grand Theft Auto VI is publicly available on PS5/Xbox on or before its announced November 19, 2026 date. Any further delay resolves No.',
+    search_keywords: 'GTA 6 release date Rockstar',
+    outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will Playboi Carti release another album before 2027?', category: 'music', market_type: 'binary', close_date: '2026-12-31T00:00:00.000Z',
+    description: 'Resolves Yes if Playboi Carti releases a new full-length studio album (not singles, features, or deluxe reissues) on major streaming platforms before January 1, 2027.',
+    search_keywords: 'Playboi Carti new album',
+    outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will Don Toliver release a new album before 2027?', category: 'music', market_type: 'binary', close_date: '2026-12-31T00:00:00.000Z',
+    description: 'Resolves Yes if Don Toliver releases a new full-length studio album on major streaming platforms before January 1, 2027.',
+    search_keywords: 'Don Toliver new album',
+    outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will Kendrick Lamar release a new album in 2026?', category: 'music', market_type: 'binary', close_date: '2026-12-31T00:00:00.000Z',
+    description: 'Resolves Yes if Kendrick Lamar releases a new full-length studio album on major streaming platforms during 2026.',
+    search_keywords: 'Kendrick Lamar new album',
+    outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will Rihanna release a new studio album before 2027?', category: 'music', market_type: 'binary', close_date: '2026-12-31T00:00:00.000Z',
+    description: "Resolves Yes if Rihanna releases a new full-length studio album (her first since 2016's Anti) on major streaming platforms before January 1, 2027.",
+    search_keywords: 'Rihanna new album R9',
+    outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will Taylor Swift announce her 13th studio album before 2027?', category: 'music', market_type: 'binary', close_date: '2026-12-31T00:00:00.000Z',
+    description: 'Resolves Yes if Taylor Swift officially announces a new (13th) original studio album — re-recordings excluded — before January 1, 2027.',
+    search_keywords: 'Taylor Swift new album announcement',
+    outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will Avengers: Doomsday open above $200M domestic?', category: 'entertainment', market_type: 'binary', close_date: '2026-12-21T00:00:00.000Z',
+    description: "Resolves Yes if 'Avengers: Doomsday' grosses over $200M in its domestic opening weekend (December 2026), per Box Office Mojo's final 3-day figure.",
+    search_keywords: 'Avengers Doomsday box office',
+    outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Will Stranger Things win Outstanding Drama Series at the 2026 Emmys?', category: 'awards', market_type: 'binary', close_date: '2026-09-15T00:00:00.000Z',
+    description: 'Resolves Yes if Stranger Things wins Outstanding Drama Series at the 78th Primetime Emmy Awards.',
+    search_keywords: 'Stranger Things Emmys Outstanding Drama',
+    outcomes: [{ title: 'Yes' }, { title: 'No' }] },
 ];
 
 app.post('/api/seed/curated-batch', requireRadarKey, async (req, res) => {
@@ -2099,7 +2148,7 @@ app.post('/api/seed/curated-batch', requireRadarKey, async (req, res) => {
         await Market.create({
           id: marketId,
           title: def.title,
-          description: '',
+          description: def.description || '',
           category: def.category,
           market_type: def.market_type,
           status: 'active',
@@ -2108,7 +2157,7 @@ app.post('/api/seed/curated-batch', requireRadarKey, async (req, res) => {
           total_volume: 0,
           image_url: '',
           winning_outcome_id: null,
-          search_keywords: '',
+          search_keywords: def.search_keywords || '',
           is_trending: true,
         }, { transaction: t });
 

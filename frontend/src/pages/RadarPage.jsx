@@ -84,6 +84,8 @@ export default function RadarPage() {
         </p>
       </div>
 
+      <WaitlistAdmin radarKey={RADAR_KEY} />
+      <PriceSyncPanel radarKey={RADAR_KEY} />
       <ResolveQueue radarKey={RADAR_KEY} />
 
       <div style={{ marginBottom: 24, padding: 16, borderRadius: 14, border: '1px solid var(--line)', background: 'var(--panel)' }}>
@@ -91,8 +93,9 @@ export default function RadarPage() {
           <div>
             <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Curated starter batch</div>
             <div style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 2 }}>
-              21 hand-picked, properly categorized markets (Drake, Travis Scott, Kanye, Oscars, Grammys, Netflix, HBO Max...).
-              Safe to click more than once — already-live markets are skipped automatically.
+              32 hand-picked markets — the original 21 (Drake, Travis Scott, Kanye, Oscars, Grammys, Netflix…) plus a new
+              Sonotrade-style batch: The Odyssey & Spider-Man box-office brackets, GTA VI, Playboi Carti / Don Toliver /
+              Kendrick / Rihanna album markets. Safe to click more than once — already-live markets are skipped.
             </div>
           </div>
           <button
@@ -120,10 +123,6 @@ export default function RadarPage() {
       </div>
 
       <TrendingRadar radarKey={RADAR_KEY} />
-      <div style={{ marginTop: 28 }}>
-        <WaitlistAdmin radarKey={RADAR_KEY} />
-        <PriceSyncPanel radarKey={RADAR_KEY} />
-      </div>
     </div>
   );
 }

@@ -91,6 +91,22 @@ async function fetchText(url) {
   return res.text();
 }
 
+// Decode named + numeric HTML entities (&#8216; &#x2019; &amp; etc.) so
+// Billboard/Variety headlines don't show up as jargon in the review queue.
+function decodeEntities(str) {
+  if (!str) return str;
+  const named = {
+    amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
+    lsquo: '\u2018', rsquo: '\u2019', ldquo: '\u201C', rdquo: '\u201D',
+    ndash: '\u2013', mdash: '\u2014', hellip: '\u2026',
+  };
+  return str
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&([a-zA-Z]+);/g, (m, name) => named[name] ?? m)
+    .trim();
+}
+
 function stripCdata(raw) {
   if (!raw) return null;
   const m = raw.trim().match(/^<!\[CDATA\[([\s\S]*?)\]\]>$/);
@@ -104,13 +120,53 @@ function parseRssTitles(xml) {
     const titleMatch = block.match(/<title>([\s\S]*?)<\/title>/);
     const linkMatch = block.match(/<link>([\s\S]*?)<\/link>/);
     if (titleMatch) {
-      const cleanTitle = stripCdata(titleMatch[1])
-        .replace(/&amp;/g, '&').replace(/&#8217;|&rsquo;/g, "'").replace(/&quot;/g, '"').trim();
+      const cleanTitle = decodeEntities(stripCdata(titleMatch[1]));
       const cleanLink = linkMatch ? stripCdata(linkMatch[1]) : null;
       items.push({ title: cleanTitle, link: cleanLink && /^https?:\/\//.test(cleanLink) ? cleanLink : null });
     }
   }
   return items;
+}
+
+// Turn a raw headline into a proper prediction-market question when we can do it
+// safely — the style of "Will Playboi Carti release another album before August?"
+// or "Will 'Sinners' gross over $40M opening weekend?". [DATE]/[AMOUNT] are
+// placeholders the admin fills in before publishing. Returns null when unsure
+// (the raw headline stays and the admin edits it manually).
+function draftQuestion(headline, category) {
+  const h = (headline || '').trim();
+  const t = h.toLowerCase();
+  const quoted = (h.match(/['\u2018"\u201C]([^'\u2019"\u201D]{2,60})['\u2019"\u201D]/) || [])[1];
+  const lead = (h.match(/^([A-Z][A-Za-z.$'-]+(?:\s+[A-Z][A-Za-z.$'-]+){0,3})/) || [])[1];
+
+  // Music: announcements and teases → release question
+  if (category === 'music' && lead && /(announc|teas|confirm|reveal|hint|preview)/.test(t) && /(album|mixtape|\bep\b|single|tour)/.test(t)) {
+    if (t.includes('tour')) return `Will ${lead} announce official tour dates before [DATE]?`;
+    const what = t.includes('single') ? 'single' : 'album';
+    return `Will ${lead} release the new ${what} before [DATE]?`;
+  }
+  // Music: fresh drops → chart question
+  if (category === 'music' && lead && /(drops|releases|to release|is releasing|shares)/.test(t) && /(album|mixtape|\bep\b|single)/.test(t)) {
+    const what = t.includes('single') ? 'single' : 'album';
+    return `Will ${lead}'s new ${what} debut at #1 on the Billboard 200?`;
+  }
+  // Charts: something just hit #1 → does it hold?
+  if (/(debuts at no\.? ?1|hits no\.? ?1|tops the (billboard|chart)|number one debut)/.test(t) && (quoted || lead)) {
+    return `Will ${quoted ? `'${quoted}'` : lead} hold the #1 spot for a second week?`;
+  }
+  // Box office → opening-weekend bracket question
+  if (quoted && /(box office|opening weekend|opens to|debuts with|debut of)/.test(t)) {
+    return `Will '${quoted}' gross over $[AMOUNT]M in its opening weekend domestically?`;
+  }
+  // Film/TV release timing
+  if (quoted && /(release date|premiere|premieres|hits theaters|coming to|arrives on)/.test(t)) {
+    return `Will '${quoted}' be released before [DATE]?`;
+  }
+  // Streaming performance
+  if (quoted && /(netflix|streaming|top 10|most-watched|most watched)/.test(t)) {
+    return `Will '${quoted}' stay in the Netflix Top 10 for [N]+ weeks?`;
+  }
+  return null;
 }
 
 async function runMarketScout() {
@@ -127,7 +183,7 @@ async function runMarketScout() {
         if (d.is_self) continue;              // no meme/discussion self-posts, only link posts to real coverage
         if ((d.ups || 0) < 800) continue;      // raised bar — genuinely trending, not just active
         found.push({
-          headline: (d.title || '').slice(0, 290),
+          headline: decodeEntities(d.title || '').slice(0, 290),
           url: d.url_overridden_by_dest || `https://www.reddit.com${d.permalink || ''}`,
           source: `r/${src.sub}`,
           category: detectCategory(d.title, src.category),
@@ -175,6 +231,8 @@ async function runMarketScout() {
     if (known.has(key)) continue;
     known.add(key);
     try {
+      const drafted = draftQuestion(f.headline, f.category);
+      if (drafted) f.headline = drafted.slice(0, 290);
       await MarketSuggestion.create(f);
       created++;
     } catch (e) {
