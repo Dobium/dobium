@@ -23,7 +23,7 @@ export function getOutcomeColor(o, outcomes) {
   return colors[idx % colors.length] || '#3b82f6';
 }
 
-function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds }) {
+function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds, hideLegend }) {
   const width = 800;
   const height = 300;
   const padding = 20;
@@ -232,7 +232,7 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds }) {
       )}
 
       {/* Legend Keys */}
-      {selectedIds.length > 0 && (
+      {selectedIds.length > 0 && !hideLegend && (
         <div className="mt-5 flex flex-wrap justify-center gap-5">
           {outcomes.filter(o => selectedIds.includes(o.id)).map(o => {
             const color = getOutcomeColor(o, outcomes);
@@ -321,7 +321,7 @@ export default function MarketDetailPage() {
     return false;
   };
   const isPartiallyResolved = market?.status === 'active' && winningOutcomeIds.length > 0;
-  const [stake, setStake] = useState('');
+  const [stake, setStake] = useState('100');
   const [panelTab, setPanelTab] = useState('buy');
   const [tradeLoading, setTradeLoading] = useState(false);
   const [tradeMsg, setTradeMsg] = useState('');
@@ -426,6 +426,7 @@ export default function MarketDetailPage() {
 
   const accentColor = CATEGORY_COLORS[market.category] || '#6366f1';
   const outcomes = sortedOutcomes;   // sorted highest → lowest probability
+  const isBinaryMkt = outcomes.length === 2 && outcomes.some(o => (o.title || '').toLowerCase().startsWith('yes'));
   const marketType = market.market_type || 'binary';
   const isMultiMultiple = marketType === 'multi_multiple' || marketType === 'multi_single';
   const hasYesNoPairs = outcomes.some(o => o.id.endsWith('_yes'));
@@ -541,49 +542,29 @@ export default function MarketDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 lg:h-[100dvh] flex flex-col lg:overflow-hidden">
-      {/* Header: back button + market title */}
-      <div className="shrink-0 z-30 sticky top-0 bg-slate-950/90 backdrop-blur-md pb-3 pt-1 mb-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 border-b border-slate-800/60">
-        <button
-          onClick={() => navigate(-1)}
-          className="mb-2 flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
-        >
-          <span>←</span>
-          <span>Back</span>
-        </button>
-        <div className="flex items-center gap-3">
-          {market && <h1 className="text-xl md:text-2xl font-bold text-white truncate">{market.title}</h1>}
-          {market && (
-            <div className="hidden sm:flex items-center gap-3 shrink-0">
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#D2C5AF', background: '#2D344C', borderRadius: 3, padding: '4px 9px', textTransform: 'capitalize' }}>
-                {bucketLabel(market.category)}
-              </span>
-              {sportsMeta && sportsMeta.match_state ? (
-                <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded border ${sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time' ? 'bg-slate-800 text-slate-300 border-slate-700' :
-                  sportsMeta.match_state === 'overtime' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
-                    sportsMeta.match_state === 'halftime' || sportsMeta.match_state === 'half-time' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
-                      sportsMeta.match_state === 'in_progress' || sportsMeta.match_state === 'live' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
-                        'bg-slate-800 text-slate-400 border-slate-700'
-                  }`}>
-                  {(sportsMeta.match_state === 'in_progress' || sportsMeta.match_state === 'live' || sportsMeta.match_state === 'overtime') && (
-                    <span className="w-1.5 h-1.5 rounded-full inline-block bg-current animate-pulse"></span>
-                  )}
-                  {sportsMeta.match_state === 'in_progress' && `Period ${sportsMeta.current_period || 1}`}
-                  {sportsMeta.match_state === 'live' && 'Live'}
-                  {(sportsMeta.match_state === 'halftime' || sportsMeta.match_state === 'half-time') && 'Half Time'}
-                  {sportsMeta.match_state === 'overtime' && 'OVERTIME'}
-                  {(sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time') && 'Final'}
-                  {(sportsMeta.match_state === 'upcoming' || sportsMeta.match_state === 'pre-match') && 'Upcoming'}
-                  {sportsMeta.clock_running && <span className="ml-1 opacity-70">⏱</span>}
-                </span>
-              ) : (
-                <span className={`flex items-center gap-1.5 text-xs font-medium ${market.status === 'resolved' ? 'text-yellow-400' : 'text-green-400'}`}>
-                  <span className={`w-2 h-2 rounded-full ${market.status === 'resolved' ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
-                  {market.status === 'resolved' ? 'Resolved' : 'Open'}
-                </span>
-              )}
-            </div>
+      {/* Header card (mockup): chips + title + resolution text */}
+      <div className="shrink-0 rounded-lg p-6 mb-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#D2C5AF', background: '#2D344C', borderRadius: 3, padding: '4px 9px', textTransform: 'capitalize' }}>
+            {bucketLabel(market.category)}
+          </span>
+          {sportsMeta && sportsMeta.match_state ? (
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#D2C5AF', background: '#2D344C', borderRadius: 3, padding: '4px 9px', textTransform: 'capitalize' }}>
+              {sportsMeta.match_state.replace(/[_-]/g, ' ')}
+            </span>
+          ) : (
+            <span className={`flex items-center gap-1.5 text-xs font-medium ${market.status === 'resolved' ? 'text-yellow-400' : 'text-green-400'}`}>
+              <span className={`w-2 h-2 rounded-full ${market.status === 'resolved' ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
+              {market.status === 'resolved' ? 'Resolved' : 'Open'}
+            </span>
           )}
         </div>
+        <h1 style={{ color: '#DCE1FF', fontSize: 'clamp(19px,2.3vw,24px)', fontWeight: 700, lineHeight: 1.35, margin: 0 }}>
+          {market.title}
+        </h1>
+        {displayDescription && (
+          <p style={{ color: '#B7A77E', fontSize: 13.5, lineHeight: 1.65, margin: '12px 0 0' }}>{displayDescription}</p>
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 lg:items-start relative flex-1 min-h-0">
@@ -631,41 +612,6 @@ export default function MarketDetailPage() {
             </div>
           )}
 
-          {/* Header Section – description */}
-          <div>
-            {market && (
-              <div className="flex sm:hidden items-center gap-3 mb-3">
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#D2C5AF', background: '#2D344C', borderRadius: 3, padding: '4px 9px', textTransform: 'capitalize' }}>
-                  {bucketLabel(market.category)}
-                </span>
-                {sportsMeta && sportsMeta.match_state ? (
-                  <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded border ${sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time' ? 'bg-slate-800 text-slate-300 border-slate-700' :
-                    sportsMeta.match_state === 'overtime' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
-                      sportsMeta.match_state === 'halftime' || sportsMeta.match_state === 'half-time' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
-                        sportsMeta.match_state === 'in_progress' || sportsMeta.match_state === 'live' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
-                          'bg-slate-800 text-slate-400 border-slate-700'
-                    }`}>
-                    {(sportsMeta.match_state === 'in_progress' || sportsMeta.match_state === 'live' || sportsMeta.match_state === 'overtime') && (
-                      <span className="w-1.5 h-1.5 rounded-full inline-block bg-current animate-pulse"></span>
-                    )}
-                    {sportsMeta.match_state === 'in_progress' && `Period ${sportsMeta.current_period || 1}`}
-                    {sportsMeta.match_state === 'live' && 'Live'}
-                    {(sportsMeta.match_state === 'halftime' || sportsMeta.match_state === 'half-time') && 'Half Time'}
-                    {sportsMeta.match_state === 'overtime' && 'OVERTIME'}
-                    {(sportsMeta.match_state === 'final' || sportsMeta.match_state === 'full-time') && 'Final'}
-                    {(sportsMeta.match_state === 'upcoming' || sportsMeta.match_state === 'pre-match') && 'Upcoming'}
-                    {sportsMeta.clock_running && <span className="ml-1 opacity-70">⏱</span>}
-                  </span>
-                ) : (
-                  <span className={`flex items-center gap-1.5 text-xs font-medium ${market.status === 'resolved' ? 'text-yellow-400' : 'text-green-400'}`}>
-                    <span className={`w-2 h-2 rounded-full ${market.status === 'resolved' ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
-                    {market.status === 'resolved' ? 'Resolved' : 'Open'}
-                  </span>
-                )}
-              </div>
-            )}
-            <p style={{ color: '#B7A77E', fontSize: 13.5, lineHeight: 1.65 }}>{displayDescription}</p>
-          </div>
 
           {market.status === 'resolved' && (
             <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
@@ -697,25 +643,60 @@ export default function MarketDetailPage() {
                   Vol: ${(market.total_volume || 0) >= 1000000 ? ((market.total_volume || 0) / 1000000).toFixed(1) + 'M' : (market.total_volume || 0) >= 1000 ? ((market.total_volume || 0) / 1000).toFixed(1) + 'K' : (market.total_volume || 0).toLocaleString()}
                 </span>
               </div>
+              <div className="flex gap-1 p-1 rounded" style={{ background: '#0B1229', border: '1px solid #33312E' }}>
+                {['1D', '1W', '1M', 'ALL'].map(range => (
+                  <button key={range} style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '5px 11px', borderRadius: 3, background: range === 'ALL' ? '#F0C04A' : 'transparent', color: range === 'ALL' ? '#4A3600' : '#8E94AF', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                    {range}
+                  </button>
+                ))}
+              </div>
             </div>
             <PriceChart selectedIds={selectedIds}
               outcomes={chartOutcomes}
               priceHistory={market.price_history}
               totalVolume={market.total_volume}
+              hideLegend={isBinaryMkt}
             />
-            <div className="flex flex-wrap items-center justify-center gap-6 mt-6 pt-5 border-t border-slate-800/60 text-xs font-medium text-slate-400">
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Volume: ${(market.total_volume || 0).toLocaleString()}
-              </span>
-              {market.close_date && (
-                <span className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                  Closes: {formatDate(market.close_date)}
-                </span>
-              )}
-            </div>
           </div>
+          {/* Yes/No summary bar (mockup, binary markets) */}
+          {isBinaryMkt && (() => {
+            const yesO = outcomes.find(o => (o.title || '').toLowerCase().startsWith('yes')) || outcomes[0];
+            const noO = outcomes.find(o => o.id !== yesO.id);
+            const yesP = Math.round(yesO.probability || 0);
+            const noP = noO ? Math.round(noO.probability || 0) : 100 - yesP;
+            const hist = market.price_history || [];
+            let delta = 0;
+            if (hist.length >= 2) {
+              const cur = hist[hist.length - 1]?.prices?.[yesO.id];
+              const prev = hist[hist.length - 2]?.prices?.[yesO.id];
+              if (typeof cur === 'number' && typeof prev === 'number') delta = Math.round(cur - prev);
+            }
+            const closed = market.status !== 'active';
+            const pick = (o) => { if (!closed && o) setSelectedOutcome(o); };
+            return (
+              <div className="rounded-lg px-6 py-4 mb-6 flex items-center justify-between flex-wrap gap-4" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+                <span style={{ fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: '#48D773', fontSize: 16, fontWeight: 700 }}>{yesP}%</span>
+                  <span style={{ color: delta >= 0 ? '#48D773' : '#FFB4AB', fontSize: 11 }}>{delta >= 0 ? '▲' : '▼'}{Math.abs(delta)}</span>
+                </span>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <button onClick={() => pick(yesO)} disabled={closed}
+                    style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 13, background: '#48D773', color: '#0B1229', border: 'none', borderRadius: 8, padding: '10px 26px', cursor: closed ? 'not-allowed' : 'pointer', opacity: closed ? 0.5 : 1 }}>
+                    Yes {yesP}¢
+                  </button>
+                  <button onClick={() => pick(noO)} disabled={closed}
+                    style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 13, background: '#2D344C', color: '#DCE1FF', border: 'none', borderRadius: 8, padding: '10px 26px', cursor: closed ? 'not-allowed' : 'pointer', opacity: closed ? 0.5 : 1 }}>
+                    No {noP}¢
+                  </button>
+                </div>
+                <span style={{ fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: '#FFB4AB', fontSize: 16, fontWeight: 700 }}>{noP}%</span>
+                  <span style={{ color: delta >= 0 ? '#FFB4AB' : '#48D773', fontSize: 11 }}>{delta >= 0 ? '▼' : '▲'}{Math.abs(delta)}</span>
+                </span>
+              </div>
+            );
+          })()}
+
           {/* Recent Activity (mockup) */}
           {recentActivity.length > 0 && (
             <div className="rounded-lg p-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
@@ -744,7 +725,8 @@ export default function MarketDetailPage() {
             </div>
           )}
 
-          {/* Controls: Dropdown & Timeline */}
+          {/* Controls: outcome selector (multi-outcome markets only) */}
+          {!isBinaryMkt && (
           <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 ">
             <div className="relative" ref={chartDropdownRef}>
               <button
@@ -781,22 +763,8 @@ export default function MarketDetailPage() {
               )}
             </div>
 
-            <div className="flex gap-1 p-1 rounded" style={{ background: '#0B1229', border: '1px solid #33312E' }}>
-              {['1D', '1W', '1M', 'ALL'].map(range => (
-                <button
-                  key={range}
-                  style={{
-                    fontFamily: 'var(--mono)', fontSize: 11, padding: '5px 11px', borderRadius: 3,
-                    background: range === 'ALL' ? '#F0C04A' : 'transparent',
-                    color: range === 'ALL' ? '#4A3600' : '#8E94AF',
-                    border: 'none', cursor: 'pointer', fontWeight: 600,
-                  }}
-                >
-                  {range}
-                </button>
-              ))}
-            </div>
           </div>
+          )}
 
           {/* User Positions Carousel */}
           {(() => {
@@ -1014,7 +982,7 @@ export default function MarketDetailPage() {
               </div>
             );
           })()}
-          <div className="flex items-center justify-between mb-4">
+          {!isBinaryMkt && (<div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-white">Outcomes</h2>
             {outcomes.length >= 10 && (
               <div className="relative w-48 sm:w-64">
@@ -1030,8 +998,9 @@ export default function MarketDetailPage() {
                 />
               </div>
             )}
-          </div>
+          </div>)}
           {(() => {
+            if (isBinaryMkt) return null;
             const renderOutcome = (o, displayTitleOverride = null) => {
               const displayTitle = displayTitleOverride || o.title;
               const isYes = displayTitle?.toLowerCase() === 'yes' || o.title?.toLowerCase().endsWith('(yes)');
