@@ -107,20 +107,6 @@ function decodeEntities(str) {
     .trim();
 }
 
-// RSS titles arrive with HTML entities (&#8216; &amp; &quot;…) — decode them so
-// suggestions read as normal English instead of jargon.
-function decodeHtmlEntities(str) {
-  return (str || '')
-    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(parseInt(n, 10)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCodePoint(parseInt(n, 16)))
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&nbsp;/g, ' ')
-    .replace(/&mdash;/g, '—').replace(/&ndash;/g, '–')
-    .replace(/&lsquo;/g, '\u2018').replace(/&rsquo;/g, '\u2019')
-    .replace(/&ldquo;/g, '\u201C').replace(/&rdquo;/g, '\u201D')
-    .trim();
-}
-
 function stripCdata(raw) {
   if (!raw) return null;
   const m = raw.trim().match(/^<!\[CDATA\[([\s\S]*?)\]\]>$/);
@@ -132,7 +118,6 @@ function parseRssTitles(xml) {
   const itemBlocks = xml.split(/<item[\s>]/).slice(1);
   for (const block of itemBlocks.slice(0, 20)) {
     const titleMatch = block.match(/<title>([\s\S]*?)<\/title>/);
-    if (titleMatch) titleMatch[1] = decodeHtmlEntities(titleMatch[1]);
     const linkMatch = block.match(/<link>([\s\S]*?)<\/link>/);
     if (titleMatch) {
       const cleanTitle = decodeEntities(stripCdata(titleMatch[1]));
