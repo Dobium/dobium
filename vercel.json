@@ -1,9 +1,7 @@
 {
   "version": 2,
   "crons": [
-    { "path": "/api/cron/market-scout?key=dobium-radar-9247", "schedule": "0 12 * * *" },
-    { "path": "/api/seed/curated-batch?key=dobium-radar-9247", "schedule": "5 12 * * *" },
-    { "path": "/api/cron/sync-prices?key=dobium-radar-9247", "schedule": "*/30 * * * *" }
+    { "path": "/api/cron/daily?key=dobium-radar-9247", "schedule": "0 12 * * *" }
   ],
   "functions": {
     "api/index.js": {

@@ -1910,10 +1910,9 @@ app.put('/api/admin/markets/:id/price-source', requireRadarKey, async (req, res)
   }
 });
 
-app.get('/api/cron/sync-prices', requireRadarKey, async (req, res) => {
+async function runPriceSync() {
   const { getYesProbability } = require('./providers/pricing');
   const results = [];
-  try {
     const linked = await Market.findAll({
       where: { status: 'active', price_source: { [Op.ne]: null } },
       include: [{ model: Outcome, as: 'outcomes' }],
@@ -1939,11 +1938,32 @@ app.get('/api/cron/sync-prices', requireRadarKey, async (req, res) => {
         results.push({ id: market.id, error: err.message });
       }
     }
-    res.json({ ok: true, synced: results.filter(r => r.yes != null).length, results });
+    return { synced: results.filter(r => r.yes != null).length, results };
+}
+
+app.get('/api/cron/sync-prices', requireRadarKey, async (req, res) => {
+  try {
+    res.json({ ok: true, ...(await runPriceSync()) });
   } catch (error) {
     console.error('Price sync error:', error);
-    res.status(500).json({ error: 'Price sync failed', results });
+    res.status(500).json({ error: 'Price sync failed' });
   }
+});
+
+// ONE daily cron for everything — Vercel Hobby allows max 2 cron jobs, daily
+// granularity only. A sub-daily cron in vercel.json makes Vercel REJECT every
+// deployment (which froze production on July 8). This consolidates scout +
+// curated-batch publish + real-price sync into a single Hobby-safe job.
+app.get('/api/cron/daily', requireRadarKey, async (req, res) => {
+  const out = {};
+  try { out.scout = await runMarketScout(); } catch (e) { out.scout = { error: e.message }; }
+  try {
+    let seedResult = null;
+    await seedCuratedBatch({ query: {}, headers: {} }, { json: (j) => { seedResult = j; }, status: () => ({ json: (j) => { seedResult = j; } }) });
+    out.seed = seedResult;
+  } catch (e) { out.seed = { error: e.message }; }
+  try { out.priceSync = await runPriceSync(); } catch (e) { out.priceSync = { error: e.message }; }
+  res.json({ ok: true, ...out });
 });
 
 app.post('/api/waitlist', async (req, res) => {
