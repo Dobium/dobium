@@ -35,7 +35,8 @@ function AppRoutes() {
           {/* Front door: the landing page with the real-money waitlist */}
           <Route path="/" element={<LandingPage />} />
           {/* Logged-in portfolio/dashboard lives here now */}
-          <Route path="/portfolio" element={session ? <DashboardPage /> : <Navigate to="/explore" replace />} />
+          <Route path="/portfolio" element={<DashboardPage />} />
+          <Route path="/charts" element={<DashboardPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/pulse" element={<PulsePage />} />
