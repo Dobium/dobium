@@ -2128,7 +2128,7 @@ const CURATED_MARKETS = [
     outcomes: [{ title: 'Yes' }, { title: 'No' }] },
 ];
 
-app.post('/api/seed/curated-batch', requireRadarKey, async (req, res) => {
+const seedCuratedBatch = async (req, res) => {
   try {
     const existing = await Market.findAll({ attributes: ['title'] });
     const known = new Set(existing.map(m => (m.title || '').toLowerCase()));
@@ -2185,7 +2185,9 @@ app.post('/api/seed/curated-batch', requireRadarKey, async (req, res) => {
     console.error('Curated seed error:', error);
     res.status(500).json({ error: 'Seed failed', detail: error.message });
   }
-});
+};
+app.post('/api/seed/curated-batch', requireRadarKey, seedCuratedBatch);
+app.get('/api/seed/curated-batch', requireRadarKey, seedCuratedBatch);
 
 app.get('/api/cron/market-scout', requireRadarKey, async (req, res) => {
   try {
