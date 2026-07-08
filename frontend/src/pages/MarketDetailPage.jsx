@@ -321,7 +321,7 @@ export default function MarketDetailPage() {
     return false;
   };
   const isPartiallyResolved = market?.status === 'active' && winningOutcomeIds.length > 0;
-  const [stake, setStake] = useState('');
+  const [stake, setStake] = useState('100');
   const [panelTab, setPanelTab] = useState('buy');
   const [tradeLoading, setTradeLoading] = useState(false);
   const [tradeMsg, setTradeMsg] = useState('');
