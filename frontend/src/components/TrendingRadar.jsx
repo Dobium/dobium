@@ -31,7 +31,7 @@ export default function TrendingRadar({ radarKey }) {
     setScanning(true); setScanMsg('');
     try {
       const r = await api.runMarketScout(radarKey);
-      setScanMsg(`Scanned ${r.scanned} trending items · ${r.filtered_out} removed by harm filter · ${r.new_suggestions} new`);
+      setScanMsg(`Scanned ${r.scanned} items (${r.exchange_markets || 0} live exchange markets) · ${r.junk_purged || 0} old junk purged · ${r.new_suggestions} new suggestions`);
       await load();
     } catch (e) {
       setScanMsg(`Scan failed: ${e.message}`);
@@ -87,7 +87,7 @@ export default function TrendingRadar({ radarKey }) {
         <div>
           <h2 className="text-lg font-bold text-white">📡 Trending Radar</h2>
           <p className="text-slate-400 text-xs mt-0.5">
-            Scans 20+ sources daily (Reddit, trades, music press, gaming press, Google News, Apple Music). Only real “Will …?” questions make it here — fill in any [DATE]/[AMOUNT] blanks, then publish in one tap.
+            Scans 20+ sources daily — plus LIVE markets mirrored straight from Kalshi and Polymarket (already worded, dated, and verifiable; they price-sync and auto-resolve after publishing). Only real “Will …?”-style questions make it here — fill in any [DATE]/[AMOUNT] blanks, then publish in one tap.
           </p>
         </div>
         <button onClick={scanNow} disabled={scanning}

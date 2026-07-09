@@ -248,6 +248,107 @@ ${list}`;
   return JSON.parse(text.replace(/```json|```/g, '').trim());
 }
 
+// ── EXCHANGE MIRRORING: real live markets from Kalshi & Polymarket ──
+// The best "free API" for market questions is other prediction markets:
+// their questions are already tradeable, dated, and verifiable. We pull
+// their open entertainment/music/media markets as ready-to-publish
+// suggestions. Once published, the daily price-sync auto-matcher links
+// the copy to its original (near-identical titles), so it price-syncs
+// and auto-resolves with zero extra setup.
+
+const ENT_ALLOW = ['album', 'song', 'single', 'billboard', 'rapper', 'singer', 'artist',
+  'box office', 'movie', 'film', 'opening weekend', 'gross', 'oscar', 'academy award',
+  'grammy', 'emmy', 'golden globe', 'netflix', 'hbo', 'disney', 'spotify', 'stream',
+  'tour', 'concert', 'trailer', 'season', 'series', 'renewed', 'rotten tomatoes',
+  'video game', 'gta', 'nintendo', 'playstation', 'xbox', 'game of the year',
+  'tv show', 'showrunner', 'sequel', 'franchise', 'premiere'];
+
+const ENT_EXCLUDE = ['nfl', 'nba', 'mlb', 'nhl', 'ncaa', 'premier league', 'la liga',
+  'election', 'president', 'senate', 'congress', 'governor', 'fed ', 'rate cut',
+  'inflation', 'bitcoin', 'ethereum', 'crypto', 'temperature', 'weather', 'war',
+  'ukraine', 'israel', 'gaza', 'russia', 'tariff', 'gdp', 'stock', 's&p', 'nasdaq',
+  'shutdown', 'impeach', 'supreme court'];
+
+function isEntertainmentMarket(title) {
+  const t = (title || '').toLowerCase();
+  if (!t) return false;
+  if (ENT_EXCLUDE.some(k => t.includes(k))) return false;
+  return ENT_ALLOW.some(k => t.includes(k));
+}
+
+function volumeScore(vol) {
+  const v = Number(vol) || 0;
+  return Math.min(100, Math.round(Math.log10(v + 1) * 18));
+}
+
+async function fetchExchangeSuggestions() {
+  const out = [];
+
+  // Kalshi — bare requests, cursor pagination
+  try {
+    let cursor = null;
+    for (let page = 0; page < 2; page++) {
+      const url = `https://api.elections.kalshi.com/trade-api/v2/markets?status=open&limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
+      const res = await fetch(url);
+      if (!res.ok) break;
+      const data = await res.json();
+      for (const m of data.markets || []) {
+        const title = `${m.title || ''}`.trim();
+        if (!isEntertainmentMarket(title) || isHarmful(title)) continue;
+        const close = m.close_time ? new Date(m.close_time) : null;
+        out.push({
+          headline: (title.endsWith('?') ? title : `${title}?`).slice(0, 290),
+          url: null,
+          source: 'Kalshi',
+          category: /album|song|single|billboard|grammy|tour|concert|rapper|singer|spotify/i.test(title) ? 'music' : 'entertainment',
+          score: volumeScore(m.volume),
+          suggested_close_date: close && close > new Date() ? close : null,
+          preDrafted: true,
+        });
+      }
+      cursor = data.cursor;
+      if (!cursor || (data.markets || []).length === 0) break;
+      await new Promise(r => setTimeout(r, 300));
+    }
+  } catch (e) {
+    console.error('Scout: Kalshi mirror failed:', e.message);
+  }
+
+  // Polymarket Gamma — needs a browser-like UA
+  try {
+    for (let offset = 0; offset < 1000; offset += 500) {
+      const res = await fetch(`https://gamma-api.polymarket.com/markets?closed=false&limit=500&offset=${offset}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36' },
+      });
+      if (!res.ok) break;
+      const arr = await res.json();
+      if (!Array.isArray(arr) || arr.length === 0) break;
+      for (const m of arr) {
+        const title = (m.question || '').trim();
+        if (!isEntertainmentMarket(title) || isHarmful(title)) continue;
+        const close = m.endDate ? new Date(m.endDate) : null;
+        out.push({
+          headline: title.slice(0, 290),
+          url: null,
+          source: 'Polymarket',
+          category: /album|song|single|billboard|grammy|tour|concert|rapper|singer|spotify/i.test(title) ? 'music' : 'entertainment',
+          score: volumeScore(m.volumeNum ?? m.volume),
+          suggested_close_date: close && close > new Date() ? close : null,
+          preDrafted: true,
+        });
+      }
+      if (arr.length < 500) break;
+      await new Promise(r => setTimeout(r, 300));
+    }
+  } catch (e) {
+    console.error('Scout: Polymarket mirror failed:', e.message);
+  }
+
+  // Hottest first, capped so the queue stays reviewable
+  return out.sort((a, b) => b.score - a.score).slice(0, 25);
+}
+
+
 async function runMarketScout() {
   const found = [];
 
@@ -256,10 +357,24 @@ async function runMarketScout() {
   let purged = 0;
   try {
     purged = await MarketSuggestion.destroy({
-      where: { status: 'pending', headline: { [Op.notLike]: 'Will %' } },
+      where: {
+        status: 'pending',
+        headline: { [Op.notLike]: 'Will %' },
+        source: { [Op.notIn]: ['Kalshi', 'Polymarket'] },
+      },
     });
   } catch (e) {
     console.error('Scout: junk purge failed:', e.message);
+  }
+
+  // ---- Live markets from real exchanges (Kalshi + Polymarket) ----
+  let exchangeCount = 0;
+  try {
+    const mirrored = await fetchExchangeSuggestions();
+    exchangeCount = mirrored.length;
+    found.push(...mirrored);
+  } catch (e) {
+    console.error('Scout: exchange mirroring failed:', e.message);
   }
 
   // ---- Apple Music most-played albums → clean chart questions ----
@@ -397,6 +512,7 @@ async function runMarketScout() {
     not_market_worthy: noHarm.length - relevant.length,
     undraftable_dropped: dropped,
     junk_purged: purged,
+    exchange_markets: exchangeCount,
     ai_drafting: usedLlm,
     new_suggestions: created,
   };
