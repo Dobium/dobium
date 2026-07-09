@@ -175,6 +175,11 @@ const LEAD_STOPWORDS = new Set(['Announces', 'Announce', 'Reveals', 'Teases',
   'Confirms', 'Drops', 'Releases', 'Shares', 'Sets', 'Unveils', 'Debuts',
   'Extends', 'Adds', 'Plots', 'Kicks', 'Launches', 'Says', 'Talks', 'Opens',
   'Returns', 'Brings', 'Celebrates', 'Performs', 'Cancels', 'Postpones',
+  'Reportedly', 'Preparing', 'Prepares', 'Plans', 'Planning', 'Eyes', 'Nears',
+  'Files', 'Delays', 'Delayed', 'Pushes', 'Launching', 'Introduces', 'Expands',
+  'Considers', 'Weighs', 'Seeks', 'Begins', 'Starts', 'Tests', 'Testing',
+  'Rolls', 'Rolling', 'Is', 'To', 'Will', 'Could', 'May', 'Might', 'Set',
+  'This', 'That', 'Holiday', 'Next', 'Coming', 'Later',
   'Fall', 'Spring', 'Summer', 'Winter', 'North', 'East', 'West', 'South',
   'New', 'World', 'The', 'His', 'Her', 'Their', 'First', 'Massive', 'Huge']);
 
@@ -235,15 +240,25 @@ function draftQuestion(headline, category) {
   }
   // Delays — "will they delay it again?" is one of the most tradeable questions there is
   if ((quoted || lead) && /(delay|delayed|pushed back|postponed|pushes)/.test(t)) {
-    return `Will ${quoted ? `'${quoted}'` : lead} be delayed again before [DATE]?`;
+    const obj = (h.match(/(?:Delays|Pushes Back|Postpones)\s+(.+?)(?:\s+Again)?\s*$/i) || [])[1];
+    const subject = quoted ? `'${quoted}'` : obj ? `${lead}'s ${obj}` : lead;
+    return `Will ${subject} be delayed again before [DATE]?`;
   }
   // IPOs — the cleanest trending-news market there is
   if (lead && /\bipo\b/.test(t)) {
     return `Will ${lead} complete its IPO before [DATE]?`;
   }
-  // Gaming / product launches
-  if ((quoted || lead) && /(launch|launches|launching|ships|goes on sale)/.test(t) && !/(lawsuit|layoff)/.test(t)) {
-    return `Will ${quoted ? `'${quoted}'` : lead} launch on or before [DATE]?`;
+  // Gaming / product launches — ONLY future-tense ("set to launch", "launching in
+  // November"); "X Launches Y" is a recap of something that already happened
+  if ((quoted || lead) && /((will|to|set to|plans to|expected to|slated to|scheduled to)\s+launch|launching (in|next|this)|launch(es)? (in|next|this) (\d{4}|january|february|march|april|may|june|july|august|september|october|november|december))/.test(t) && !/(lawsuit|layoff)/.test(t)) {
+    let obj = (h.match(/launch(?:es|ing)?\s+(?:of\s+)?([A-Z][A-Za-z0-9 .'&-]{2,40})/) || [])[1];
+    if (obj) {
+      const kept = [];
+      for (const w of obj.trim().split(/\s+/)) { if (LEAD_STOPWORDS.has(w)) break; kept.push(w); }
+      obj = kept.join(' ') || null;
+    }
+    const subject = quoted ? `'${quoted}'` : obj ? `${lead}'s ${obj}` : lead;
+    return `Will ${subject} launch on or before [DATE]?`;
   }
   // Trailer buzz → measurable view milestone
   if ((quoted || lead) && /trailer/.test(t) && /(views|record|million|breaks)/.test(t)) {
