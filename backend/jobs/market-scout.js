@@ -39,6 +39,13 @@ const RSS_SOURCES = [
   { name: 'GameSpot', url: 'https://www.gamespot.com/feeds/news/', category: 'entertainment' },
   { name: 'Polygon', url: 'https://www.polygon.com/rss/index.xml', category: 'entertainment' },
   { name: 'ESPN', url: 'https://www.espn.com/espn/rss/news', category: 'sports' },
+  // Trending news: tech, business, big culture (Elon, OpenAI, IPOs, launches)
+  { name: 'Google Trends', url: 'https://trends.google.com/trending/rss?geo=US', category: 'trending' },
+  { name: 'TechCrunch', url: 'https://techcrunch.com/feed/', category: 'trending' },
+  { name: 'The Verge', url: 'https://www.theverge.com/rss/index.xml', category: 'trending' },
+  { name: 'Google News Tech', url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en', category: 'trending' },
+  { name: 'Google News Business', url: 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-US&gl=US&ceid=US:en', category: 'trending' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=(SpaceX%20OR%20Tesla%20OR%20OpenAI%20OR%20Apple)%20(launch%20OR%20IPO%20OR%20announces%20OR%20unveils)&hl=en-US&gl=US&ceid=US:en', category: 'trending' },
   // Google News topic + targeted searches — high-signal, keyless
   { name: 'Google News Entertainment', url: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=en-US&gl=US&ceid=US:en', category: 'entertainment' },
   { name: 'Google News', url: 'https://news.google.com/rss/search?q=%22new%20album%22%20announces&hl=en-US&gl=US&ceid=US:en', category: 'music' },
@@ -81,6 +88,11 @@ const RELEVANCE_KEYWORDS = {
     'wins', 'win', 'beats', 'defeats', 'signs', 'trade', 'traded', 'playoff', 'playoffs',
     'finals', 'championship', 'final score', 'vs', 'game', 'season', 'draft', 'injury',
     'injured', 'return', 'suspension', 'suspended', 'record', 'mvp',
+  ],
+  trending: [
+    'ipo', 'launch', 'launches', 'launching', 'unveils', 'announces', 'release date',
+    'acquisition', 'acquires', 'valuation', 'robotaxi', 'starship', 'rocket', 'iphone',
+    'ai model', 'gpt', 'billion', 'ships', 'rollout', 'debut', 'delayed', 'pushed back',
   ],
   awards: AWARDS_KEYWORDS,
 };
@@ -207,9 +219,11 @@ function draftQuestion(headline, category) {
   if (/(debuts at no\.? ?1|hits no\.? ?1|tops the (billboard|chart)|number one debut)/.test(t) && (quoted || lead)) {
     return `Will ${quoted ? `'${quoted}'` : lead} hold the #1 spot for a second week?`;
   }
-  // Box office → opening-weekend bracket question
+  // Box office → #1-opening question (verifiable with zero threshold guessing;
+  // dollar-bracket markets come from exchange mirroring + the curated batch,
+  // where the thresholds are real numbers, not blanks)
   if (quoted && /(box office|opening weekend|opens to|debuts with|debut of)/.test(t)) {
-    return `Will '${quoted}' gross over $[AMOUNT]M in its opening weekend domestically?`;
+    return `Will '${quoted}' finish #1 at the domestic box office in its opening weekend?`;
   }
   // Film/TV release timing
   if (quoted && /(release date|premiere|premieres|hits theaters|coming to|arrives on)/.test(t)) {
@@ -217,11 +231,15 @@ function draftQuestion(headline, category) {
   }
   // Streaming performance
   if (quoted && /(netflix|streaming|top 10|most-watched|most watched)/.test(t)) {
-    return `Will '${quoted}' stay in the Netflix Top 10 for [N]+ weeks?`;
+    return `Will '${quoted}' stay in the Netflix Top 10 for 4 or more weeks?`;
   }
   // Delays — "will they delay it again?" is one of the most tradeable questions there is
   if ((quoted || lead) && /(delay|delayed|pushed back|postponed|pushes)/.test(t)) {
     return `Will ${quoted ? `'${quoted}'` : lead} be delayed again before [DATE]?`;
+  }
+  // IPOs — the cleanest trending-news market there is
+  if (lead && /\bipo\b/.test(t)) {
+    return `Will ${lead} complete its IPO before [DATE]?`;
   }
   // Gaming / product launches
   if ((quoted || lead) && /(launch|launches|launching|ships|goes on sale)/.test(t) && !/(lawsuit|layoff)/.test(t)) {
@@ -229,7 +247,7 @@ function draftQuestion(headline, category) {
   }
   // Trailer buzz → measurable view milestone
   if ((quoted || lead) && /trailer/.test(t) && /(views|record|million|breaks)/.test(t)) {
-    return `Will the ${quoted ? `'${quoted}'` : lead} trailer pass [N]M views in its first week?`;
+    return `Will the ${quoted ? `'${quoted}'` : lead} trailer pass 100M views in its first week?`;
   }
   // Sales / streaming records in progress
   if ((quoted || lead) && /(on pace|on track|projected|expected to)/.test(t) && /(record|no\.? ?1|million|billion|chart)/.test(t)) {
@@ -402,6 +420,9 @@ async function runMarketScout() {
           { headline: { [Op.like]: '% Teases %' } },
           { headline: { [Op.like]: '% Confirms %' } },
           { headline: { [Op.like]: '%announce official tour dates%' } },
+          { headline: { [Op.like]: '%[AMOUNT]%' } },
+          { headline: { [Op.like]: '%[N]%' } },
+          { headline: { [Op.like]: '%[DATE]%' } },
         ],
       },
     });
@@ -538,8 +559,11 @@ async function runMarketScout() {
     if (/^Will [^?]*\b(Announces|Reveals|Teases|Confirms|Debuts|Unveils)\b/.test(drafted) ||
         /announce official tour dates/.test(drafted)) { dropped++; continue; }
     try {
-      f.headline = drafted.slice(0, 290);
-      if (closeDate) f.suggested_close_date = closeDate;
+      // Fill [DATE] with a real date — 30 days out by default — instead of a blank
+      const closeTarget = closeDate || new Date(Date.now() + 30 * 86400000);
+      const human = closeTarget.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      f.headline = drafted.replace(/\[DATE\]/g, human).slice(0, 290);
+      f.suggested_close_date = closeTarget;
       delete f.preDrafted;
       const draftKey = f.headline.toLowerCase();
       if (known.has(draftKey)) continue;

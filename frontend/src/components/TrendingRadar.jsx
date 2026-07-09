@@ -102,8 +102,22 @@ export default function TrendingRadar({ radarKey }) {
       ) : suggestions.length === 0 ? (
         <p className="text-slate-500 text-sm py-4">No pending suggestions — hit "Scan now" to pull today's trending topics.</p>
       ) : (
-        <div className="space-y-3 mt-3 max-h-[520px] overflow-y-auto pr-1">
-          {suggestions.map(s => {
+        <div className="space-y-3 mt-3 max-h-[620px] overflow-y-auto pr-1">
+          {[
+            { key: 'trending', label: '🔥 Trending News', match: (s) => !['music', 'entertainment', 'awards'].includes(s.category) },
+            { key: 'music', label: '🎵 Music', match: (s) => s.category === 'music' },
+            { key: 'media', label: '🎬 Media', match: (s) => s.category === 'entertainment' || s.category === 'awards' },
+          ].map(section => {
+            const items = suggestions.filter(section.match);
+            if (items.length === 0) return null;
+            return (
+              <div key={section.key}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, margin: '14px 0 8px' }}>
+                  <h3 style={{ color: '#DCE1FF', fontWeight: 700, fontSize: 14, margin: 0 }}>{section.label}</h3>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#948D87' }}>{items.length}</span>
+                </div>
+                <div className="space-y-3">
+                  {items.map(s => {
             const d = draftFor(s);
             return (
               <div key={s.id} className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
@@ -131,6 +145,10 @@ export default function TrendingRadar({ radarKey }) {
                     className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-slate-900 hover:bg-amber-400 disabled:opacity-40 transition-colors">
                     {busy[s.id] ? '...' : 'Publish market'}
                   </button>
+                </div>
+              </div>
+            );
+          })}
                 </div>
               </div>
             );
