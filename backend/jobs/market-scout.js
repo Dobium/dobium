@@ -156,25 +156,52 @@ function parseRssTitles(xml) {
 // or "Will 'Sinners' gross over $40M opening weekend?". [DATE]/[AMOUNT] are
 // placeholders the admin fills in before publishing. Returns null when unsure
 // (the raw headline stays and the admin edits it manually).
+// Title-Case headlines capitalize verbs, so "Ringo Starr Announces Fall Tour"
+// must not yield the entity "Ringo Starr Announces Fall". Cut the captured
+// name at the first verb/noise word.
+const LEAD_STOPWORDS = new Set(['Announces', 'Announce', 'Reveals', 'Teases',
+  'Confirms', 'Drops', 'Releases', 'Shares', 'Sets', 'Unveils', 'Debuts',
+  'Extends', 'Adds', 'Plots', 'Kicks', 'Launches', 'Says', 'Talks', 'Opens',
+  'Returns', 'Brings', 'Celebrates', 'Performs', 'Cancels', 'Postpones',
+  'Fall', 'Spring', 'Summer', 'Winter', 'North', 'East', 'West', 'South',
+  'New', 'World', 'The', 'His', 'Her', 'Their', 'First', 'Massive', 'Huge']);
+
+function extractLead(h) {
+  const m = h.match(/^([A-Z][A-Za-z.$'-]+(?:\s+[A-Z&][A-Za-z.$'-]*){0,4})/);
+  if (!m) return null;
+  const words = m[1].split(/\s+/);
+  const kept = [];
+  for (const w of words) {
+    if (LEAD_STOPWORDS.has(w)) break;
+    kept.push(w);
+  }
+  if (kept.length === 0) return null;
+  const lead = kept.join(' ');
+  // A one-word "name" that's a common word is noise, not an artist
+  if (kept.length === 1 && lead.length < 4) return null;
+  return lead;
+}
+
 function draftQuestion(headline, category) {
   const h = (headline || '').trim();
   const t = h.toLowerCase();
   const quoted = (h.match(/['\u2018"\u201C]([^'\u2019"\u201D]{2,60})['\u2019"\u201D]/) || [])[1];
-  const lead = (h.match(/^([A-Z][A-Za-z.$'-]+(?:\s+[A-Z][A-Za-z.$'-]+){0,3})/) || [])[1];
+  const lead = extractLead(h);
 
-  // Music: announcements and teases → release question
-  if (category === 'music' && lead && /(announc|teas|confirm|reveal|hint|preview)/.test(t) && /(album|mixtape|\bep\b|single|tour)/.test(t)) {
-    // Album/single beats tour when both appear ("teases new album during tour stop")
-    if (/(album|mixtape|\bep\b|single)/.test(t)) {
-      const what = t.includes('single') ? 'single' : 'album';
-      return `Will ${lead} release the new ${what} before [DATE]?`;
-    }
-    return `Will ${lead} announce official tour dates before [DATE]?`;
+  // Music: something was announced/teased → the tradeable question is whether
+  // it actually SHIPS (announcements already happened; delivery is the bet)
+  if (category === 'music' && lead && /(announc|teas|confirm|reveal|hint|preview)/.test(t) && /(album|mixtape|\bep\b|single)/.test(t)) {
+    const what = t.includes('single') ? 'single' : 'album';
+    return `Will ${lead} release the announced ${what} before [DATE]?`;
+  }
+  // Tour announcements: already happened, no clean follow-up market — drop
+  if (category === 'music' && /(announc|reveal|confirm)/.test(t) && /tour/.test(t)) {
+    return null;
   }
   // Music: fresh drops → chart question
   if (category === 'music' && lead && /(drops|releases|to release|is releasing|shares)/.test(t) && /(album|mixtape|\bep\b|single)/.test(t)) {
-    const what = t.includes('single') ? 'single' : 'album';
-    return `Will ${lead}'s new ${what} debut at #1 on the Billboard 200?`;
+    if (t.includes('single')) return `Will ${lead}'s new single reach the top 10 of the Billboard Hot 100?`;
+    return `Will ${lead}'s new album debut at #1 on the Billboard 200?`;
   }
   // Charts: something just hit #1 → does it hold?
   if (/(debuts at no\.? ?1|hits no\.? ?1|tops the (billboard|chart)|number one debut)/.test(t) && (quoted || lead)) {
@@ -363,6 +390,21 @@ async function runMarketScout() {
         source: { [Op.notIn]: ['Kalshi', 'Polymarket'] },
       },
     });
+    // Also purge grammar-garbage from the old drafter ("Will Ringo Starr Fall
+    // announce…", "Will X Announces…") — case-sensitive LIKE only hits
+    // Title-Case verb leakage, never legit lowercase wording.
+    purged += await MarketSuggestion.destroy({
+      where: {
+        status: 'pending',
+        [Op.or]: [
+          { headline: { [Op.like]: '% Announces %' } },
+          { headline: { [Op.like]: '% Reveals %' } },
+          { headline: { [Op.like]: '% Teases %' } },
+          { headline: { [Op.like]: '% Confirms %' } },
+          { headline: { [Op.like]: '%announce official tour dates%' } },
+        ],
+      },
+    });
   } catch (e) {
     console.error('Scout: junk purge failed:', e.message);
   }
@@ -492,6 +534,9 @@ async function runMarketScout() {
       drafted = draftQuestion(f.headline, f.category);
     }
     if (!drafted) { dropped++; continue; }
+    // Verb leakage / grammar-garbage gate — better no suggestion than a broken one
+    if (/^Will [^?]*\b(Announces|Reveals|Teases|Confirms|Debuts|Unveils)\b/.test(drafted) ||
+        /announce official tour dates/.test(drafted)) { dropped++; continue; }
     try {
       f.headline = drafted.slice(0, 290);
       if (closeDate) f.suggested_close_date = closeDate;
