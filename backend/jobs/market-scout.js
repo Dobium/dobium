@@ -251,7 +251,7 @@ function draftQuestion(headline, category) {
   // Gaming / product launches — ONLY future-tense ("set to launch", "launching in
   // November"); "X Launches Y" is a recap of something that already happened
   if ((quoted || lead) && /((will|to|set to|plans to|expected to|slated to|scheduled to)\s+launch|launching (in|next|this)|launch(es)? (in|next|this) (\d{4}|january|february|march|april|may|june|july|august|september|october|november|december))/.test(t) && !/(lawsuit|layoff)/.test(t)) {
-    let obj = (h.match(/launch(?:es|ing)?\s+(?:of\s+)?([A-Z][A-Za-z0-9 .'&-]{2,40})/) || [])[1];
+    let obj = (h.match(/launch(?:es|ing)?\s+(?:of\s+)?([A-Z][A-Za-z0-9 .'&-]{2,40})/i) || [])[1];
     if (obj) {
       const kept = [];
       for (const w of obj.trim().split(/\s+/)) { if (LEAD_STOPWORDS.has(w)) break; kept.push(w); }
