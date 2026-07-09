@@ -199,6 +199,19 @@ function extractLead(h) {
   return lead;
 }
 
+const CEREMONY_NAMES = [
+  ['academy award', 'the Oscars'], ['oscar', 'the Oscars'], ['grammy', 'the Grammys'],
+  ['emmy', 'the Emmys'], ['golden globe', 'the Golden Globes'], ['vma', 'the VMAs'],
+  ['tony award', 'the Tonys'], ['billboard music award', 'the Billboard Music Awards'],
+  ['amas', 'the AMAs'], ['sag award', 'the SAG Awards'],
+];
+const FESTIVALS = ['coachella', 'lollapalooza', 'glastonbury', 'rolling loud', 'bonnaroo', 'governors ball', 'austin city limits', 'acl fest'];
+
+function ceremonyIn(t) {
+  const hit = CEREMONY_NAMES.find(([k]) => t.includes(k));
+  return hit ? hit[1] : null;
+}
+
 function draftQuestion(headline, category) {
   const h = (headline || '').trim();
   const t = h.toLowerCase();
@@ -209,7 +222,8 @@ function draftQuestion(headline, category) {
   // it actually SHIPS (announcements already happened; delivery is the bet)
   if (category === 'music' && lead && /(announc|teas|confirm|reveal|hint|preview)/.test(t) && /(album|mixtape|\bep\b|single)/.test(t)) {
     const what = t.includes('single') ? 'single' : 'album';
-    return `Will ${lead} release the announced ${what} before [DATE]?`;
+    const named = quoted ? `'${quoted}'` : `the announced ${what}`;
+    return `Will ${lead} release ${named} on streaming platforms before [DATE]?`;
   }
   // Tour announcements: already happened, no clean follow-up market — drop
   if (category === 'music' && /(announc|reveal|confirm)/.test(t) && /tour/.test(t)) {
@@ -217,12 +231,33 @@ function draftQuestion(headline, category) {
   }
   // Music: fresh drops → chart question
   if (category === 'music' && lead && /(drops|releases|to release|is releasing|shares)/.test(t) && /(album|mixtape|\bep\b|single)/.test(t)) {
-    if (t.includes('single')) return `Will ${lead}'s new single reach the top 10 of the Billboard Hot 100?`;
-    return `Will ${lead}'s new album debut at #1 on the Billboard 200?`;
+    const named = quoted ? `'${quoted}'` : null;
+    if (t.includes('single')) {
+      return `Will ${lead}'s ${named ? `single ${named}` : 'new single'} reach the top 10 of the Billboard Hot 100 within 4 weeks of release?`;
+    }
+    return `Will ${lead}'s ${named ? `album ${named}` : 'new album'} debut at #1 on the Billboard 200 in its first chart week?`;
   }
   // Charts: something just hit #1 → does it hold?
   if (/(debuts at no\.? ?1|hits no\.? ?1|tops the (billboard|chart)|number one debut)/.test(t) && (quoted || lead)) {
-    return `Will ${quoted ? `'${quoted}'` : lead} hold the #1 spot for a second week?`;
+    const chart = /hot 100/.test(t) ? 'the Billboard Hot 100' : /billboard 200/.test(t) ? 'the Billboard 200' : 'the Billboard chart';
+    return `Will ${quoted ? `'${quoted}'` : lead} hold the #1 spot on ${chart} for a second consecutive week?`;
+  }
+  // Award nominations → the win question (WHO wins WHAT at WHERE)
+  if ((quoted || lead) && /(nominated|nomination|snub|frontrunner|shortlist)/.test(t)) {
+    const ceremony = ceremonyIn(t);
+    if (ceremony) return `Will ${quoted ? `'${quoted}'` : lead} win at least one award at ${ceremony}?`;
+  }
+  // NEW: renewal limbo → the renewal question
+  if (quoted && /(renew|another season|next season|future of|fate of)/.test(t) && /(await|decision|uncertain|limbo|talks|undecided|has yet|not yet)/.test(t)) {
+    return `Will '${quoted}' be officially renewed for another season before [DATE]?`;
+  }
+  // NEW: festival headliners → scheduled-set question
+  if (lead && /headlin/.test(t)) {
+    const fest = FESTIVALS.find(f => t.includes(f));
+    if (fest) {
+      const festName = fest.split(' ').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+      return `Will ${lead} perform their scheduled ${festName} headlining set?`;
+    }
   }
   // Box office → #1-opening question (verifiable with zero threshold guessing;
   // dollar-bracket markets come from exchange mirroring + the curated batch,
