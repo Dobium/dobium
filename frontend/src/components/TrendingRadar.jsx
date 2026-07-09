@@ -82,7 +82,7 @@ export default function TrendingRadar({ radarKey }) {
         <div>
           <h2 className="text-lg font-bold text-white">📡 Trending Radar</h2>
           <p className="text-slate-400 text-xs mt-0.5">
-            Scans Reddit + Variety, Billboard, Hollywood Reporter & ESPN daily. Harm-filtered automatically — edit the wording into a clear question, then publish in one tap.
+            Scans 20+ sources daily (Reddit, trades, music press, gaming press, Google News, Apple Music). Only real “Will …?” questions make it here — fill in any [DATE]/[AMOUNT] blanks, then publish in one tap.
           </p>
         </div>
         <button onClick={scanNow} disabled={scanning}

@@ -16,17 +16,40 @@ const REDDIT_SOURCES = [
   { sub: 'popheads', category: 'music' },
   { sub: 'hiphopheads', category: 'music' },
   { sub: 'Music', category: 'music' },
+  { sub: 'Games', category: 'entertainment' },
+  { sub: 'entertainment', category: 'entertainment' },
   { sub: 'nba', category: 'sports' },
   { sub: 'nfl', category: 'sports' },
   { sub: 'soccer', category: 'sports' },
 ];
 
+// Every keyless feed worth scanning. Any single feed failing is non-fatal.
 const RSS_SOURCES = [
   { name: 'Variety', url: 'https://variety.com/feed/', category: 'entertainment' },
   { name: 'Hollywood Reporter', url: 'https://www.hollywoodreporter.com/feed/', category: 'entertainment' },
+  { name: 'Deadline', url: 'https://deadline.com/feed/', category: 'entertainment' },
+  { name: 'TheWrap', url: 'https://www.thewrap.com/feed/', category: 'entertainment' },
+  { name: 'EW', url: 'https://ew.com/feed/', category: 'entertainment' },
   { name: 'Billboard', url: 'https://www.billboard.com/feed/', category: 'music' },
+  { name: 'Rolling Stone', url: 'https://www.rollingstone.com/music/feed/', category: 'music' },
+  { name: 'Pitchfork', url: 'https://pitchfork.com/feed/feed-news/rss', category: 'music' },
+  { name: 'Stereogum', url: 'https://www.stereogum.com/feed/', category: 'music' },
+  { name: 'NME', url: 'https://www.nme.com/feed', category: 'music' },
+  { name: 'IGN', url: 'https://feeds.ign.com/ign/all', category: 'entertainment' },
+  { name: 'GameSpot', url: 'https://www.gamespot.com/feeds/news/', category: 'entertainment' },
+  { name: 'Polygon', url: 'https://www.polygon.com/rss/index.xml', category: 'entertainment' },
   { name: 'ESPN', url: 'https://www.espn.com/espn/rss/news', category: 'sports' },
+  // Google News topic + targeted searches — high-signal, keyless
+  { name: 'Google News Entertainment', url: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=en-US&gl=US&ceid=US:en', category: 'entertainment' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=%22new%20album%22%20announces&hl=en-US&gl=US&ceid=US:en', category: 'music' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=%22opening%20weekend%22%20box%20office&hl=en-US&gl=US&ceid=US:en', category: 'entertainment' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=%22release%20date%22%20(delayed%20OR%20announced%20OR%20confirmed)&hl=en-US&gl=US&ceid=US:en', category: 'entertainment' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=(tour%20OR%20residency)%20announces%20(singer%20OR%20rapper%20OR%20band)&hl=en-US&gl=US&ceid=US:en', category: 'music' },
 ];
+
+// Apple Music most-played albums — structured JSON, keyless. Hot albums become
+// clean chart-position questions with zero fuzzy parsing.
+const APPLE_MUSIC_FEED = 'https://rss.applemarketingtools.com/api/v2/us/music/most-played/25/albums.json';
 
 // Anything touching a real person's private life, health, legal trouble, or safety is dropped.
 const HARM_BLOCKLIST = [
@@ -141,9 +164,12 @@ function draftQuestion(headline, category) {
 
   // Music: announcements and teases → release question
   if (category === 'music' && lead && /(announc|teas|confirm|reveal|hint|preview)/.test(t) && /(album|mixtape|\bep\b|single|tour)/.test(t)) {
-    if (t.includes('tour')) return `Will ${lead} announce official tour dates before [DATE]?`;
-    const what = t.includes('single') ? 'single' : 'album';
-    return `Will ${lead} release the new ${what} before [DATE]?`;
+    // Album/single beats tour when both appear ("teases new album during tour stop")
+    if (/(album|mixtape|\bep\b|single)/.test(t)) {
+      const what = t.includes('single') ? 'single' : 'album';
+      return `Will ${lead} release the new ${what} before [DATE]?`;
+    }
+    return `Will ${lead} announce official tour dates before [DATE]?`;
   }
   // Music: fresh drops → chart question
   if (category === 'music' && lead && /(drops|releases|to release|is releasing|shares)/.test(t) && /(album|mixtape|\bep\b|single)/.test(t)) {
@@ -166,11 +192,57 @@ function draftQuestion(headline, category) {
   if (quoted && /(netflix|streaming|top 10|most-watched|most watched)/.test(t)) {
     return `Will '${quoted}' stay in the Netflix Top 10 for [N]+ weeks?`;
   }
+  // Delays — "will they delay it again?" is one of the most tradeable questions there is
+  if ((quoted || lead) && /(delay|delayed|pushed back|postponed|pushes)/.test(t)) {
+    return `Will ${quoted ? `'${quoted}'` : lead} be delayed again before [DATE]?`;
+  }
+  // Gaming / product launches
+  if ((quoted || lead) && /(launch|launches|launching|ships|goes on sale)/.test(t) && !/(lawsuit|layoff)/.test(t)) {
+    return `Will ${quoted ? `'${quoted}'` : lead} launch on or before [DATE]?`;
+  }
+  // Trailer buzz → measurable view milestone
+  if ((quoted || lead) && /trailer/.test(t) && /(views|record|million|breaks)/.test(t)) {
+    return `Will the ${quoted ? `'${quoted}'` : lead} trailer pass [N]M views in its first week?`;
+  }
+  // Sales / streaming records in progress
+  if ((quoted || lead) && /(on pace|on track|projected|expected to)/.test(t) && /(record|no\.? ?1|million|billion|chart)/.test(t)) {
+    return `Will ${quoted ? `'${quoted}'` : lead} hit the projected mark by [DATE]?`;
+  }
   return null;
 }
 
 async function runMarketScout() {
   const found = [];
+
+  // ---- Purge old junk: pending suggestions that aren't proper questions ----
+  const { Op } = require('sequelize');
+  let purged = 0;
+  try {
+    purged = await MarketSuggestion.destroy({
+      where: { status: 'pending', headline: { [Op.notLike]: 'Will %' } },
+    });
+  } catch (e) {
+    console.error('Scout: junk purge failed:', e.message);
+  }
+
+  // ---- Apple Music most-played albums → clean chart questions ----
+  try {
+    const data = await fetchJson(APPLE_MUSIC_FEED);
+    for (const album of (data?.feed?.results || []).slice(0, 10)) {
+      if (!album.name || !album.artistName) continue;
+      if (isHarmful(`${album.name} ${album.artistName}`)) continue;
+      found.push({
+        headline: `Will '${album.name}' by ${album.artistName} still be a top-10 most-played album on Apple Music on [DATE]?`,
+        url: album.url || null,
+        source: 'Apple Music',
+        category: 'music',
+        score: 100,
+        preDrafted: true,
+      });
+    }
+  } catch (e) {
+    console.error('Scout: Apple Music feed failed:', e.message);
+  }
 
   // ---- Reddit hot posts ----
   for (const src of REDDIT_SOURCES) {
@@ -215,7 +287,7 @@ async function runMarketScout() {
 
   // ---- Filters: harmful content out, then keep only market-worthy headlines ----
   const noHarm = found.filter(f => f.headline && !isHarmful(f.headline));
-  const relevant = noHarm.filter(f => isMarketWorthy(f.headline, f.category));
+  const relevant = noHarm.filter(f => f.preDrafted || isMarketWorthy(f.headline, f.category));
 
   // ---- Dedupe against existing suggestions + markets ----
   const existingSuggestions = await MarketSuggestion.findAll({ attributes: ['headline'] });
@@ -226,13 +298,22 @@ async function runMarketScout() {
   ]);
 
   let created = 0;
+  let dropped = 0;
   for (const f of relevant) {
     const key = f.headline.toLowerCase();
     if (known.has(key)) continue;
     known.add(key);
+    // STRICT: if a headline can't become a real "Will …?" market question,
+    // it doesn't belong in the queue at all. Recaps, opinion pieces, and
+    // "Can X turn his season around?" narratives get dropped here.
+    const drafted = f.preDrafted ? f.headline : draftQuestion(f.headline, f.category);
+    if (!drafted) { dropped++; continue; }
     try {
-      const drafted = draftQuestion(f.headline, f.category);
-      if (drafted) f.headline = drafted.slice(0, 290);
+      f.headline = drafted.slice(0, 290);
+      delete f.preDrafted;
+      const draftKey = f.headline.toLowerCase();
+      if (known.has(draftKey)) continue;
+      known.add(draftKey);
       await MarketSuggestion.create(f);
       created++;
     } catch (e) {
@@ -244,6 +325,8 @@ async function runMarketScout() {
     scanned: found.length,
     harm_filtered: found.length - noHarm.length,
     not_market_worthy: noHarm.length - relevant.length,
+    undraftable_dropped: dropped,
+    junk_purged: purged,
     new_suggestions: created,
   };
 }
