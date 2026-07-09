@@ -39,7 +39,12 @@ export default function TrendingRadar({ radarKey }) {
     setScanning(false);
   };
 
-  const draftFor = (s) => drafts[s.id] || { title: s.headline, category: s.category, close: plusDays(14) };
+  const draftFor = (s) => drafts[s.id] || {
+    title: s.headline,
+    category: s.category,
+    // The AI drafter suggests a real close date matched to the event; fall back to +14 days
+    close: s.suggested_close_date ? s.suggested_close_date.slice(0, 10) : plusDays(14),
+  };
   const setDraft = (id, patch) => setDrafts(prev => ({ ...prev, [id]: { ...draftFor(suggestions.find(x => x.id === id) || { id }), ...prev[id], ...patch } }));
 
   const publish = async (s) => {

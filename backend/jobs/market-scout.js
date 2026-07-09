@@ -211,6 +211,43 @@ function draftQuestion(headline, category) {
   return null;
 }
 
+// ── AI DRAFTING (optional, needs ANTHROPIC_API_KEY) ──
+// Rule templates can only go so far; Claude Haiku turns raw headlines into
+// Kalshi-grade questions with real thresholds and real close dates, and
+// rejects recaps/opinion pieces that rules might miss. Falls back to the
+// rule-based drafter silently when no key is configured.
+async function llmDraft(candidates) {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key || candidates.length === 0) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const list = candidates.map((c, i) => `${i}. [${c.category}] ${c.headline}`).join('\n');
+  const prompt = `Today is ${today}. You screen news headlines for an entertainment prediction market (like Kalshi, but for music/movies/gaming/culture).
+
+For each numbered headline, decide if it can become a REAL tradeable yes/no market about a verifiable FUTURE event with a public data source (chart position, box office gross, release/launch date, award result, renewal). Recaps of finished events, opinion pieces, power rankings, listicles, and vague narratives ("Can X turn his season around?") are NOT tradeable.
+
+Question rules: start with "Will", name the exact subject, include one concrete measurable threshold, and imply a clear resolution deadline. NEVER reference anyone's personal life, relationships, health, legal trouble, or safety.
+
+Reply with ONLY a JSON array (no prose, no markdown): one object per headline like
+{"i": 0, "tradeable": true, "question": "Will 'The Odyssey' gross over $80M in its domestic opening weekend?", "close_date": "2026-07-20"}
+or {"i": 1, "tradeable": false}.
+
+Headlines:
+${list}`;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5',
+      max_tokens: 4000,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Anthropic API ${res.status}`);
+  const data = await res.json();
+  const text = (data.content || []).map((b) => b.text || '').join('');
+  return JSON.parse(text.replace(/```json|```/g, '').trim());
+}
+
 async function runMarketScout() {
   const found = [];
 
@@ -297,19 +334,52 @@ async function runMarketScout() {
     ...existingMarkets.map(m => (m.title || '').toLowerCase()),
   ]);
 
-  let created = 0;
-  let dropped = 0;
+  // New candidates only (dedupe first so we don't waste LLM tokens on repeats)
+  const fresh = [];
   for (const f of relevant) {
     const key = f.headline.toLowerCase();
     if (known.has(key)) continue;
     known.add(key);
-    // STRICT: if a headline can't become a real "Will …?" market question,
-    // it doesn't belong in the queue at all. Recaps, opinion pieces, and
-    // "Can X turn his season around?" narratives get dropped here.
-    const drafted = f.preDrafted ? f.headline : draftQuestion(f.headline, f.category);
+    fresh.push(f);
+  }
+
+  // ── Stage 1: AI drafting (Kalshi-grade questions with real dates) ──
+  let llmResults = null;
+  let usedLlm = false;
+  const llmCandidates = fresh.filter(f => !f.preDrafted).slice(0, 50);
+  try {
+    llmResults = await llmDraft(llmCandidates);
+    usedLlm = Array.isArray(llmResults);
+  } catch (e) {
+    console.error('Scout: AI drafting unavailable, using rule templates:', e.message);
+  }
+
+  let created = 0;
+  let dropped = 0;
+  for (const f of fresh) {
+    let drafted = null;
+    let closeDate = null;
+    if (f.preDrafted) {
+      drafted = f.headline;
+    } else if (usedLlm) {
+      const idx = llmCandidates.indexOf(f);
+      const verdict = idx >= 0 ? llmResults.find(r => r && r.i === idx) : null;
+      if (verdict?.tradeable && typeof verdict.question === 'string' && verdict.question.startsWith('Will')) {
+        if (isHarmful(verdict.question)) { dropped++; continue; } // harm filter applies to AI output too
+        drafted = verdict.question;
+        const d = new Date(verdict.close_date);
+        if (!isNaN(d) && d > new Date()) closeDate = d;
+      }
+    } else {
+      // STRICT rule fallback: if a headline can't become a real "Will …?"
+      // question, it doesn't belong in the queue. Recaps, opinion pieces,
+      // and "Can X turn his season around?" narratives get dropped here.
+      drafted = draftQuestion(f.headline, f.category);
+    }
     if (!drafted) { dropped++; continue; }
     try {
       f.headline = drafted.slice(0, 290);
+      if (closeDate) f.suggested_close_date = closeDate;
       delete f.preDrafted;
       const draftKey = f.headline.toLowerCase();
       if (known.has(draftKey)) continue;
@@ -327,6 +397,7 @@ async function runMarketScout() {
     not_market_worthy: noHarm.length - relevant.length,
     undraftable_dropped: dropped,
     junk_purged: purged,
+    ai_drafting: usedLlm,
     new_suggestions: created,
   };
 }

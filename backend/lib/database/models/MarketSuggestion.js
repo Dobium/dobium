@@ -17,6 +17,7 @@ const MarketSuggestion = sequelize.define('MarketSuggestion', {
   source: { type: DataTypes.STRING(60), allowNull: false },
   category: { type: DataTypes.STRING(30), allowNull: false, defaultValue: 'entertainment' },
   score: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  suggested_close_date: { type: DataTypes.DATE, allowNull: true },
   status: {
     type: DataTypes.STRING(20),
     allowNull: false,
