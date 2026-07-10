@@ -2004,6 +2004,49 @@ app.get('/api/cron/sync-prices', requireRadarKey, async (req, res) => {
 app.get('/api/cron/daily', requireRadarKey, async (req, res) => {
   const out = {};
   try { out.scout = await runMarketScout(); } catch (e) { out.scout = { error: e.message }; }
+  // Auto-publish the hottest exchange-mirrored suggestions (max 3/day).
+  // Exchange wording is already market-grade and these auto-link to their
+  // real-money originals in the price-sync step below — so trending markets
+  // appear daily with zero manual clicks. RSS-drafted suggestions still get
+  // human review: they're machine-worded and today proved why that matters.
+  try {
+    const mirrors = await MarketSuggestion.findAll({
+      where: { status: 'pending', source: { [Op.in]: ['Kalshi', 'Polymarket'] }, score: { [Op.gte]: 60 } },
+      order: [['score', 'DESC']],
+      limit: 3,
+    });
+    const published = [];
+    for (const sug of mirrors) {
+      const dupe = await Market.findOne({ where: { title: sug.headline } });
+      if (dupe) { await sug.update({ status: 'published' }); continue; }
+      await sequelize.transaction(async (t) => {
+        const marketId = nanoid(12);
+        await Market.create({
+          id: marketId,
+          title: sug.headline,
+          description: `Mirrored from a live ${sug.source} market — prices track the real market and this resolves automatically with the real-world outcome.`,
+          category: sug.category || 'entertainment',
+          market_type: 'binary',
+          status: 'active',
+          close_date: sug.suggested_close_date || null,
+          resolution_date: null,
+          total_volume: 0,
+          image_url: '',
+          winning_outcome_id: null,
+          search_keywords: '',
+          is_trending: true,
+        }, { transaction: t });
+        await Outcome.bulkCreate([
+          { id: `${marketId}_yes`, market_id: marketId, title: 'Yes', probability: 50, total_stake: 0 },
+          { id: `${marketId}_no`, market_id: marketId, title: 'No', probability: 50, total_stake: 0 },
+        ], { transaction: t });
+      });
+      await sug.update({ status: 'published' });
+      published.push(sug.headline);
+    }
+    out.autoPublished = published;
+  } catch (e) { out.autoPublished = { error: e.message }; }
+
   try {
     let seedResult = null;
     await seedCuratedBatch({ query: {}, headers: {} }, { json: (j) => { seedResult = j; }, status: () => ({ json: (j) => { seedResult = j; } }) });
@@ -2193,6 +2236,22 @@ const CURATED_MARKETS = [
     description: 'Resolves Yes if Stranger Things wins Outstanding Drama Series at the 78th Primetime Emmy Awards.',
     search_keywords: 'Stranger Things Emmys Outstanding Drama',
     outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+
+  // ── Letterboxd sale (news broke July 10, 2026 — Puck via Variety/TheWrap) ──
+  { title: 'Will Netflix acquire Letterboxd before 2027?', category: 'entertainment', market_type: 'binary', close_date: '2026-12-31T00:00:00.000Z',
+    description: "Resolves Yes if Netflix (or a subsidiary) announces a definitive agreement to acquire Letterboxd before January 1, 2027. Per Puck (July 10, 2026), Netflix is among several parties in early talks; bankers are floating a ~$250M valuation. Rumored interest alone does not resolve Yes — a definitive announced deal is required.",
+    search_keywords: 'Netflix Letterboxd acquisition',
+    outcomes: [{ title: 'Yes' }, { title: 'No' }] },
+  { title: 'Who will acquire Letterboxd?', category: 'entertainment', market_type: 'multi_single', close_date: '2026-12-31T00:00:00.000Z',
+    description: "Resolves to the first party to announce a definitive agreement to acquire a controlling stake in Letterboxd in 2026. Per Puck (July 10, 2026), early talks include Netflix, Sony Pictures, Paramount Skydance, TPG/RedBird, and Alexis Ohanian, with bankers floating a ~$250M valuation. If no definitive deal is announced in 2026, resolves 'No deal in 2026'.",
+    search_keywords: 'Letterboxd sale acquisition Netflix Sony Paramount',
+    outcomes: [
+      { title: 'Netflix', probability: 28 },
+      { title: 'Sony Pictures', probability: 20 },
+      { title: 'Paramount Skydance', probability: 14 },
+      { title: 'Other buyer (TPG, Ohanian, etc.)', probability: 18 },
+      { title: 'No deal in 2026', probability: 20 },
+    ] },
 ];
 
 const seedCuratedBatch = async (req, res) => {

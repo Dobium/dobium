@@ -180,10 +180,18 @@ const LEAD_STOPWORDS = new Set(['Announces', 'Announce', 'Reveals', 'Teases',
   'Considers', 'Weighs', 'Seeks', 'Begins', 'Starts', 'Tests', 'Testing',
   'Rolls', 'Rolling', 'Is', 'To', 'Will', 'Could', 'May', 'Might', 'Set',
   'This', 'That', 'Holiday', 'Next', 'Coming', 'Later',
+  'Forget', 'Meet', 'Why', 'How', 'What', 'Inside', 'Here', 'Move', 'Vs',
+  'Vs.', 'Versus', 'Watch', 'Breaking', 'Exclusive', 'Report', 'Opinion',
+  'Analysis', 'Update', 'If', 'When', 'Where', 'Who', 'Should', 'Can',
+  'Does', 'Do', 'Just', 'Even', 'Now', 'Yes', 'No', 'Live',
+  'In', 'On', 'At', 'Of', 'For', 'And', 'With', 'From', 'Over', 'After',
+  'Before', 'Amid', 'As', 'Talks', 'Deal', 'Bid', 'Sale',
   'Fall', 'Spring', 'Summer', 'Winter', 'North', 'East', 'West', 'South',
   'New', 'World', 'The', 'His', 'Her', 'Their', 'First', 'Massive', 'Huge']);
 
 function extractLead(h) {
+  // Strip wire-service prefixes ("ANALYSIS:", "EXCLUSIVE —") before extracting
+  h = h.replace(/^(ANALYSIS|EXCLUSIVE|REPORT|OPINION|WATCH|BREAKING|UPDATE|LIVE|INTERVIEW|Q&A|REVIEW|EXPLAINER)\s*[:\-\u2013\u2014|]\s*/i, '');
   const m = h.match(/^([A-Z][A-Za-z.$'-]+(?:\s+[A-Z&][A-Za-z.$'-]*){0,4})/);
   if (!m) return null;
   const words = m[1].split(/\s+/);
@@ -196,6 +204,8 @@ function extractLead(h) {
   const lead = kept.join(' ');
   // A one-word "name" that's a common word is noise, not an artist
   if (kept.length === 1 && lead.length < 4) return null;
+  // ALL-CAPS single tokens are wire-service labels (ANALYSIS, EXCLUSIVE), not names
+  if (kept.length === 1 && lead.length >= 4 && lead === lead.toUpperCase()) return null;
   return lead;
 }
 
@@ -279,8 +289,20 @@ function draftQuestion(headline, category) {
     const subject = quoted ? `'${quoted}'` : obj ? `${lead}'s ${obj}` : lead;
     return `Will ${subject} be delayed again before [DATE]?`;
   }
+  // Acquisitions — "Netflix May Buy Letterboxd" → the deal-completion question
+  if (lead && lead.split(' ').length <= 3 && /(acquir|buy|buys|buying|purchase|takeover|in talks)/.test(t)) {
+    let target = (h.match(/(?:buy(?:s|ing)?|acquir(?:e|es|ing)|purchase(?:s)?|takeover of|talks (?:to buy|to acquire|for|with))\s+(?:the\s+)?([A-Z][\w.'&-]+(?:\s+[A-Z][\w.'&-]+){0,2})/i) || [])[1];
+    if (target) {
+      const kept = [];
+      for (const w of target.trim().split(/\s+/)) { if (!/^[A-Z0-9]/.test(w) || LEAD_STOPWORDS.has(w)) break; kept.push(w); }
+      target = kept.join(' ') || null;
+    }
+    if (target && target.toLowerCase() !== lead.toLowerCase()) {
+      return `Will ${lead} complete an acquisition of ${target} before [DATE]?`;
+    }
+  }
   // IPOs — the cleanest trending-news market there is
-  if (lead && /\bipo\b/.test(t)) {
+  if (lead && lead.split(' ').length <= 3 && !/ipo/i.test(lead) && /\bipo\b/.test(t)) {
     return `Will ${lead} complete its IPO before [DATE]?`;
   }
   // Gaming / product launches — ONLY future-tense ("set to launch", "launching in
@@ -473,6 +495,9 @@ async function runMarketScout() {
           { headline: { [Op.like]: '%[AMOUNT]%' } },
           { headline: { [Op.like]: '%[N]%' } },
           { headline: { [Op.like]: '%[DATE]%' } },
+          { headline: { [Op.like]: 'Will ANALYSIS%' } },
+          { headline: { [Op.like]: 'Will Forget%' } },
+          { headline: { [Op.like]: '%IPO complete its IPO%' } },
         ],
       },
     });

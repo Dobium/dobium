@@ -1,7 +1,8 @@
 {
   "version": 2,
   "crons": [
-    { "path": "/api/cron/daily?key=dobium-radar-9247", "schedule": "0 12 * * *" }
+    { "path": "/api/cron/daily?key=dobium-radar-9247", "schedule": "0 12 * * *" },
+    { "path": "/api/cron/daily?key=dobium-radar-9247", "schedule": "0 0 * * *" }
   ],
   "functions": {
     "api/index.js": {
