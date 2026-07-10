@@ -2001,14 +2001,55 @@ app.get('/api/cron/sync-prices', requireRadarKey, async (req, res) => {
 // granularity only. A sub-daily cron in vercel.json makes Vercel REJECT every
 // deployment (which froze production on July 8). This consolidates scout +
 // curated-batch publish + real-price sync into a single Hobby-safe job.
+// Auto-publish the hottest exchange-mirrored suggestions. Exchange wording is
+// already market-grade and these auto-link to their real-money originals via
+// price sync — trending markets appear with zero manual clicks. RSS-drafted
+// suggestions still get one-tap human review (machine wording needs eyes).
+async function autoPublishMirrors(limit = 5) {
+  const mirrors = await MarketSuggestion.findAll({
+    where: { status: 'pending', source: { [Op.in]: ['Kalshi', 'Polymarket'] }, score: { [Op.gte]: 55 } },
+    order: [['score', 'DESC']],
+    limit,
+  });
+  const published = [];
+  for (const sug of mirrors) {
+    const dupe = await Market.findOne({ where: { title: sug.headline } });
+    if (dupe) { await sug.update({ status: 'published' }); continue; }
+    await sequelize.transaction(async (t) => {
+      const marketId = nanoid(12);
+      await Market.create({
+        id: marketId,
+        title: sug.headline,
+        description: `Mirrored from a live ${sug.source} market — prices track the real market and this resolves automatically with the real-world outcome.`,
+        category: sug.category || 'entertainment',
+        market_type: 'binary',
+        status: 'active',
+        close_date: sug.suggested_close_date || null,
+        resolution_date: null,
+        total_volume: 0,
+        image_url: makeTextBadge(sug.headline),
+        winning_outcome_id: null,
+        search_keywords: '',
+        is_trending: true,
+      }, { transaction: t });
+      await Outcome.bulkCreate([
+        { id: `${marketId}_yes`, market_id: marketId, title: 'Yes', probability: 50, total_stake: 0 },
+        { id: `${marketId}_no`, market_id: marketId, title: 'No', probability: 50, total_stake: 0 },
+      ], { transaction: t });
+    });
+    await sug.update({ status: 'published' });
+    published.push(sug.headline);
+  }
+  return published;
+}
+
 app.get('/api/cron/daily', requireRadarKey, async (req, res) => {
   const out = {};
   try { out.scout = await runMarketScout(); } catch (e) { out.scout = { error: e.message }; }
-  // Auto-publish the hottest exchange-mirrored suggestions (max 3/day).
-  // Exchange wording is already market-grade and these auto-link to their
-  // real-money originals in the price-sync step below — so trending markets
-  // appear daily with zero manual clicks. RSS-drafted suggestions still get
-  // human review: they're machine-worded and today proved why that matters.
+  try {
+    out.autoPublished = await autoPublishMirrors(5);
+  } catch (e) { out.autoPublished = { error: e.message }; }
+  if (false) {
   try {
     const mirrors = await MarketSuggestion.findAll({
       where: { status: 'pending', source: { [Op.in]: ['Kalshi', 'Polymarket'] }, score: { [Op.gte]: 60 } },
@@ -2031,7 +2072,7 @@ app.get('/api/cron/daily', requireRadarKey, async (req, res) => {
           close_date: sug.suggested_close_date || null,
           resolution_date: null,
           total_volume: 0,
-          image_url: '',
+          image_url: makeTextBadge(sug.headline),
           winning_outcome_id: null,
           search_keywords: '',
           is_trending: true,
@@ -2044,8 +2085,9 @@ app.get('/api/cron/daily', requireRadarKey, async (req, res) => {
       await sug.update({ status: 'published' });
       published.push(sug.headline);
     }
-    out.autoPublished = published;
-  } catch (e) { out.autoPublished = { error: e.message }; }
+    out.autoPublishedLegacy = published;
+  } catch (e) { /* disabled */ }
+  }
 
   try {
     let seedResult = null;
@@ -2055,6 +2097,46 @@ app.get('/api/cron/daily', requireRadarKey, async (req, res) => {
   try { out.priceSync = await runPriceSync(); } catch (e) { out.priceSync = { error: e.message }; }
   res.json({ ok: true, ...out });
 });
+
+
+// ============================================================================
+// TEXT BADGES — copyright-safe market images. No photos, no logos: just the
+// market's key words in bold color on a dark tile ("WHOLE LOTTA RED" in red).
+// Deterministic per title, stored as an SVG data URL in image_url.
+// ============================================================================
+const BADGE_PALETTES = [
+  ['#2A0E0E', '#FF6B6B'], ['#0E1B2A', '#6BB8FF'], ['#0E2A16', '#6BFF9C'],
+  ['#220E2A', '#C86BFF'], ['#2A1C0E', '#FFB36B'], ['#0F172A', '#FFDF9B'],
+  ['#2A0E20', '#FF6BC1'], ['#0E2A28', '#6BFFE3'],
+];
+const BADGE_SKIP = new Set(['will', 'the', 'a', 'an', 'of', 'on', 'in', 'at', 'by',
+  'before', 'to', 'for', 'its', 'be', 'is', 'and', 'or', 'complete', 'release',
+  'announced', 'officially', 'another', 'new', 'their', 'his', 'her', 'who']);
+
+function makeTextBadge(title) {
+  const words = (title || '').replace(/[^A-Za-z0-9\s'&]/g, ' ').split(/\s+/)
+    .filter(w => w && !BADGE_SKIP.has(w.toLowerCase()));
+  const picked = [];
+  let total = 0;
+  for (const w of words) {
+    if (picked.length >= 3 || total + w.length > 20) break;
+    picked.push(w.toUpperCase());
+    total += w.length;
+  }
+  if (picked.length === 0) picked.push('DOBIUM');
+  let hash = 0;
+  for (const ch of title) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  const [bg, fg] = BADGE_PALETTES[hash % BADGE_PALETTES.length];
+  const size = 400;
+  const fontSize = Math.min(72, Math.floor(300 / Math.max(...picked.map(w => w.length))) * 1.6);
+  const lineH = fontSize * 1.15;
+  const startY = size / 2 - ((picked.length - 1) * lineH) / 2;
+  const lines = picked.map((w, i) =>
+    `<text x="50%" y="${startY + i * lineH}" text-anchor="middle" dominant-baseline="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="${fontSize}" fill="${fg}">${w.replace(/&/g, '&amp;')}</text>`
+  ).join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" fill="${bg}"/>${lines}</svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
 
 app.post('/api/waitlist', async (req, res) => {
   try {
@@ -2281,7 +2363,7 @@ const seedCuratedBatch = async (req, res) => {
           close_date: def.close_date,
           resolution_date: null,
           total_volume: 0,
-          image_url: '',
+          image_url: def.image_url || makeTextBadge(def.title),
           winning_outcome_id: null,
           search_keywords: def.search_keywords || '',
           is_trending: true,
@@ -2318,6 +2400,14 @@ app.get('/api/seed/curated-batch', requireRadarKey, seedCuratedBatch);
 app.get('/api/cron/market-scout', requireRadarKey, async (req, res) => {
   try {
     const result = await runMarketScout();
+    // Ship the hottest exchange mirrors immediately, not just on the cron
+    try { result.auto_published = await autoPublishMirrors(5); } catch (e) { result.auto_published = { error: e.message }; }
+    // Backfill text badges for any market still missing an image
+    try {
+      const bare = await Market.findAll({ where: { [Op.or]: [{ image_url: '' }, { image_url: null }], status: 'active' } });
+      for (const m of bare) await m.update({ image_url: makeTextBadge(m.title) });
+      result.badges_backfilled = bare.length;
+    } catch (e) { /* non-fatal */ }
     res.json({ ok: true, ...result });
   } catch (error) {
     console.error('Market scout error:', error);

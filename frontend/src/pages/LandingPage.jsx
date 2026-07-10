@@ -130,8 +130,11 @@ export default function LandingPage() {
   }, []);
 
   const totalVolume = markets.reduce((s, m) => s + (m.total_volume || 0), 0);
+  // Newest markets first — a trending site must show what's NEW, not let old
+  // demo markets squat the homepage on stale volume forever.
   const topMarkets = [...markets]
-    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
+    .filter((m) => m.status === 'active')
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
     .slice(0, 3);
 
   const scrollToWaitlist = () =>

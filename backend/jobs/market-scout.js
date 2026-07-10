@@ -185,18 +185,22 @@ const LEAD_STOPWORDS = new Set(['Announces', 'Announce', 'Reveals', 'Teases',
   'Analysis', 'Update', 'If', 'When', 'Where', 'Who', 'Should', 'Can',
   'Does', 'Do', 'Just', 'Even', 'Now', 'Yes', 'No', 'Live',
   'In', 'On', 'At', 'Of', 'For', 'And', 'With', 'From', 'Over', 'After',
-  'Before', 'Amid', 'As', 'Talks', 'Deal', 'Bid', 'Sale',
+  'Before', 'Amid', 'As', 'Talks', 'Deal', 'Bid', 'Sale', 'News', 'Sources',
+  'Biopic', 'Documentary', 'Docuseries', 'Movie', 'Film', 'Series', 'Album',
+  'Rumor', 'Rumors', 'Insider', 'Insiders', 'Leak', 'Leaks',
   'Fall', 'Spring', 'Summer', 'Winter', 'North', 'East', 'West', 'South',
   'New', 'World', 'The', 'His', 'Her', 'Their', 'First', 'Massive', 'Huge']);
 
 function extractLead(h) {
   // Strip wire-service prefixes ("ANALYSIS:", "EXCLUSIVE —") before extracting
-  h = h.replace(/^(ANALYSIS|EXCLUSIVE|REPORT|OPINION|WATCH|BREAKING|UPDATE|LIVE|INTERVIEW|Q&A|REVIEW|EXPLAINER)\s*[:\-\u2013\u2014|]\s*/i, '');
+  h = h.replace(/^(ANALYSIS|EXCLUSIVE|REPORT|OPINION|WATCH|BREAKING|UPDATE|LIVE|INTERVIEW|Q&A|REVIEW|EXPLAINER|NEWS|VIDEO|PHOTOS|FIRST LOOK|TRAILER)\s*[:\-\u2013\u2014|]\s*/i, '');
   const m = h.match(/^([A-Z][A-Za-z.$'-]+(?:\s+[A-Z&][A-Za-z.$'-]*){0,4})/);
   if (!m) return null;
   const words = m[1].split(/\s+/);
+  const SKIPPABLE_LEADING = new Set(['New', 'The', 'A', 'An', 'His', 'Her', 'Their']);
   const kept = [];
   for (const w of words) {
+    if (kept.length === 0 && SKIPPABLE_LEADING.has(w)) continue; // skip leading articles
     if (LEAD_STOPWORDS.has(w)) break;
     kept.push(w);
   }
@@ -216,6 +220,20 @@ const CEREMONY_NAMES = [
   ['amas', 'the AMAs'], ['sag award', 'the SAG Awards'],
 ];
 const FESTIVALS = ['coachella', 'lollapalooza', 'glastonbury', 'rolling loud', 'bonnaroo', 'governors ball', 'austin city limits', 'acl fest'];
+
+// Trending-news drafts only fire for names the culture actually talks about —
+// this is what keeps 'SK Hynix IPO' out while SpaceX/OpenAI/Netflix stay in.
+const CULTURE_BRANDS = ['spacex', 'tesla', 'openai', 'apple', 'netflix', 'disney',
+  'nintendo', 'sony', 'meta', 'instagram', 'tiktok', 'spotify', 'google', 'youtube',
+  'amazon', 'microsoft', 'xai', 'anthropic', 'rockstar', 'epic games', 'letterboxd',
+  'reddit', 'warner', 'paramount', 'hbo', 'a24', 'marvel', 'playstation', 'xbox',
+  'steam', 'valve', 'mrbeast', 'kanye', 'x corp', 'twitter', 'snapchat', 'discord',
+  'twitch', 'uber', 'airbnb', 'stripe', 'nvidia', 'starlink'];
+
+function isCultureBrand(name) {
+  const n = (name || '').toLowerCase();
+  return CULTURE_BRANDS.some(b => n === b || n.includes(b) || b.includes(n));
+}
 
 function ceremonyIn(t) {
   const hit = CEREMONY_NAMES.find(([k]) => t.includes(k));
@@ -251,6 +269,19 @@ function draftQuestion(headline, category) {
   if (/(debuts at no\.? ?1|hits no\.? ?1|tops the (billboard|chart)|number one debut)/.test(t) && (quoted || lead)) {
     const chart = /hot 100/.test(t) ? 'the Billboard Hot 100' : /billboard 200/.test(t) ? 'the Billboard 200' : 'the Billboard chart';
     return `Will ${quoted ? `'${quoted}'` : lead} hold the #1 spot on ${chart} for a second consecutive week?`;
+  }
+  // Sequel/franchise speculation → the greenlight question
+  if (quoted && /(sequel|part two|part 3|part three|part ii|follow-up|next installment)/.test(t)) {
+    return `Will a sequel to '${quoted}' be officially greenlit before [DATE]?`;
+  }
+  // Biopics & documentaries in the works → the release question
+  if ((quoted || lead) && /(biopic|documentary|docuseries)/.test(t) && /(in the works|developing|announc|in development|greenlit|coming)/.test(t)) {
+    const kind = /biopic/.test(t) ? 'biopic' : 'documentary';
+    return `Will the ${quoted ? `'${quoted}'` : lead} ${kind} be released before [DATE]?`;
+  }
+  // Box-office champs → the repeat question
+  if (quoted && /(tops box office|no\.? ?1 at the box office|wins the (weekend )?box office|box office crown)/.test(t)) {
+    return `Will '${quoted}' stay #1 at the domestic box office for a second weekend?`;
   }
   // Award nominations → the win question (WHO wins WHAT at WHERE)
   if ((quoted || lead) && /(nominated|nomination|snub|frontrunner|shortlist)/.test(t)) {
@@ -290,7 +321,7 @@ function draftQuestion(headline, category) {
     return `Will ${subject} be delayed again before [DATE]?`;
   }
   // Acquisitions — "Netflix May Buy Letterboxd" → the deal-completion question
-  if (lead && lead.split(' ').length <= 3 && /(acquir|buy|buys|buying|purchase|takeover|in talks)/.test(t)) {
+  if (lead && lead.split(' ').length <= 3 && (category !== 'trending' || isCultureBrand(lead)) && /(acquir|buy|buys|buying|purchase|takeover|in talks)/.test(t)) {
     let target = (h.match(/(?:buy(?:s|ing)?|acquir(?:e|es|ing)|purchase(?:s)?|takeover of|talks (?:to buy|to acquire|for|with))\s+(?:the\s+)?([A-Z][\w.'&-]+(?:\s+[A-Z][\w.'&-]+){0,2})/i) || [])[1];
     if (target) {
       const kept = [];
@@ -302,7 +333,7 @@ function draftQuestion(headline, category) {
     }
   }
   // IPOs — the cleanest trending-news market there is
-  if (lead && lead.split(' ').length <= 3 && !/ipo/i.test(lead) && /\bipo\b/.test(t)) {
+  if (lead && lead.split(' ').length <= 3 && !/ipo/i.test(lead) && (category !== 'trending' || isCultureBrand(lead)) && /\bipo\b/.test(t)) {
     return `Will ${lead} complete its IPO before [DATE]?`;
   }
   // Gaming / product launches — ONLY future-tense ("set to launch", "launching in
@@ -498,6 +529,8 @@ async function runMarketScout() {
           { headline: { [Op.like]: 'Will ANALYSIS%' } },
           { headline: { [Op.like]: 'Will Forget%' } },
           { headline: { [Op.like]: '%IPO complete its IPO%' } },
+          { headline: { [Op.like]: 'Will News %' } },
+          { headline: { [Op.like]: 'Will SK Hynix%' } },
         ],
       },
     });

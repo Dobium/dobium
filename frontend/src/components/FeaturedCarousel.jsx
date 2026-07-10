@@ -101,9 +101,10 @@ export default function FeaturedCarousel({ markets }) {
   const [newsByMarket, setNewsByMarket] = useState({});
   const timer = useRef(null);
 
+  // Newest first — the carousel is the "what's happening right now" surface
   const featured = [...markets]
     .filter((m) => m.status === 'active' && (m.outcomes || []).length > 0)
-    .sort((a, b) => (Number(b.is_trending) - Number(a.is_trending)) || ((b.total_volume || 0) - (a.total_volume || 0)))
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
     .slice(0, 7);
 
   const count = featured.length;
