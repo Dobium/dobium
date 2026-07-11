@@ -28,9 +28,11 @@ export default function ExplorePage() {
   const { markets, loading } = useMarkets();
   const [searchParams] = useSearchParams();
   const urlFilter = searchParams.get('filter');
+  const urlQuery = searchParams.get('q');
   const [chip, setChip] = useState(normalizeFilter(urlFilter));
   useEffect(() => { setChip(normalizeFilter(urlFilter)); }, [urlFilter]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(urlQuery || '');
+  useEffect(() => { if (urlQuery !== null) setSearch(urlQuery); }, [urlQuery]);
 
   const filtered = [...markets]
     .filter((m) => {

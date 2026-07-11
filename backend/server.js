@@ -2027,7 +2027,7 @@ async function autoPublishMirrors(limit = 5) {
         close_date: sug.suggested_close_date || null,
         resolution_date: null,
         total_volume: 0,
-        image_url: makeTextBadge(sug.headline),
+        image_url: makeIconBadge(sug.headline, sug.category),
         winning_outcome_id: null,
         search_keywords: '',
         is_trending: true,
@@ -2072,7 +2072,7 @@ app.get('/api/cron/daily', requireRadarKey, async (req, res) => {
           close_date: sug.suggested_close_date || null,
           resolution_date: null,
           total_volume: 0,
-          image_url: makeTextBadge(sug.headline),
+          image_url: makeIconBadge(sug.headline, sug.category),
           winning_outcome_id: null,
           search_keywords: '',
           is_trending: true,
@@ -2100,43 +2100,56 @@ app.get('/api/cron/daily', requireRadarKey, async (req, res) => {
 
 
 // ============================================================================
-// TEXT BADGES — copyright-safe market images. No photos, no logos: just the
-// market's key words in bold color on a dark tile ("WHOLE LOTTA RED" in red).
-// Deterministic per title, stored as an SVG data URL in image_url.
+// ICON BADGES — copyright-safe market images, Kalshi-style: one small generic
+// icon (hand-drawn geometric shapes, not copied artwork) on a solid color
+// tile. No photos, no logos, no giant text — just a universal symbol for the
+// market's topic (mic for music, film strip for box office, trophy for
+// awards, TV for streaming, rocket for trending/tech).
 // ============================================================================
-const BADGE_PALETTES = [
-  ['#2A0E0E', '#FF6B6B'], ['#0E1B2A', '#6BB8FF'], ['#0E2A16', '#6BFF9C'],
-  ['#220E2A', '#C86BFF'], ['#2A1C0E', '#FFB36B'], ['#0F172A', '#FFDF9B'],
-  ['#2A0E20', '#FF6BC1'], ['#0E2A28', '#6BFFE3'],
-];
-const BADGE_SKIP = new Set(['will', 'the', 'a', 'an', 'of', 'on', 'in', 'at', 'by',
-  'before', 'to', 'for', 'its', 'be', 'is', 'and', 'or', 'complete', 'release',
-  'announced', 'officially', 'another', 'new', 'their', 'his', 'her', 'who']);
+const ICON_TILE_COLORS = {
+  mic: ['#7F1D3A', '#FFB4CE'],
+  film: ['#1D3A5C', '#8FC6FF'],
+  trophy: ['#5C3A1D', '#FFD68F'],
+  tv: ['#1D5C3A', '#8FFFC6'],
+  rocket: ['#3A1D5C', '#D6B4FF'],
+  mask: ['#5C1D2E', '#FF9EB8'],
+  coin: ['#5C4A1D', '#FFE68F'],
+  controller: ['#1D4A5C', '#8FE3FF'],
+};
 
-function makeTextBadge(title) {
-  const words = (title || '').replace(/[^A-Za-z0-9\s'&]/g, ' ').split(/\s+/)
-    .filter(w => w && !BADGE_SKIP.has(w.toLowerCase()));
-  const picked = [];
-  let total = 0;
-  for (const w of words) {
-    if (picked.length >= 3 || total + w.length > 20) break;
-    picked.push(w.toUpperCase());
-    total += w.length;
-  }
-  if (picked.length === 0) picked.push('DOBIUM');
-  let hash = 0;
-  for (const ch of title) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  const [bg, fg] = BADGE_PALETTES[hash % BADGE_PALETTES.length];
+// Simple hand-built geometric icon paths, each centered in a 100x100 box.
+const ICON_PATHS = {
+  mic: '<rect x="40" y="18" width="20" height="38" rx="10"/><path d="M28 46a22 22 0 0 0 44 0" fill="none" stroke-width="6" stroke-linecap="round"/><line x1="50" y1="68" x2="50" y2="82" stroke-width="6" stroke-linecap="round"/><line x1="36" y1="82" x2="64" y2="82" stroke-width="6" stroke-linecap="round"/>',
+  film: '<rect x="16" y="26" width="68" height="48" rx="4" fill="none" stroke-width="5"/><rect x="16" y="26" width="14" height="48" fill-opacity="0.35"/><rect x="70" y="26" width="14" height="48" fill-opacity="0.35"/><circle cx="23" cy="34" r="2.5"/><circle cx="23" cy="50" r="2.5"/><circle cx="23" cy="66" r="2.5"/><circle cx="77" cy="34" r="2.5"/><circle cx="77" cy="50" r="2.5"/><circle cx="77" cy="66" r="2.5"/><path d="M38 38l22 12-22 12z"/>',
+  trophy: '<path d="M32 22h36v18a18 18 0 0 1-36 0z" fill="none" stroke-width="6"/><path d="M32 26H18a10 10 0 0 0 12 16" fill="none" stroke-width="5"/><path d="M68 26h14a10 10 0 0 1-12 16" fill="none" stroke-width="5"/><rect x="46" y="58" width="8" height="14"/><rect x="36" y="72" width="28" height="8" rx="2"/>',
+  tv: '<rect x="16" y="24" width="68" height="46" rx="5" fill="none" stroke-width="6"/><line x1="38" y1="82" x2="62" y2="82" stroke-width="6" stroke-linecap="round"/><line x1="50" y1="70" x2="50" y2="82" stroke-width="6"/>',
+  rocket: '<path d="M50 14c12 8 16 24 12 40l-24 0c-4-16 0-32 12-40z" fill="none" stroke-width="6" stroke-linejoin="round"/><circle cx="50" cy="34" r="6" fill="none" stroke-width="5"/><path d="M38 54l-10 16 16-6" fill="none" stroke-width="5" stroke-linejoin="round"/><path d="M62 54l10 16-16-6" fill="none" stroke-width="5" stroke-linejoin="round"/><path d="M44 70l6 14 6-14z"/>',
+  mask: '<circle cx="36" cy="42" r="18" fill="none" stroke-width="6"/><circle cx="64" cy="42" r="18" fill="none" stroke-width="6"/><path d="M50 30a14 14 0 0 0 0 24" fill="none" stroke-width="5"/><path d="M28 62c4 8 14 12 22 6M50 62c8 6 18 2 22-6" fill="none" stroke-width="5" stroke-linecap="round"/>',
+  coin: '<circle cx="50" cy="50" r="30" fill="none" stroke-width="6"/><path d="M50 34v32M42 42a8 8 0 0 1 16 0c0 6-16 6-16 12a8 8 0 0 0 16 0" fill="none" stroke-width="5" stroke-linecap="round"/>',
+  controller: '<rect x="18" y="36" width="64" height="30" rx="15" fill="none" stroke-width="6"/><line x1="30" y1="51" x2="30" y2="51" stroke-width="7" stroke-linecap="round"/><line x1="24" y1="45" x2="24" y2="57" stroke-width="6" stroke-linecap="round"/><line x1="18" y1="51" x2="30" y2="51" stroke-width="6" stroke-linecap="round"/><circle cx="66" cy="46" r="3.5"/><circle cx="74" cy="54" r="3.5"/>',
+};
+
+function pickIcon(title, category) {
+  const t = (title || '').toLowerCase();
+  const c = (category || '').toLowerCase();
+  if (/album|single|song|mixtape|billboard|grammy|tour|concert|headlin/.test(t) || c === 'music') return 'mic';
+  if (/oscar|academy award|emmy|golden globe|award|nominat/.test(t)) return 'trophy';
+  if (/netflix|hbo|streaming|disney|top 10|renew/.test(t)) return 'tv';
+  if (/box office|gross|movie|film|sequel|biopic|documentary/.test(t)) return 'film';
+  if (/ipo|acqui|valuation|billion|funding/.test(t)) return 'coin';
+  if (/game|nintendo|playstation|xbox|steam|gta|esports/.test(t)) return 'controller';
+  if (/launch|rocket|starship|spacex|ai model|gpt/.test(t) || c === 'trending') return 'rocket';
+  return 'mask';
+}
+
+function makeIconBadge(title, category) {
+  const icon = pickIcon(title, category);
+  const [bg, fg] = ICON_TILE_COLORS[icon];
   const size = 400;
-  const fontSize = Math.min(72, Math.floor(300 / Math.max(...picked.map(w => w.length))) * 1.6);
-  const lineH = fontSize * 1.15;
-  const startY = size / 2 - ((picked.length - 1) * lineH) / 2;
-  const lines = picked.map((w, i) =>
-    `<text x="50%" y="${startY + i * lineH}" text-anchor="middle" dominant-baseline="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="${fontSize}" fill="${fg}">${w.replace(/&/g, '&amp;')}</text>`
-  ).join('');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" fill="${bg}"/>${lines}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 100 100"><rect width="100" height="100" rx="14" fill="${bg}"/><g fill="${fg}" stroke="${fg}" stroke-linecap="round">${ICON_PATHS[icon]}</g></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
+
 
 app.post('/api/waitlist', async (req, res) => {
   try {
@@ -2363,7 +2376,7 @@ const seedCuratedBatch = async (req, res) => {
           close_date: def.close_date,
           resolution_date: null,
           total_volume: 0,
-          image_url: def.image_url || makeTextBadge(def.title),
+          image_url: def.image_url || makeIconBadge(def.title, def.category),
           winning_outcome_id: null,
           search_keywords: def.search_keywords || '',
           is_trending: true,
@@ -2405,7 +2418,7 @@ app.get('/api/cron/market-scout', requireRadarKey, async (req, res) => {
     // Backfill text badges for any market still missing an image
     try {
       const bare = await Market.findAll({ where: { [Op.or]: [{ image_url: '' }, { image_url: null }], status: 'active' } });
-      for (const m of bare) await m.update({ image_url: makeTextBadge(m.title) });
+      for (const m of bare) await m.update({ image_url: makeIconBadge(m.title, m.category) });
       result.badges_backfilled = bare.length;
     } catch (e) { /* non-fatal */ }
     res.json({ ok: true, ...result });

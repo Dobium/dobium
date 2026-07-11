@@ -251,7 +251,7 @@ export default function TopNav() {
       </div>
 
       {/* Nav links */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflowX: 'auto', flex: 1, scrollbarWidth: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflowX: 'auto', flexShrink: 0, scrollbarWidth: 'none' }}>
         {LINKS.map((l) => {
           const active = isActive(l.to);
           return (
@@ -275,6 +275,29 @@ export default function TopNav() {
           );
         })}
       </div>
+
+      {/* Site-wide search — like Sonotrade's, visible on every page */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const q = e.currentTarget.q.value.trim();
+          navigate(q ? `/explore?q=${encodeURIComponent(q)}` : '/explore');
+        }}
+        style={{ position: 'relative', flex: '1 1 220px', maxWidth: 360, minWidth: 120 }}
+      >
+        <span className="material-symbols-outlined" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', fontSize: 16, color: '#8E94AF', pointerEvents: 'none' }}>
+          search
+        </span>
+        <input
+          name="q"
+          type="text"
+          placeholder="Search markets or artists"
+          style={{
+            width: '100%', background: '#0B1229', border: '1px solid #33312E', borderRadius: 8,
+            padding: '8px 12px 8px 34px', color: '#DCE1FF', fontSize: 13, outline: 'none',
+          }}
+        />
+      </form>
 
       {/* Right: paper portfolio + profile dropdown, or Log in / Sign up */}
       {session ? (

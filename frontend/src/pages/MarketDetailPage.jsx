@@ -550,7 +550,7 @@ export default function MarketDetailPage() {
   const eventImage = sportsMeta?.event_image || (!sportsMeta && market?.image_url);
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 lg:h-[100dvh] flex flex-col lg:overflow-hidden">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
       {/* Header card (mockup): chips + title + resolution text */}
       <div className="shrink-0 rounded-lg p-6 mb-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -576,9 +576,9 @@ export default function MarketDetailPage() {
         )}
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 lg:items-start relative flex-1 min-h-0">
+      <div className="flex flex-col lg:flex-row gap-6 lg:items-start relative">
         {/* Left Column: Info, Price Chart & Controls */}
-        <div className="flex-1 min-w-0 space-y-6 z-10 lg:h-full lg:overflow-y-auto lg:pr-2 custom-scrollbar">
+        <div className="flex-1 min-w-0 space-y-6 z-10">
           {homeLogo && awayLogo && (
             <div className="flex items-center justify-center gap-6 py-6 px-8 bg-slate-900/50  border border-slate-800 rounded-2xl max-w-xl shadow-2xl">
               <div className="flex flex-col items-center gap-2">
@@ -849,7 +849,7 @@ export default function MarketDetailPage() {
         </div>
 
         {/* Right Column: Outcomes — scrolls independently */}
-        <div className="w-full lg:w-[450px] lg:h-full lg:overflow-y-auto lg:pr-1 custom-scrollbar">
+        <div className="w-full lg:w-[400px] lg:sticky lg:top-6">
           {market && (() => {
             const panelBinary = outcomes.length === 2;
             const sel = selectedOutcome;
@@ -991,6 +991,11 @@ export default function MarketDetailPage() {
               </div>
             );
           })()}
+        </div>
+      </div>
+        {/* Full-width Outcomes list (Kalshi-style) — lives below both columns, not squeezed into the sidebar */}
+        {!isBinaryMkt && market && (
+          <div className="rounded-lg p-6 mt-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
           {!isBinaryMkt && (<div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-white">Outcomes</h2>
             {outcomes.length >= 10 && (
@@ -1393,8 +1398,8 @@ export default function MarketDetailPage() {
               </div>
             );
           })()}
-        </div>
-      </div>
+          </div>
+        )}
     </div >
   );
 }
