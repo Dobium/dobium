@@ -295,7 +295,7 @@ function draftQuestion(headline, category) {
   // Charts: something just hit #1 → does it hold?
   if (/(debuts at no\.? ?1|hits no\.? ?1|tops the (billboard|chart)|number one debut)/.test(t) && (quoted || lead)) {
     const chart = /hot 100/.test(t) ? 'the Billboard Hot 100' : /billboard 200/.test(t) ? 'the Billboard 200' : 'the Billboard chart';
-    return `Will ${quoted ? `'${quoted}'` : lead} hold the #1 spot on ${chart} for a second consecutive week?`;
+    return `Can ${quoted ? `'${quoted}'` : lead} hold #1 on ${chart} for a second week?`;
   }
   // Sequel/franchise speculation → the greenlight question
   if (quoted && /(sequel|part two|part 3|part three|part ii|follow-up|next installment)/.test(t)) {
@@ -306,9 +306,9 @@ function draftQuestion(headline, category) {
     const kind = /biopic/.test(t) ? 'biopic' : 'documentary';
     return `Will the ${quoted ? `'${quoted}'` : lead} ${kind} be released before [DATE]?`;
   }
-  // Box-office champs → the repeat question
+  // Box-office champs → the repeat question (rhetorical 'Can' stem)
   if (quoted && /(tops box office|no\.? ?1 at the box office|wins the (weekend )?box office|box office crown)/.test(t)) {
-    return `Will '${quoted}' stay #1 at the domestic box office for a second weekend?`;
+    return `Can '${quoted}' hold #1 at the domestic box office for a second weekend?`;
   }
   // Fight bookings → the winner question ("Will A beat B at UFC 331?")
   if (/(ufc|boxing|fight)/.test(t)) {
@@ -328,10 +328,10 @@ function draftQuestion(headline, category) {
       }
     }
   }
-  // Award nominations → the win question (WHO wins WHAT at WHERE)
+  // Award nominations → rhetorical headline style ("'The Odyssey' at the Oscars: at least one win?")
   if ((quoted || lead) && /(nominated|nomination|snub|frontrunner|shortlist)/.test(t)) {
     const ceremony = ceremonyIn(t);
-    if (ceremony) return `Will ${quoted ? `'${quoted}'` : lead} win at least one award at ${ceremony}?`;
+    if (ceremony) return `${quoted ? `'${quoted}'` : lead} at ${ceremony}: at least one win?`;
   }
   // NEW: renewal limbo → the renewal question
   if (quoted && /(renew|another season|next season|future of|fate of)/.test(t) && /(await|decision|uncertain|limbo|talks|undecided|has yet|not yet)/.test(t)) {
@@ -562,8 +562,20 @@ async function runMarketScout() {
     purged = await MarketSuggestion.destroy({
       where: {
         status: 'pending',
-        headline: { [Op.notLike]: 'Will %' },
         source: { [Op.notIn]: ['Kalshi', 'Polymarket'] },
+        // Real questions come in several stems now (Will/Can/Who/When/…) and
+        // the rhetorical style ends with '?'. Purge only what matches none.
+        [Op.and]: [
+          { headline: { [Op.notLike]: 'Will %' } },
+          { headline: { [Op.notLike]: 'Can %' } },
+          { headline: { [Op.notLike]: 'Who %' } },
+          { headline: { [Op.notLike]: 'When %' } },
+          { headline: { [Op.notLike]: 'What %' } },
+          { headline: { [Op.notLike]: 'How %' } },
+          { headline: { [Op.notLike]: 'Does %' } },
+          { headline: { [Op.notLike]: 'Is %' } },
+          { headline: { [Op.notLike]: '%?' } },
+        ],
       },
     });
     // Purge non-A-list music suggestions (the Gilla Band problem)

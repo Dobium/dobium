@@ -87,7 +87,7 @@ export default function TrendingRadar({ radarKey }) {
         <div>
           <h2 className="text-lg font-bold text-white">📡 Trending Radar</h2>
           <p className="text-slate-400 text-xs mt-0.5">
-            Scans 20+ sources daily — plus LIVE markets mirrored straight from Kalshi and Polymarket (already worded, dated, and verifiable; they price-sync and auto-resolve after publishing). Only real “Will …?”-style questions make it here — fill in any [DATE]/[AMOUNT] blanks, then publish in one tap.
+            Scans 20+ sources daily — plus LIVE markets mirrored straight from Kalshi and Polymarket (already worded, dated, and verifiable; they price-sync and auto-resolve after publishing). Only real market questions make it here — Will / Can / Who / When stems plus rhetorical headlines — with real dates pre-filled. Publish in one tap.
           </p>
         </div>
         <button onClick={scanNow} disabled={scanning}

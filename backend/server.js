@@ -2371,10 +2371,20 @@ const CURATED_MARKETS = [
     description: "Resolves Yes if Conor McGregor defeats Max Holloway in the UFC 329 main event (July 11, 2026, T-Mobile Arena, Las Vegas) — McGregor's first fight since 2021 and a rematch of their 2013 bout. Resolves No on a Holloway win; voided on a draw/no-contest/cancellation. Closes at main-card start.",
     search_keywords: 'McGregor Holloway UFC 329',
     outcomes: [{ title: 'Yes', probability: 38 }, { title: 'No', probability: 62 }] },
-  { title: 'Will Islam Makhachev beat Ian Machado Garry at UFC 330?', category: 'sports', market_type: 'binary', close_date: '2026-08-15T22:00:00.000Z',
-    description: 'Resolves Yes if Islam Makhachev defeats Ian Machado Garry in the UFC 330 main event (August 15, 2026, Philadelphia) welterweight title fight. Resolves No on a Machado Garry win; voided on draw/no-contest/cancellation.',
+  { title: 'Who wins at UFC 330: Makhachev or Machado Garry?', category: 'sports', market_type: 'multi_single', close_date: '2026-08-15T22:00:00.000Z',
+    description: 'Resolves to the winner of the UFC 330 main event (August 15, 2026, Philadelphia): Islam Makhachev defends the welterweight title against Ian Machado Garry. Voided on draw/no-contest/cancellation.',
     search_keywords: 'Makhachev Machado Garry UFC 330',
-    outcomes: [{ title: 'Yes', probability: 70 }, { title: 'No', probability: 30 }] },
+    outcomes: [{ title: 'Islam Makhachev', probability: 70 }, { title: 'Ian Machado Garry', probability: 30 }] },
+
+  // ── WHEN markets: date brackets instead of yes/no ──
+  { title: 'When will GTA VI actually release?', category: 'entertainment', market_type: 'multi_single', close_date: '2026-11-20T00:00:00.000Z',
+    description: "Resolves to the window in which Grand Theft Auto VI becomes publicly playable on consoles. Rockstar's announced date is November 19, 2026 — the eternal question is whether they hold it.",
+    search_keywords: 'GTA 6 release date delay Rockstar',
+    outcomes: [{ title: 'On or before Nov 19, 2026', probability: 55 }, { title: 'December 2026', probability: 18 }, { title: '2027 or later', probability: 27 }] },
+  { title: "When will Playboi Carti's next album arrive?", category: 'music', market_type: 'multi_single', close_date: '2026-12-31T00:00:00.000Z',
+    description: 'Resolves to the window in which Playboi Carti releases his next full-length studio album on major streaming platforms (singles, features and deluxe reissues excluded).',
+    search_keywords: 'Playboi Carti new album',
+    outcomes: [{ title: 'Before October 2026', probability: 28 }, { title: 'October–December 2026', probability: 30 }, { title: '2027 or later', probability: 42 }] },
 ];
 
 const seedCuratedBatch = async (req, res) => {
