@@ -551,8 +551,13 @@ export default function MarketDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-      {/* Header card (mockup): chips + title + resolution text */}
+      {/* Header card (Kalshi-style): small icon tile + chips + title + resolution text */}
       <div className="shrink-0 rounded-lg p-6 mb-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+        {eventImage && (
+          <img src={eventImage} alt="" style={{ width: 64, height: 64, borderRadius: 12, flexShrink: 0, objectFit: 'cover' }} />
+        )}
+        <div style={{ minWidth: 0, flex: 1 }}>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#D2C5AF', background: '#2D344C', borderRadius: 3, padding: '4px 9px', textTransform: 'capitalize' }}>
             {bucketLabel(market.category)}
@@ -574,6 +579,8 @@ export default function MarketDetailPage() {
         {displayDescription && (
           <p style={{ color: '#B7A77E', fontSize: 13.5, lineHeight: 1.65, margin: '12px 0 0' }}>{displayDescription}</p>
         )}
+        </div>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 lg:items-start relative">
@@ -593,11 +600,6 @@ export default function MarketDetailPage() {
             </div>
           )}
 
-          {!homeLogo && eventImage && (
-            <div className="w-full h-48 sm:h-64 rounded-2xl overflow-hidden border border-slate-800 shadow-xl relative">
-              <img src={eventImage} className="w-full h-full object-cover" alt="Banner" />
-            </div>
-          )}
 
           {sportsMeta && (
             <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
@@ -648,10 +650,23 @@ export default function MarketDetailPage() {
                     </span>
                   ) : null;
                 })()}
-                <span style={{ color: '#9D968D', fontSize: 12 }}>
-                  Vol: ${(market.total_volume || 0) >= 1000000 ? ((market.total_volume || 0) / 1000000).toFixed(1) + 'M' : (market.total_volume || 0) >= 1000 ? ((market.total_volume || 0) / 1000).toFixed(1) + 'K' : (market.total_volume || 0).toLocaleString()}
-                </span>
               </div>
+              {/* Brand watermark, like Kalshi's chart corner */}
+              <span style={{ fontFamily: 'var(--wordmark, inherit)', fontWeight: 800, fontSize: 14, color: '#3A4160', letterSpacing: '0.02em', userSelect: 'none' }}>
+                Dobium
+              </span>
+            </div>
+            <PriceChart selectedIds={selectedIds}
+              outcomes={chartOutcomes}
+              priceHistory={market.price_history}
+              totalVolume={market.total_volume}
+              hideLegend={isBinaryMkt}
+            />
+            {/* Kalshi-style chart footer: volume bottom-left, timeframes bottom-right */}
+            <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
+              <span style={{ fontFamily: 'var(--mono)', color: '#9D968D', fontSize: 12 }}>
+                ${(market.total_volume || 0).toLocaleString()} vol
+              </span>
               <div className="flex gap-1 p-1 rounded" style={{ background: '#0B1229', border: '1px solid #33312E' }}>
                 {['1D', '1W', '1M', 'ALL'].map(range => (
                   <button key={range} style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '5px 11px', borderRadius: 3, background: range === 'ALL' ? '#F0C04A' : 'transparent', color: range === 'ALL' ? '#4A3600' : '#8E94AF', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
@@ -660,12 +675,6 @@ export default function MarketDetailPage() {
                 ))}
               </div>
             </div>
-            <PriceChart selectedIds={selectedIds}
-              outcomes={chartOutcomes}
-              priceHistory={market.price_history}
-              totalVolume={market.total_volume}
-              hideLegend={isBinaryMkt}
-            />
           </div>
           {/* Yes/No summary bar (mockup, binary markets) */}
           {isBinaryMkt && (() => {
@@ -1072,6 +1081,9 @@ export default function MarketDetailPage() {
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       {imageUrl && (
                         <img src={imageUrl} alt={displayTitle} className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-700/50 bg-slate-900" />
+                      )}
+                      {!imageUrl && (
+                        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: getOutcomeColor(o, outcomes) }} />
                       )}
                       <div className="flex flex-wrap items-center gap-2 min-w-0">
                         <span className="font-medium text-white truncate">{displayTitle}</span>
