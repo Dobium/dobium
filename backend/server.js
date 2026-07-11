@@ -2045,6 +2045,7 @@ async function autoPublishMirrors(limit = 5) {
 
 app.get('/api/cron/daily', requireRadarKey, async (req, res) => {
   const out = {};
+  try { out.badges = await regenerateAllBadges(); } catch (e) { out.badges = { error: e.message }; }
   try { out.scout = await runMarketScout(); } catch (e) { out.scout = { error: e.message }; }
   try {
     out.autoPublished = await autoPublishMirrors(5);
@@ -2132,13 +2133,30 @@ const ICON_PATHS = {
 function pickIcon(title, category) {
   const t = (title || '').toLowerCase();
   const c = (category || '').toLowerCase();
-  if (/album|single|song|mixtape|billboard|grammy|tour|concert|headlin/.test(t) || c === 'music') return 'mic';
+  // Category drives the icon (Kalshi's model); title keywords only refine
+  // WITHIN the category. A Media market about an acquisition is still a
+  // movie-world story — it gets the film icon, not a finance coin.
+  if (c === 'music') return /award|grammy|vma/.test(t) ? 'trophy' : 'mic';
+  if (c === 'awards') return 'trophy';
+  if (c === 'entertainment' || c === 'media' || c === 'movies') {
+    if (/game|gta|nintendo|playstation|xbox|steam|esports/.test(t)) return 'controller';
+    if (/netflix top|top 10|streaming numbers|renew|season \d|episodes/.test(t)) return 'tv';
+    if (/award|oscar|emmy|golden globe|nominat/.test(t)) return 'trophy';
+    return 'film';
+  }
+  if (c === 'trending') {
+    if (/game|gta|nintendo|playstation|xbox|steam/.test(t)) return 'controller';
+    if (/ipo|valuation|funding|billion|stock/.test(t)) return 'coin';
+    return 'rocket';
+  }
+  // No/unknown category: fall back to title keywords
+  if (/album|single|song|mixtape|billboard|tour|concert|headlin/.test(t)) return 'mic';
   if (/oscar|academy award|emmy|golden globe|award|nominat/.test(t)) return 'trophy';
-  if (/netflix|hbo|streaming|disney|top 10|renew/.test(t)) return 'tv';
-  if (/box office|gross|movie|film|sequel|biopic|documentary/.test(t)) return 'film';
+  if (/netflix|hbo|streaming|top 10|renew/.test(t)) return 'tv';
+  if (/box office|gross|movie|film|sequel|biopic|documentary|letterboxd/.test(t)) return 'film';
   if (/ipo|acqui|valuation|billion|funding/.test(t)) return 'coin';
-  if (/game|nintendo|playstation|xbox|steam|gta|esports/.test(t)) return 'controller';
-  if (/launch|rocket|starship|spacex|ai model|gpt/.test(t) || c === 'trending') return 'rocket';
+  if (/game|nintendo|playstation|xbox|steam|gta/.test(t)) return 'controller';
+  if (/launch|rocket|starship|spacex|ai model|gpt/.test(t)) return 'rocket';
   return 'mask';
 }
 
