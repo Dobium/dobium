@@ -18,6 +18,9 @@ const MarketSuggestion = sequelize.define('MarketSuggestion', {
   category: { type: DataTypes.STRING(30), allowNull: false, defaultValue: 'entertainment' },
   score: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   suggested_close_date: { type: DataTypes.DATE, allowNull: true },
+  // JSON array of outcome titles for multi-outcome suggestions
+  // (WHO/WHEN questions); null = binary Yes/No
+  outcomes_json: { type: DataTypes.TEXT, allowNull: true },
   status: {
     type: DataTypes.STRING(20),
     allowNull: false,

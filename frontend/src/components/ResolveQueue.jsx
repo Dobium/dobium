@@ -28,6 +28,10 @@ export default function ResolveQueue({ radarKey }) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Mockup layout has no resolve section — this panel only appears when a
+  // market genuinely needs a human resolution (linked markets self-resolve).
+  if (!loading && markets.length === 0) return null;
+
   const resolve = async (market, outcomeId) => {
     setBusy(prev => ({ ...prev, [market.id]: true }));
     try {
@@ -50,7 +54,7 @@ export default function ResolveQueue({ radarKey }) {
       {loading ? (
         <p className="text-slate-500 text-sm py-2">Checking for markets awaiting resolution…</p>
       ) : markets.length === 0 ? (
-        <p className="text-slate-500 text-sm py-2">Nothing waiting — every closed market is settled. 🎉</p>
+        null
       ) : (
         <div className="space-y-3">
           {markets.map(m => {

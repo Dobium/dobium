@@ -42,7 +42,7 @@ export default function WaitlistAdmin({ radarKey }) {
   };
 
   return (
-    <div className="rounded-md p-6 mb-8" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+    <div className="rounded-md p-5" style={{ background: '#181E36', border: '1px solid #33312E' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
         <h2 style={{ color: '#DCE1FF', fontWeight: 700, fontSize: 17, margin: 0 }}>
           Waitlist <span style={{ fontFamily: 'var(--mono)', color: '#FFDF9B', fontSize: 15 }}>({count.toLocaleString('en-US')})</span>
@@ -69,7 +69,7 @@ export default function WaitlistAdmin({ radarKey }) {
             <span style={{ width: 44 }}>#</span>
             <span style={{ flex: 2 }}>Email</span>
             <span style={{ flex: 1 }}>Joined</span>
-            <span style={{ width: 60 }} />
+            <span style={{ width: 60, textAlign: 'right' }}>Action</span>
           </div>
           {entries.map((e) => (
             <div key={e.id} style={{ display: 'flex', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid rgba(45,52,76,.35)' }}>
@@ -87,7 +87,7 @@ export default function WaitlistAdmin({ radarKey }) {
         </div>
       )}
       <p style={{ color: '#948D87', fontSize: 11, marginTop: 12, marginBottom: 0 }}>
-        Stored in Postgres — entries persist until removed here. Export the CSV when you're regulated and ready to invite.
+        Stored in Postgres — entries persist until removed here.
       </p>
     </div>
   );

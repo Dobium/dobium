@@ -267,6 +267,12 @@ function ceremonyIn(t) {
   return hit ? hit[1] : null;
 }
 
+function stemPick(h, n) {
+  let x = 0;
+  for (const ch of h || '') x = (x + ch.charCodeAt(0)) % 997;
+  return x % n;
+}
+
 function draftQuestion(headline, category) {
   const h = (headline || '').trim();
   const t = h.toLowerCase();
@@ -278,6 +284,20 @@ function draftQuestion(headline, category) {
   if (category === 'music' && lead && /(announc|teas|confirm|reveal|hint|preview)/.test(t) && /(album|mixtape|\bep\b|single)/.test(t)) {
     const what = t.includes('single') ? 'single' : 'album';
     const named = quoted ? `'${quoted}'` : `the announced ${what}`;
+    // Alternate stems for variety: half draft as WHEN date-bracket multis,
+    // half as classic Will binaries (deterministic per headline)
+    let hash = 0;
+    for (const ch of h) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+    if (hash % 2 === 0 && what === 'album') {
+      const now = new Date();
+      const m1 = new Date(now.getFullYear(), now.getMonth() + 2, 1);
+      const m2 = new Date(now.getFullYear(), now.getMonth() + 5, 1);
+      const fmt = (d) => d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      return {
+        q: `When will ${lead} release ${named}?`,
+        outcomes: [`Before ${fmt(m1)}`, `${fmt(m1)} – ${fmt(m2)}`, `After ${fmt(m2)} or not at all`],
+      };
+    }
     return `Will ${lead} release ${named} on streaming platforms before [DATE]?`;
   }
   // Tour announcements: already happened, no clean follow-up market — drop
@@ -324,7 +344,8 @@ function draftQuestion(headline, category) {
       if (a && b) {
         const eventMatch = h.match(/UFC\s*\d+|UFC Fight Night/i);
         const where = eventMatch ? ` at ${eventMatch[0].toUpperCase().replace('FIGHT NIGHT', 'Fight Night')}` : '';
-        return `Will ${a} beat ${b}${where}?`;
+        // WHO question with the fighters as outcomes (Polymarket-style)
+        return { q: `Who wins${where}: ${a} or ${b}?`, outcomes: [a, b] };
       }
     }
   }
@@ -374,12 +395,16 @@ function draftQuestion(headline, category) {
       target = kept.join(' ') || null;
     }
     if (target && target.toLowerCase() !== lead.toLowerCase()) {
-      return `Will ${lead} complete an acquisition of ${target} before [DATE]?`;
+      return stemPick(h, 2) === 0
+        ? `Will ${lead} complete an acquisition of ${target} before [DATE]?`
+        : `${lead}\u2013${target} deal: closed before [DATE]?`;
     }
   }
   // IPOs — the cleanest trending-news market there is
   if (lead && lead.split(' ').length <= 3 && !/ipo/i.test(lead) && (category !== 'trending' || isCultureBrand(lead)) && /\bipo\b/.test(t)) {
-    return `Will ${lead} complete its IPO before [DATE]?`;
+    return stemPick(h, 2) === 0
+      ? `Will ${lead} complete its IPO before [DATE]?`
+      : `${lead} IPO: done before [DATE]?`;
   }
   // Gaming / product launches — ONLY future-tense ("set to launch", "launching in
   // November"); "X Launches Y" is a recap of something that already happened

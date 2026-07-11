@@ -72,90 +72,86 @@ export default function RadarPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 lg:p-8">
+    <div className="max-w-7xl mx-auto p-6 lg:p-8">
+      {/* Mock header: Dobium Radar + one-line purpose */}
       <div style={{ marginBottom: 22 }}>
-        <h1 style={{ fontFamily: 'var(--wordmark)', fontSize: 26, color: 'var(--text)', margin: 0 }}>
-          Trending <span style={{ color: 'var(--gold)' }}>Radar</span>
+        <h1 style={{ fontFamily: 'var(--wordmark)', fontSize: 28, fontWeight: 800, color: 'var(--text)', margin: 0 }}>
+          Dobium Radar
         </h1>
-        <p style={{ color: 'var(--muted)', fontSize: 13.5, marginTop: 6, maxWidth: 560 }}>
-          Scans Reddit and entertainment/sports news every day, keeps only headlines about a real
-          verifiable event (no memes or discussion threads), sorts into Music, Sports, Movies & TV,
-          and Awards, and filters out anything that could put a real person in a harmful spotlight.
-          Review, tighten the wording into a question, and publish.
+        <p style={{ color: 'var(--muted)', fontSize: 13.5, marginTop: 6 }}>
+          Real-time market discovery and resolution engine.
         </p>
       </div>
 
-      <WaitlistAdmin radarKey={RADAR_KEY} />
+      {/* Only appears when a market actually needs a human resolution */}
       <ResolveQueue radarKey={RADAR_KEY} />
 
-      <div style={{ marginBottom: 24, padding: 16, borderRadius: 14, border: '1px solid var(--line)', background: 'var(--panel)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Curated starter batch</div>
-            <div style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 2 }}>
-              32 hand-picked markets — the original 21 (Drake, Travis Scott, Kanye, Oscars, Grammys, Netflix…) plus a new
-              Sonotrade-style batch: The Odyssey & Spider-Man box-office brackets, GTA VI, Playboi Carti / Don Toliver /
-              Kendrick / Rihanna album markets. Safe to click more than once — already-live markets are skipped.
-            </div>
-          </div>
-          <button
-            onClick={async () => {
-              setSeedBusy(true); setSeedMsg('');
-              try {
-                const r = await api.seedCuratedMarkets(RADAR_KEY);
-                setSeedMsg(`Created ${r.created} new markets · skipped ${r.skipped_existing} already live`);
-              } catch (e) {
-                setSeedMsg(`Failed: ${e.message}`);
-              }
-              setSeedBusy(false);
-            }}
-            disabled={seedBusy}
-            style={{
-              flexShrink: 0, background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))',
-              color: '#1a1405', fontWeight: 700, fontSize: 13.5, border: 'none',
-              borderRadius: 10, padding: '10px 18px', cursor: 'pointer', opacity: seedBusy ? 0.6 : 1,
-            }}
-          >
-            {seedBusy ? 'Creating…' : 'Publish curated batch'}
-          </button>
-        </div>
-        {seedMsg && <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 10, marginBottom: 0 }}>{seedMsg}</p>}
-      </div>
+      <TrendingRadar
+        radarKey={RADAR_KEY}
+        sidebar={
+          <>
+            <WaitlistAdmin radarKey={RADAR_KEY} />
 
-      <div style={{ marginBottom: 24, padding: 16, borderRadius: 14, border: '1px solid var(--line)', background: 'var(--panel)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Regenerate all market images</div>
-            <div style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 2 }}>
-              Rebuilds every active market's icon badge from scratch — isolated from the scan and scout, so it
-              always runs even if something else on this page fails. Use this if any market still shows an old image.
+            <div style={{ padding: 16, borderRadius: 14, border: '1px solid var(--line)', background: 'var(--panel)' }}>
+              <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Curated starter batch</div>
+              <div style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 4, lineHeight: 1.55 }}>
+                Hand-picked markets — the original 21 (Drake, Travis Scott, Kanye…) plus the Sonotrade-style batch.
+                Safe to click more than once — already-live markets are skipped automatically.
+              </div>
+              <button
+                onClick={async () => {
+                  setSeedBusy(true); setSeedMsg('');
+                  try {
+                    const r = await api.seedCuratedMarkets(RADAR_KEY);
+                    setSeedMsg(`Created ${r.created} new markets · skipped ${r.skipped_existing} already live`);
+                  } catch (e) {
+                    setSeedMsg(`Failed: ${e.message}`);
+                  }
+                  setSeedBusy(false);
+                }}
+                disabled={seedBusy}
+                style={{
+                  width: '100%', marginTop: 12, background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))',
+                  color: '#1a1405', fontWeight: 800, fontSize: 13.5, border: 'none',
+                  borderRadius: 10, padding: '11px 14px', cursor: 'pointer', opacity: seedBusy ? 0.6 : 1,
+                }}
+              >
+                {seedBusy ? 'Creating…' : 'Publish curated batch'}
+              </button>
+              {seedMsg && <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: 10, marginBottom: 0, fontFamily: 'var(--mono)' }}>{seedMsg}</p>}
             </div>
-          </div>
-          <button
-            onClick={async () => {
-              setBadgeBusy(true); setBadgeMsg('');
-              try {
-                const r = await api.regenerateBadges(RADAR_KEY);
-                setBadgeMsg(`Updated ${r.updated} of ${r.total} markets${r.errors?.length ? ` · ${r.errors.length} failed` : ''}`);
-              } catch (e) {
-                setBadgeMsg(`Failed: ${e.message}`);
-              }
-              setBadgeBusy(false);
-            }}
-            disabled={badgeBusy}
-            style={{
-              flexShrink: 0, background: '#2D344C',
-              color: '#DCE1FF', fontWeight: 700, fontSize: 13.5, border: 'none',
-              borderRadius: 10, padding: '10px 18px', cursor: 'pointer', opacity: badgeBusy ? 0.6 : 1,
-            }}
-          >
-            {badgeBusy ? 'Regenerating…' : 'Regenerate all images'}
-          </button>
-        </div>
-        {badgeMsg && <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 10, marginBottom: 0 }}>{badgeMsg}</p>}
-      </div>
 
-      <TrendingRadar radarKey={RADAR_KEY} />
+            <div style={{ padding: 16, borderRadius: 14, border: '1px solid var(--line)', background: 'var(--panel)' }}>
+              <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Regenerate all market images</div>
+              <div style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 4, lineHeight: 1.55 }}>
+                Rebuilds every active market's icon badge from scratch — isolated from the scan and scout.
+                Use this if any market still shows an old image.
+              </div>
+              <button
+                onClick={async () => {
+                  setBadgeBusy(true); setBadgeMsg('');
+                  try {
+                    const r = await api.regenerateBadges(RADAR_KEY);
+                    setBadgeMsg(`Updated ${r.updated} of ${r.total} markets${r.errors?.length ? ` · ${r.errors.length} failed` : ''}`);
+                  } catch (e) {
+                    setBadgeMsg(`Failed: ${e.message}`);
+                  }
+                  setBadgeBusy(false);
+                }}
+                disabled={badgeBusy}
+                style={{
+                  width: '100%', marginTop: 12, background: '#2D344C', color: '#DCE1FF',
+                  fontWeight: 700, fontSize: 13.5, border: 'none', borderRadius: 10,
+                  padding: '11px 14px', cursor: 'pointer', opacity: badgeBusy ? 0.6 : 1,
+                }}
+              >
+                {badgeBusy ? 'Regenerating…' : 'Regenerate all images'}
+              </button>
+              {badgeMsg && <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: 10, marginBottom: 0, fontFamily: 'var(--mono)' }}>{badgeMsg}</p>}
+            </div>
+          </>
+        }
+      />
     </div>
   );
 }
