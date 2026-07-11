@@ -190,6 +190,7 @@ const LEAD_STOPWORDS = new Set(['Announces', 'Announce', 'Reveals', 'Teases',
   'Does', 'Do', 'Just', 'Even', 'Now', 'Yes', 'No', 'Live',
   'In', 'On', 'At', 'Of', 'For', 'And', 'With', 'From', 'Over', 'After',
   'Before', 'Amid', 'As', 'Talks', 'Deal', 'Bid', 'Sale', 'News', 'Sources',
+  'Headlines', 'Headline', 'Tonight', 'Main', 'Event',
   'Biopic', 'Documentary', 'Docuseries', 'Movie', 'Film', 'Series', 'Album',
   'Rumor', 'Rumors', 'Insider', 'Insiders', 'Leak', 'Leaks',
   'Fall', 'Spring', 'Summer', 'Winter', 'North', 'East', 'West', 'South',
@@ -313,9 +314,18 @@ function draftQuestion(headline, category) {
   if (/(ufc|boxing|fight)/.test(t)) {
     const fm = h.match(/([A-Z][\w'.-]+(?:\s+[A-Z][\w'.-]+){0,2})\s+(?:[Vv][Ss]\.?|[Vv]ersus|[Ff]aces|[Mm]eets|[Tt]akes [Oo]n|[Bb]attles)\s+([A-Z][\w'.-]+(?:\s+[A-Z][\w'.-]+){0,2})/);
     if (fm) {
-      const eventMatch = h.match(/UFC\s*\d+|UFC Fight Night/i);
-      const where = eventMatch ? ` at ${eventMatch[0].toUpperCase().replace('FIGHT NIGHT', 'Fight Night')}` : '';
-      return `Will ${fm[1]} beat ${fm[2]}${where}?`;
+      const trimName = (name) => {
+        const kept = [];
+        for (const w of name.trim().split(/\s+/)) { if (LEAD_STOPWORDS.has(w)) break; kept.push(w); }
+        return kept.join(' ');
+      };
+      const a = trimName(fm[1]);
+      const b = trimName(fm[2]);
+      if (a && b) {
+        const eventMatch = h.match(/UFC\s*\d+|UFC Fight Night/i);
+        const where = eventMatch ? ` at ${eventMatch[0].toUpperCase().replace('FIGHT NIGHT', 'Fight Night')}` : '';
+        return `Will ${a} beat ${b}${where}?`;
+      }
     }
   }
   // Award nominations → the win question (WHO wins WHAT at WHERE)
