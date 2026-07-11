@@ -77,9 +77,11 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds, hideLege
   });
 
   const allValues = histories.flatMap(h => h.data);
-  const minValue = Math.min(...allValues);
-  const maxValue = Math.max(...allValues);
-  const range = maxValue - minValue || 1;
+  // Kalshi-style fixed 0–100% scale: honest proportions, no auto-zoomed
+  // flat lines dominating an empty box
+  const minValue = 0;
+  const maxValue = 100;
+  const range = 100;
 
   const getY = (value) => padding + ((maxValue - value) / range) * (height - 2 * padding);
   const getX = (index, total) => padding + (index / (total - 1)) * (width - 2 * padding - rightGutter);
@@ -119,18 +121,18 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds, hideLege
           ))}
         </defs>
 
-        {/* Grid lines */}
-        {[0.25, 0.5, 0.75].map(ratio => (
+        {/* Dotted gridlines at every quarter, Kalshi-style */}
+        {[0, 0.25, 0.5, 0.75, 1].map(ratio => (
           <line
             key={ratio}
             x1={padding}
             y1={padding + ratio * (height - 2 * padding)}
             x2={width - padding - rightGutter}
             y2={padding + ratio * (height - 2 * padding)}
-            stroke="#334155"
-            strokeWidth="0.5"
-            strokeDasharray="4,4"
-            opacity="0.3"
+            stroke="#3A4160"
+            strokeWidth="1"
+            strokeDasharray="1,5"
+            opacity="0.7"
           />
         ))}
 
@@ -177,7 +179,7 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds, hideLege
           });
         })()}
 
-        {/* Lines for each outcome */}
+        {/* Lines for each outcome — crisp thin strokes, fills only on binary */}
         {histories.map((h, idx) => {
           const points = h.data.map((value, i) => ({
             x: getX(i, h.data.length),
@@ -186,18 +188,39 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds, hideLege
 
           const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
           const areaPath = `${linePath} L${points[points.length - 1].x},${height - padding} L${points[0].x},${height - padding} Z`;
+          const isBinaryChart = histories.length <= 2;
 
           return (
             <g key={h.id}>
-              <path d={areaPath} fill={`url(#gradient-${idx})`} />
-              <path d={linePath} fill="none" stroke={h.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="4" fill={h.color} />
+              {isBinaryChart && <path d={areaPath} fill={`url(#gradient-${idx})`} />}
+              <path d={linePath} fill="none" stroke={h.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="3.5" fill={h.color} />
               {hoverIdx !== null && (
                 <circle cx={points[hoverIdx].x} cy={points[hoverIdx].y} r="5" fill={h.color} stroke="#0f172a" strokeWidth="2" />
               )}
             </g>
           );
         })}
+
+        {/* End-of-line labels (Kalshi's 'OKC 22%' style) — top 3 lines, collision-spaced */}
+        {(() => {
+          const ends = histories
+            .map(h => ({ h, y: getY(h.data[h.data.length - 1]), v: Math.round(h.data[h.data.length - 1]) }))
+            .sort((a, b) => a.y - b.y)
+            .slice(0, 4);
+          let lastY = -Infinity;
+          return ends.map(({ h, y, v }) => {
+            let ly = Math.max(y, lastY + 13);
+            lastY = ly;
+            const shortName = (h.title || '').replace(/\s*\((Yes|No)\)\s*$/i, '').slice(0, 14);
+            return (
+              <text key={`el-${h.id}`} x={width - padding - rightGutter + 6} y={ly - 8}
+                fontSize="9.5" fontWeight="700" fill={h.color} fontFamily="var(--mono, monospace)">
+                {shortName} {v}%
+              </text>
+            );
+          });
+        })()}
 
         {hoverX !== null && (
           <line
@@ -423,6 +446,21 @@ export default function MarketDetailPage() {
       .catch(() => { setUserPositions({}); setUserAvgEntry({}); setResolvedPositions([]); setRecentActivity([]); });
   }, [market?.id, session]);
 
+  // The trade panel should never be dead (Kalshi always has a selection):
+  // auto-select the leading outcome's Yes side once the market loads.
+  useEffect(() => {
+    if (!market || market.status !== 'active' || selectedOutcome) return;
+    const list = market.outcomes || [];
+    if (list.length === 0) return;
+    const yes = list.find(o => (o.title || '').toLowerCase() === 'yes');
+    if (yes && list.length === 2) { setSelectedOutcome(yes); return; }
+    // Multi: pick the highest-probability real outcome (skip paired "(No)" entries)
+    const real = list.filter(o => !/\((No)\)\s*$/i.test(o.title || ''));
+    const leader = [...(real.length ? real : list)].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
+    if (leader) setSelectedOutcome(leader);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [market?.id, market?.status]);
+
   // Live headlines for this market (Kalshi-style news tab)
   useEffect(() => {
     if (!market?.id) return;
@@ -644,15 +682,24 @@ export default function MarketDetailPage() {
           {/* Price Chart */}
           <div className="rounded-lg p-6 mb-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <div style={{ fontFamily: 'var(--mono)', display: 'flex', alignItems: 'baseline', gap: 14 }}>
-                {(() => {
+              <div style={{ fontFamily: 'var(--mono)', display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+                {isBinaryMkt ? (() => {
                   const leader = [...chartOutcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
                   return leader ? (
                     <span style={{ color: '#48D773', fontSize: 17, fontWeight: 700 }}>
                       {Math.round(leader.probability || 0)}% {leader.title.replace(/\s*\((Yes|No)\)\s*$/i, '')}
                     </span>
                   ) : null;
-                })()}
+                })() : (
+                  /* Kalshi-style legend row above the chart: dot + name + % for the top outcomes */
+                  [...chartOutcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0)).slice(0, 3).map((o) => (
+                    <span key={o.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 999, background: getOutcomeColor(o, chartOutcomes), display: 'inline-block' }} />
+                      <span style={{ color: '#DCE1FF', fontSize: 12.5, fontWeight: 600 }}>{o.title.replace(/\s*\((Yes|No)\)\s*$/i, '')}</span>
+                      <span style={{ color: getOutcomeColor(o, chartOutcomes), fontSize: 12.5, fontWeight: 700 }}>{Math.round(o.probability || 0)}%</span>
+                    </span>
+                  ))
+                )}
               </div>
               {/* Brand watermark, like Kalshi's chart corner */}
               <span style={{ fontFamily: 'var(--wordmark, inherit)', fontWeight: 800, fontSize: 14, color: '#3A4160', letterSpacing: '0.02em', userSelect: 'none' }}>
@@ -663,7 +710,7 @@ export default function MarketDetailPage() {
               outcomes={chartOutcomes}
               priceHistory={market.price_history}
               totalVolume={market.total_volume}
-              hideLegend={isBinaryMkt}
+              hideLegend={true}
             />
             {/* Kalshi-style chart footer: volume bottom-left, timeframes bottom-right */}
             <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
@@ -917,7 +964,10 @@ export default function MarketDetailPage() {
                   </div>
                 ) : sel ? (
                   <div className="mb-4 flex items-center justify-between rounded-xl border border-yellow-500/40 bg-yellow-500/5 px-3 py-2.5">
-                    <span className="text-sm text-white font-semibold truncate pr-2">{sel.title}</span>
+                    <span className="flex items-center gap-2 text-sm text-white font-semibold truncate pr-2">
+                      <span style={{ width: 9, height: 9, borderRadius: 999, background: getOutcomeColor(sel, market.outcomes || []), display: 'inline-block', flexShrink: 0 }} />
+                      {sel.title}
+                    </span>
                     <span className="text-sm font-bold shrink-0" style={{ color: 'var(--gold)' }}>{priceOf(sel)}¢</span>
                   </div>
                 ) : (
@@ -951,7 +1001,7 @@ export default function MarketDetailPage() {
                       return (
                         <div className="p-3 space-y-2" style={{ background: '#0B1229', border: '1px solid #33312E', borderRadius: 6, fontFamily: 'var(--mono)', fontSize: 11.5 }}>
                           <div className="flex justify-between"><span style={{ color: '#948D87' }}>Avg. Price</span><span style={{ color: '#DCE1FF' }}>{priceOf(sel)}¢</span></div>
-                          <div className="flex justify-between"><span style={{ color: '#948D87' }}>Potential Payout</span><span style={{ color: '#48D773' }}>+${b.winReturn.toFixed(2)}</span></div>
+                          <div className="flex justify-between items-baseline"><span style={{ color: '#948D87' }}>Potential Payout</span><span style={{ color: '#48D773', fontSize: 17, fontWeight: 800, fontFamily: 'var(--mono)' }}>+${b.winReturn.toFixed(2)}</span></div>
                           <div className="flex justify-between"><span style={{ color: '#948D87' }}>Max Profit</span><span style={{ color: '#48D773' }}>+${b.winProfit.toFixed(2)} ({parseFloat(stake) > 0 ? ((b.winProfit / parseFloat(stake)) * 100).toFixed(1) : '0.0'}%)</span></div>
                           <div className="flex justify-between" style={{ borderTop: '1px solid rgba(45,52,76,.7)', paddingTop: 8 }}><span style={{ color: '#948D87' }}>Total Cost</span><span style={{ color: '#DCE1FF' }}>${parseFloat(stake).toFixed(2)}</span></div>
                         </div>
@@ -1097,9 +1147,23 @@ export default function MarketDetailPage() {
                       </div>
                     </div>
 
-                    {/* Middle: probability + change */}
+                    {/* Middle: probability + change (Kalshi's ▲3 / ▼4) */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span className="text-white font-bold text-base">{Math.round(o.probability || 0)}%</span>
+                      {(() => {
+                        const hist = market.price_history || [];
+                        if (hist.length < 2) return null;
+                        const last = hist[hist.length - 1]?.prices?.[o.id];
+                        const prev = hist[Math.max(0, hist.length - 2)]?.prices?.[o.id];
+                        if (last == null || prev == null) return null;
+                        const d = Math.round(last - prev);
+                        if (d === 0) return null;
+                        return (
+                          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: d > 0 ? '#4AE176' : '#FFB4AB' }}>
+                            {d > 0 ? '\u25B2' : '\u25BC'}{Math.abs(d)}
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     {/* Right: Yes / No pill buttons */}
