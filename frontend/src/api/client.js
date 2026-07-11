@@ -44,6 +44,7 @@ export const api = {
   resolveMarket: (marketId, winningOutcomeIds, radarKey) => request(`/markets/${marketId}/resolve`, { method: 'POST', body: JSON.stringify({ winning_outcome_ids: winningOutcomeIds }), headers: { 'x-radar-key': radarKey } }),
 
   seedCuratedMarkets: (radarKey) => request('/seed/curated-batch', { method: 'POST', headers: { 'x-radar-key': radarKey } }),
+  regenerateBadges: (radarKey) => request('/admin/regenerate-badges', { headers: { 'x-radar-key': radarKey } }),
 
   joinWaitlist: (email) => request('/waitlist', { method: 'POST', body: JSON.stringify({ email }) }),
   getMarketNews: (marketId) => request(`/markets/${marketId}/news`),

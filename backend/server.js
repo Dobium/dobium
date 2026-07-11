@@ -2410,26 +2410,52 @@ const seedCuratedBatch = async (req, res) => {
 app.post('/api/seed/curated-batch', requireRadarKey, seedCuratedBatch);
 app.get('/api/seed/curated-batch', requireRadarKey, seedCuratedBatch);
 
-app.get('/api/cron/market-scout', requireRadarKey, async (req, res) => {
-  try {
-    const result = await runMarketScout();
-    // Ship the hottest exchange mirrors immediately, not just on the cron
-    try { result.auto_published = await autoPublishMirrors(5); } catch (e) { result.auto_published = { error: e.message }; }
-    // Backfill text badges for any market still missing an image
+// Regenerates every active market's badge to the current icon system.
+// Isolated on purpose: earlier this was nested inside the scan handler,
+// so if runMarketScout() threw for ANY reason, this code never ran at
+// all — the badge fix silently never executed no matter how many times
+// 'Scan now' was pressed. Per-market errors are now also isolated so one
+// bad title can't abort the rest of the batch, and every failure is
+// reported back instead of swallowed.
+async function regenerateAllBadges() {
+  const markets = await Market.findAll({ where: { status: 'active' } });
+  let updated = 0;
+  const errors = [];
+  for (const m of markets) {
     try {
-      // Regenerate EVERY active market's badge (not just empty ones) — markets
-      // created before the icon-badge system still carry the old giant-text
-      // SVGs baked into their image_url, and those never had an empty value
-      // to match on. This makes the icon system retroactive site-wide.
-      const bare = await Market.findAll({ where: { status: 'active' } });
-      for (const m of bare) await m.update({ image_url: makeIconBadge(m.title, m.category) });
-      result.badges_backfilled = bare.length;
-    } catch (e) { /* non-fatal */ }
-    res.json({ ok: true, ...result });
-  } catch (error) {
-    console.error('Market scout error:', error);
-    res.status(500).json({ error: 'Scout run failed' });
+      await m.update({ image_url: makeIconBadge(m.title, m.category) });
+      updated++;
+    } catch (e) {
+      errors.push({ id: m.id, title: m.title, error: e.message });
+    }
   }
+  return { total: markets.length, updated, errors };
+}
+
+// Standalone, bulletproof: does ONLY the badge regen, nothing else in the
+// way that could throw first and block it.
+app.get('/api/admin/regenerate-badges', requireRadarKey, async (req, res) => {
+  try {
+    res.json({ ok: true, ...(await regenerateAllBadges()) });
+  } catch (error) {
+    console.error('Badge regen error:', error);
+    res.status(500).json({ error: 'Badge regen failed', message: error.message });
+  }
+});
+
+app.get('/api/cron/market-scout', requireRadarKey, async (req, res) => {
+  const result = {};
+  // Badges run FIRST and independently — guaranteed to execute even if
+  // everything below throws.
+  try { result.badges = await regenerateAllBadges(); } catch (e) { result.badges = { error: e.message }; }
+  try {
+    const scoutResult = await runMarketScout();
+    Object.assign(result, scoutResult);
+  } catch (e) {
+    result.scout_error = e.message;
+  }
+  try { result.auto_published = await autoPublishMirrors(5); } catch (e) { result.auto_published = { error: e.message }; }
+  res.json({ ok: true, ...result });
 });
 
 app.get('/api/market-suggestions', requireRadarKey, async (req, res) => {

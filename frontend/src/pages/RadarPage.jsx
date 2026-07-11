@@ -16,6 +16,8 @@ export default function RadarPage() {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [seedBusy, setSeedBusy] = useState(false);
+  const [badgeBusy, setBadgeBusy] = useState(false);
+  const [badgeMsg, setBadgeMsg] = useState('');
   const [seedMsg, setSeedMsg] = useState('');
 
   useEffect(() => {
@@ -118,6 +120,39 @@ export default function RadarPage() {
           </button>
         </div>
         {seedMsg && <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 10, marginBottom: 0 }}>{seedMsg}</p>}
+      </div>
+
+      <div style={{ marginBottom: 24, padding: 16, borderRadius: 14, border: '1px solid var(--line)', background: 'var(--panel)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Regenerate all market images</div>
+            <div style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 2 }}>
+              Rebuilds every active market's icon badge from scratch — isolated from the scan and scout, so it
+              always runs even if something else on this page fails. Use this if any market still shows an old image.
+            </div>
+          </div>
+          <button
+            onClick={async () => {
+              setBadgeBusy(true); setBadgeMsg('');
+              try {
+                const r = await api.regenerateBadges(RADAR_KEY);
+                setBadgeMsg(`Updated ${r.updated} of ${r.total} markets${r.errors?.length ? ` · ${r.errors.length} failed` : ''}`);
+              } catch (e) {
+                setBadgeMsg(`Failed: ${e.message}`);
+              }
+              setBadgeBusy(false);
+            }}
+            disabled={badgeBusy}
+            style={{
+              flexShrink: 0, background: '#2D344C',
+              color: '#DCE1FF', fontWeight: 700, fontSize: 13.5, border: 'none',
+              borderRadius: 10, padding: '10px 18px', cursor: 'pointer', opacity: badgeBusy ? 0.6 : 1,
+            }}
+          >
+            {badgeBusy ? 'Regenerating…' : 'Regenerate all images'}
+          </button>
+        </div>
+        {badgeMsg && <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 10, marginBottom: 0 }}>{badgeMsg}</p>}
       </div>
 
       <TrendingRadar radarKey={RADAR_KEY} />
