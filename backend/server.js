@@ -2417,7 +2417,11 @@ app.get('/api/cron/market-scout', requireRadarKey, async (req, res) => {
     try { result.auto_published = await autoPublishMirrors(5); } catch (e) { result.auto_published = { error: e.message }; }
     // Backfill text badges for any market still missing an image
     try {
-      const bare = await Market.findAll({ where: { [Op.or]: [{ image_url: '' }, { image_url: null }], status: 'active' } });
+      // Regenerate EVERY active market's badge (not just empty ones) — markets
+      // created before the icon-badge system still carry the old giant-text
+      // SVGs baked into their image_url, and those never had an empty value
+      // to match on. This makes the icon system retroactive site-wide.
+      const bare = await Market.findAll({ where: { status: 'active' } });
       for (const m of bare) await m.update({ image_url: makeIconBadge(m.title, m.category) });
       result.badges_backfilled = bare.length;
     } catch (e) { /* non-fatal */ }

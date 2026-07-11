@@ -1345,7 +1345,8 @@ export default function MarketDetailPage() {
                       </div>
                     )}
                   </div>
-                  {activeOutcome && market.status === 'active' && renderTradeForm(activeOutcome)}
+                  {/* Selecting Yes/No here updates the sticky Buy/Sell panel above —
+                      no duplicate inline form, matching Kalshi's compact row list */}
                 </div>
               );
             };
