@@ -2365,6 +2365,16 @@ const CURATED_MARKETS = [
       { title: 'Other buyer (TPG, Ohanian, etc.)', probability: 18 },
       { title: 'No deal in 2026', probability: 20 },
     ] },
+
+  // ── Fight markets (verified July 11, 2026: UFC 329 is TONIGHT at T-Mobile Arena) ──
+  { title: 'Will Conor McGregor beat Max Holloway at UFC 329?', category: 'sports', market_type: 'binary', close_date: '2026-07-12T01:00:00.000Z',
+    description: "Resolves Yes if Conor McGregor defeats Max Holloway in the UFC 329 main event (July 11, 2026, T-Mobile Arena, Las Vegas) — McGregor's first fight since 2021 and a rematch of their 2013 bout. Resolves No on a Holloway win; voided on a draw/no-contest/cancellation. Closes at main-card start.",
+    search_keywords: 'McGregor Holloway UFC 329',
+    outcomes: [{ title: 'Yes', probability: 38 }, { title: 'No', probability: 62 }] },
+  { title: 'Will Islam Makhachev beat Ian Machado Garry at UFC 330?', category: 'sports', market_type: 'binary', close_date: '2026-08-15T22:00:00.000Z',
+    description: 'Resolves Yes if Islam Makhachev defeats Ian Machado Garry in the UFC 330 main event (August 15, 2026, Philadelphia) welterweight title fight. Resolves No on a Machado Garry win; voided on draw/no-contest/cancellation.',
+    search_keywords: 'Makhachev Machado Garry UFC 330',
+    outcomes: [{ title: 'Yes', probability: 70 }, { title: 'No', probability: 30 }] },
 ];
 
 const seedCuratedBatch = async (req, res) => {

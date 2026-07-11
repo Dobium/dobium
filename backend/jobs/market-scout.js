@@ -39,6 +39,10 @@ const RSS_SOURCES = [
   { name: 'GameSpot', url: 'https://www.gamespot.com/feeds/news/', category: 'entertainment' },
   { name: 'Polygon', url: 'https://www.polygon.com/rss/index.xml', category: 'entertainment' },
   { name: 'ESPN', url: 'https://www.espn.com/espn/rss/news', category: 'sports' },
+  // Fights: UFC/boxing — the most talk-of-the-town sports content there is
+  { name: 'ESPN MMA', url: 'https://www.espn.com/espn/rss/mma/news', category: 'sports' },
+  { name: 'MMA Fighting', url: 'https://www.mmafighting.com/rss/current', category: 'sports' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=(UFC%20OR%20boxing)%20(fight%20OR%20title%20OR%20headline)&hl=en-US&gl=US&ceid=US:en', category: 'sports' },
   // Trending news: tech, business, big culture (Elon, OpenAI, IPOs, launches)
   { name: 'Google Trends', url: 'https://trends.google.com/trending/rss?geo=US', category: 'trending' },
   { name: 'TechCrunch', url: 'https://techcrunch.com/feed/', category: 'trending' },
@@ -230,6 +234,28 @@ const CULTURE_BRANDS = ['spacex', 'tesla', 'openai', 'apple', 'netflix', 'disney
   'steam', 'valve', 'mrbeast', 'kanye', 'x corp', 'twitter', 'snapchat', 'discord',
   'twitch', 'uber', 'airbnb', 'stripe', 'nvidia', 'starlink'];
 
+// Music drafts only surface for artists people actually talk about — the
+// RSS feeds cover every band's album news equally, which is how 'Gilla Band'
+// and 'Eli Young Band' flooded the queue next to zero cultural conversation.
+const A_LIST = ['drake', 'kendrick lamar', 'taylor swift', 'kanye', ' ye ', 'playboi carti',
+  'travis scott', 'don toliver', 'rihanna', 'beyonce', 'beyoncé', 'sza', 'doja cat',
+  'olivia rodrigo', 'billie eilish', 'ariana grande', 'the weeknd', 'bad bunny',
+  '21 savage', 'future', 'metro boomin', 'cardi b', 'nicki minaj', 'ice spice',
+  'sabrina carpenter', 'chappell roan', 'post malone', 'justin bieber', 'selena gomez',
+  'dua lipa', 'charli xcx', 'frank ocean', 'tyler, the creator', 'tyler the creator',
+  'asap rocky', 'a$ap rocky', 'lil uzi', 'lil baby', 'gunna', 'yeat', 'ken carson',
+  'destroy lonely', 'lana del rey', 'bruno mars', 'lady gaga', 'adele', 'ed sheeran',
+  'morgan wallen', 'zach bryan', 'luke combs', 'j. cole', 'j cole', 'lil wayne',
+  '2 chainz', 'young thug', 'central cee', 'burna boy', 'rosalia', 'rosalía',
+  'karol g', 'peso pluma', 'blackpink', 'bts', 'stray kids', 'newjeans', 'mitski',
+  'hozier', 'noah kahan', 'jack harlow', 'megan thee stallion', 'glorilla', 'latto',
+  'summer walker', 'brent faiyaz', 'steve lacy', 'daniel caesar', 'partynextdoor'];
+
+function isAList(text) {
+  const t = ` ${(text || '').toLowerCase()} `;
+  return A_LIST.some(a => t.includes(a));
+}
+
 function isCultureBrand(name) {
   const n = (name || '').toLowerCase();
   return CULTURE_BRANDS.some(b => n === b || n.includes(b) || b.includes(n));
@@ -282,6 +308,15 @@ function draftQuestion(headline, category) {
   // Box-office champs → the repeat question
   if (quoted && /(tops box office|no\.? ?1 at the box office|wins the (weekend )?box office|box office crown)/.test(t)) {
     return `Will '${quoted}' stay #1 at the domestic box office for a second weekend?`;
+  }
+  // Fight bookings → the winner question ("Will A beat B at UFC 331?")
+  if (/(ufc|boxing|fight)/.test(t)) {
+    const fm = h.match(/([A-Z][\w'.-]+(?:\s+[A-Z][\w'.-]+){0,2})\s+(?:[Vv][Ss]\.?|[Vv]ersus|[Ff]aces|[Mm]eets|[Tt]akes [Oo]n|[Bb]attles)\s+([A-Z][\w'.-]+(?:\s+[A-Z][\w'.-]+){0,2})/);
+    if (fm) {
+      const eventMatch = h.match(/UFC\s*\d+|UFC Fight Night/i);
+      const where = eventMatch ? ` at ${eventMatch[0].toUpperCase().replace('FIGHT NIGHT', 'Fight Night')}` : '';
+      return `Will ${fm[1]} beat ${fm[2]}${where}?`;
+    }
   }
   // Award nominations → the win question (WHO wins WHAT at WHERE)
   if ((quoted || lead) && /(nominated|nomination|snub|frontrunner|shortlist)/.test(t)) {
@@ -409,13 +444,23 @@ const ENT_ALLOW = ['album', 'song', 'single', 'billboard', 'rapper', 'singer', '
   'grammy', 'emmy', 'golden globe', 'netflix', 'hbo', 'disney', 'spotify', 'stream',
   'tour', 'concert', 'trailer', 'season', 'series', 'renewed', 'rotten tomatoes',
   'video game', 'gta', 'nintendo', 'playstation', 'xbox', 'game of the year',
-  'tv show', 'showrunner', 'sequel', 'franchise', 'premiere'];
+  'tv show', 'showrunner', 'sequel', 'franchise', 'premiere',
+  // Marquee sports: the talk-of-the-town events (regular-season noise has no
+  // allow keyword, so it stays out naturally)
+  'ufc', 'mma', 'boxing', 'heavyweight', 'fight night', 'mcgregor', 'super bowl',
+  'nba finals', 'world series', 'stanley cup', 'world cup', 'grand slam',
+  'wimbledon', 'olympics', 'march madness', 'champion'];
 
-const ENT_EXCLUDE = ['nfl', 'nba', 'mlb', 'nhl', 'ncaa', 'premier league', 'la liga',
-  'election', 'president', 'senate', 'congress', 'governor', 'fed ', 'rate cut',
-  'inflation', 'bitcoin', 'ethereum', 'crypto', 'temperature', 'weather', 'war',
-  'ukraine', 'israel', 'gaza', 'russia', 'tariff', 'gdp', 'stock', 's&p', 'nasdaq',
-  'shutdown', 'impeach', 'supreme court'];
+const ENT_EXCLUDE = [
+  // Elections & politics: the exact category the CFTC is moving to ban —
+  // Dobium stays out even in paper money
+  'election', 'president', 'senate', 'congress', 'governor', 'mayor', 'primary',
+  'ballot', 'midterm', 'shutdown', 'impeach', 'supreme court',
+  // Finance/macro/crypto noise
+  'fed ', 'rate cut', 'inflation', 'bitcoin', 'ethereum', 'crypto', 'tariff',
+  'gdp', 'stock', 's&p', 'nasdaq',
+  // Weather + geopolitics
+  'temperature', 'weather', 'war', 'ukraine', 'israel', 'gaza', 'russia'];
 
 function isEntertainmentMarket(title) {
   const t = (title || '').toLowerCase();
@@ -511,6 +556,15 @@ async function runMarketScout() {
         source: { [Op.notIn]: ['Kalshi', 'Polymarket'] },
       },
     });
+    // Purge non-A-list music suggestions (the Gilla Band problem)
+    try {
+      const pendingMusic = await MarketSuggestion.findAll({ where: { status: 'pending', category: 'music', source: { [Op.notIn]: ['Kalshi', 'Polymarket'] } } });
+      const obscure = pendingMusic.filter(m => !isAList(m.headline));
+      if (obscure.length) {
+        await MarketSuggestion.destroy({ where: { id: { [Op.in]: obscure.map(m => m.id) } } });
+        purged += obscure.length;
+      }
+    } catch (e) { /* non-fatal */ }
     // Also purge grammar-garbage from the old drafter ("Will Ringo Starr Fall
     // announce…", "Will X Announces…") — case-sensitive LIKE only hits
     // Title-Case verb leakage, never legit lowercase wording.
@@ -663,6 +717,8 @@ async function runMarketScout() {
       drafted = draftQuestion(f.headline, f.category);
     }
     if (!drafted) { dropped++; continue; }
+    // Talk-of-the-town gate: music questions only for A-list artists
+    if (f.category === 'music' && f.source !== 'Kalshi' && f.source !== 'Polymarket' && !isAList(f.headline) && !isAList(drafted)) { dropped++; continue; }
     // Verb leakage / grammar-garbage gate — better no suggestion than a broken one
     if (/^Will [^?]*\b(Announces|Reveals|Teases|Confirms|Debuts|Unveils)\b/.test(drafted) ||
         /announce official tour dates/.test(drafted)) { dropped++; continue; }
