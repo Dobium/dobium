@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import MarketIcon from './MarketIcon';
 import { bucketLabel } from '../lib/categories';
 
 // Trending market card — used ONLY on the landing page.
@@ -59,7 +60,7 @@ export default function TrendingMarketCard({ market }) {
         >
           {bucketLabel(market.category)}
         </span>
-        {market.image_url && (
+        {market.image_url && /^https?:/.test(market.image_url) ? (
           <img
             src={market.image_url}
             alt=""
@@ -67,6 +68,8 @@ export default function TrendingMarketCard({ market }) {
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
             style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
           />
+        ) : (
+          <MarketIcon market={market} size={40} radius={6} />
         )}
       </div>
 

@@ -4,6 +4,7 @@ import { useMarket, useMarkets } from '../hooks/useMarkets';
 import { useAuth } from '../hooks/useAuth';
 import { useWallet } from '../hooks/useWallet';
 import { api } from '../api/client';
+import MarketIcon from '../components/MarketIcon';
 import CommentsSection from '../components/CommentsSection';
 import { CATEGORY_COLORS, formatCurrency, formatDate } from '../store/storage';
 import { bucketLabel } from '../lib/categories';
@@ -554,8 +555,10 @@ export default function MarketDetailPage() {
       {/* Header card (Kalshi-style): small icon tile + chips + title + resolution text */}
       <div className="shrink-0 rounded-lg p-6 mb-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
         <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-        {eventImage && (
+        {eventImage && /^https?:/.test(eventImage) ? (
           <img src={eventImage} alt="" style={{ width: 64, height: 64, borderRadius: 12, flexShrink: 0, objectFit: 'cover' }} />
+        ) : (
+          <MarketIcon market={market} size={64} radius={12} />
         )}
         <div style={{ minWidth: 0, flex: 1 }}>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
