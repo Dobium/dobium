@@ -2248,30 +2248,47 @@ app.get('/api/waitlist/count', async (req, res) => {
 // ============================================================================
 // PULSE — public lightweight stats (paper money + waitlist tracking)
 // ============================================================================
-// Exchange 24h volume approximations (top open markets summed), 30-min cache
+// Exchange 24h volume approximations (top open markets summed), 30-min cache.
+// Fetches are timeout-guarded and NEVER block /api/pulse's own response —
+// a slow/large exchange payload must not be able to take Dobium's own stats
+// down with it (this was happening: fetching up to 2000 full Kalshi market
+// objects — each one is large — inside the request the homepage polls every
+// 20s was timing out the whole endpoint, so the frontend silently fell back
+// to a less accurate local calculation).
 let exchangeVolCache = { fetched: 0, kalshi: null, polymarket: null };
-async function getExchangeVolumes() {
-  if (Date.now() - exchangeVolCache.fetched < 30 * 60 * 1000) return exchangeVolCache;
+let exchangeVolRefreshing = false;
+
+async function fetchWithTimeout(url, opts = {}, ms = 4000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function refreshExchangeVolumes() {
+  if (exchangeVolRefreshing) return;
+  exchangeVolRefreshing = true;
   let kalshi = exchangeVolCache.kalshi;
   let polymarket = exchangeVolCache.polymarket;
   try {
-    let sum = 0; let cursor = null;
-    for (let page = 0; page < 2; page++) {
-      const url = `https://api.elections.kalshi.com/trade-api/v2/markets?status=open&limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
-      const r = await fetch(url);
-      if (!r.ok) break;
+    // One page, modest limit — a representative sample of top markets is
+    // enough for a volume approximation and keeps the payload small/fast.
+    const r = await fetchWithTimeout('https://api.elections.kalshi.com/trade-api/v2/markets?status=open&limit=200');
+    if (r.ok) {
       const data = await r.json();
+      let sum = 0;
       for (const m of data.markets || []) {
         const v = m.volume_24h_dollars ?? m.volume_24h_fp ?? m.volume_24h ?? 0;
         sum += Number(v) || 0;
       }
-      cursor = data.cursor;
-      if (!cursor) break;
+      if (sum > 0) kalshi = sum;
     }
-    if (sum > 0) kalshi = sum; // Kalshi volume is in contracts ≈ dollars at $1 max payout
-  } catch { /* keep last */ }
+  } catch { /* keep last known value */ }
   try {
-    const r = await fetch('https://gamma-api.polymarket.com/markets?closed=false&order=volume24hr&ascending=false&limit=500', {
+    const r = await fetchWithTimeout('https://gamma-api.polymarket.com/markets?closed=false&order=volume24hr&ascending=false&limit=200', {
       headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36' },
     });
     if (r.ok) {
@@ -2279,8 +2296,18 @@ async function getExchangeVolumes() {
       const sum = (Array.isArray(arr) ? arr : []).reduce((a, m) => a + Number(m.volume24hr || 0), 0);
       if (sum > 0) polymarket = sum;
     }
-  } catch { /* keep last */ }
+  } catch { /* keep last known value */ }
   exchangeVolCache = { fetched: Date.now(), kalshi, polymarket };
+  exchangeVolRefreshing = false;
+}
+
+// Never awaited by a request handler directly: returns whatever is cached
+// RIGHT NOW (possibly null on true cold start) and kicks a background
+// refresh if the cache is stale — the pulse endpoint always responds fast.
+function getExchangeVolumesNonBlocking() {
+  if (Date.now() - exchangeVolCache.fetched > 30 * 60 * 1000) {
+    refreshExchangeVolumes(); // fire and forget
+  }
   return exchangeVolCache;
 }
 
@@ -2295,7 +2322,7 @@ app.get('/api/pulse', async (req, res) => {
       // this is every actual paper trade, logged-in or guest.
       Prediction.sum('stake_amount'),
     ]);
-    const exchanges = await getExchangeVolumes();
+    const exchanges = getExchangeVolumesNonBlocking();
     const totalVolume = Number(volumeRow || 0);
     const activeMarkets = markets.filter(m => m.status === 'active').length;
     const byCategory = {};
