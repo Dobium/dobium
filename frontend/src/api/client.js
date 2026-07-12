@@ -52,6 +52,7 @@ export const api = {
   adminDeleteWaitlistEntry: (id, radarKey) => request(`/admin/waitlist/${id}`, { method: 'DELETE', headers: { 'x-radar-key': radarKey } }),
   getWaitlistCount: () => request('/waitlist/count'),
   getPulse: () => request('/pulse'),
+  getPulse: () => request('/pulse'),
 
   getSuggestions: (status = 'pending', radarKey) => request(`/market-suggestions?status=${status}`, { headers: { 'x-radar-key': radarKey } }),
   runMarketScout: (radarKey) => request('/cron/market-scout', { headers: { 'x-radar-key': radarKey } }),

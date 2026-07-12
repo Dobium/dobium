@@ -2250,13 +2250,17 @@ app.get('/api/waitlist/count', async (req, res) => {
 // ============================================================================
 app.get('/api/pulse', async (req, res) => {
   try {
-    const [userCount, waitlistCount, markets, txCount] = await Promise.all([
+    const [userCount, waitlistCount, markets, txCount, volumeRow] = await Promise.all([
       User.count(),
       Waitlist.count(),
-      Market.findAll({ attributes: ['id', 'status', 'total_volume', 'category'] }),
+      Market.findAll({ attributes: ['id', 'status', 'category'] }),
       Transaction.count(),
+      // Ground-truth volume: sum the real trade ledger (Prediction.stake_amount),
+      // not each market's cached total_volume field — a cache can go stale or
+      // carry pre-existing values; the ledger is the actual money moved.
+      Prediction.sum('stake_amount'),
     ]);
-    const totalVolume = markets.reduce((sum, m) => sum + Number(m.total_volume || 0), 0);
+    const totalVolume = Number(volumeRow || 0);
     const activeMarkets = markets.filter(m => m.status === 'active').length;
     const byCategory = {};
     for (const m of markets) {

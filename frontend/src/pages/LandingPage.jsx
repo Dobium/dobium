@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import FlipNumber from '../components/FlipNumber';
 import { useNavigate } from 'react-router-dom';
 import { useMarkets } from '../hooks/useMarkets';
 import { api } from '../api/client';
@@ -122,14 +123,35 @@ export default function LandingPage() {
   const { markets, loading } = useMarkets();
   const navigate = useNavigate();
   const [waitlistCount, setWaitlistCount] = useState(null);
+  const [pulse, setPulse] = useState(null); // { paper_volume_traded, markets_active }
+
+  // Ground-truth platform stats: sums the real trade ledger server-side, not
+  // a cached per-market field — this is the number that can't drift stale.
+  const fetchPulse = useCallback(() => {
+    api.getPulse()
+      .then((r) => { setPulse(r); if (typeof r?.waitlist === 'number') setWaitlistCount(r.waitlist); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
+    fetchPulse();
+    // Live-ish updates without a websocket: poll every 20s, and Dobium
+    // refetches immediately the moment the current tab places a trade
+    // (see the 'dobium:trade' event dispatched from the trade panel).
+    const interval = setInterval(fetchPulse, 20000);
+    window.addEventListener('dobium:trade', fetchPulse);
+    return () => { clearInterval(interval); window.removeEventListener('dobium:trade', fetchPulse); };
+  }, [fetchPulse]);
+
+  useEffect(() => {
+    if (pulse) return; // pulse (once loaded) already carries an authoritative waitlist count
     api.getWaitlistCount()
       .then((r) => setWaitlistCount(typeof r?.count === 'number' ? r.count : WAITLIST_FALLBACK))
       .catch(() => setWaitlistCount(WAITLIST_FALLBACK));
-  }, []);
+  }, [pulse]);
 
-  const totalVolume = markets.reduce((s, m) => s + (m.total_volume || 0), 0);
+  const totalVolume = pulse ? pulse.paper_volume_traded : markets.reduce((s, m) => s + (m.total_volume || 0), 0);
+  const liveMarketsCount = pulse ? pulse.markets_active : markets.length;
   // Newest markets first — a trending site must show what's NEW, not let old
   // demo markets squat the homepage on stale volume forever.
   const topMarkets = [...markets]
@@ -216,13 +238,13 @@ export default function LandingPage() {
               marginBottom: 40,
             }}
           >
-            <StatBlock label="Paper Volume Traded" value={loading ? '—' : compactMoney(totalVolume)} gold />
+            <StatBlock label="Paper Volume Traded" value={loading && !pulse ? '—' : <FlipNumber text={compactMoney(totalVolume)} />} gold />
             <div style={{ width: 1, background: '#313136' }} />
-            <StatBlock label="Live Markets" value={loading ? '—' : markets.length.toLocaleString('en-US')} />
+            <StatBlock label="Live Markets" value={loading && !pulse ? '—' : <FlipNumber text={liveMarketsCount.toLocaleString('en-US')} />} />
             <div style={{ width: 1, background: '#313136' }} />
             <StatBlock
               label="Waitlist Count"
-              value={waitlistCount === null ? '—' : waitlistCount.toLocaleString('en-US')}
+              value={waitlistCount === null ? '—' : <FlipNumber text={waitlistCount.toLocaleString('en-US')} />}
             />
           </div>
         </div>

@@ -510,6 +510,7 @@ export default function MarketDetailPage() {
       });
       setTradeMsg('✅ Position placed successfully!');
       setStake('');
+      window.dispatchEvent(new CustomEvent('dobium:trade'));
       // Refresh buying power then reload market data
       if (userId !== 'demo_user') {
         await refetchWallet();
