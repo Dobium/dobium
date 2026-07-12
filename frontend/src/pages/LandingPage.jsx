@@ -271,6 +271,12 @@ export default function LandingPage() {
               label="Waitlist Count"
               value={waitlistCount === null ? '—' : <FlipNumber text={waitlistCount.toLocaleString('en-US')} />}
             />
+            {pulse?.kalshi_24h_volume != null && (
+              <>
+                <div style={{ width: 1, background: '#313136' }} />
+                <StatBlock label="Kalshi 24h Volume" value={<FlipNumber text={compactMoney(pulse.kalshi_24h_volume)} />} />
+              </>
+            )}
           </div>
         </div>
         {/* ── /Hero ── */}

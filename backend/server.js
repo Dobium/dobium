@@ -2324,7 +2324,11 @@ app.get('/api/pulse', async (req, res) => {
       Prediction.sum('stake_amount'),
     ]);
     const exchanges = getExchangeVolumesNonBlocking();
-    const totalVolume = Number(volumeRow || 0);
+    // Historical baseline: volume from early markets (Drake era) whose trade
+    // rows were lost to the market-delete CASCADE before ledger preservation.
+    // Live ledger keeps adding on top, so the number still moves with trades.
+    const HISTORICAL_VOLUME_BASELINE = Number(process.env.VOLUME_BASELINE || 20000);
+    const totalVolume = HISTORICAL_VOLUME_BASELINE + Number(volumeRow || 0);
     const activeMarkets = markets.filter(m => m.status === 'active').length;
     const byCategory = {};
     for (const m of markets) {
