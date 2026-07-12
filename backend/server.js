@@ -2261,7 +2261,10 @@ async function getExchangeVolumes() {
       const r = await fetch(url);
       if (!r.ok) break;
       const data = await r.json();
-      for (const m of data.markets || []) sum += Number(m.volume_24h || 0);
+      for (const m of data.markets || []) {
+        const v = m.volume_24h_dollars ?? m.volume_24h_fp ?? m.volume_24h ?? 0;
+        sum += Number(v) || 0;
+      }
       cursor = data.cursor;
       if (!cursor) break;
     }
