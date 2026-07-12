@@ -2248,6 +2248,39 @@ app.get('/api/waitlist/count', async (req, res) => {
 // ============================================================================
 // PULSE — public lightweight stats (paper money + waitlist tracking)
 // ============================================================================
+// Exchange 24h volume approximations (top open markets summed), 30-min cache
+let exchangeVolCache = { fetched: 0, kalshi: null, polymarket: null };
+async function getExchangeVolumes() {
+  if (Date.now() - exchangeVolCache.fetched < 30 * 60 * 1000) return exchangeVolCache;
+  let kalshi = exchangeVolCache.kalshi;
+  let polymarket = exchangeVolCache.polymarket;
+  try {
+    let sum = 0; let cursor = null;
+    for (let page = 0; page < 2; page++) {
+      const url = `https://api.elections.kalshi.com/trade-api/v2/markets?status=open&limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
+      const r = await fetch(url);
+      if (!r.ok) break;
+      const data = await r.json();
+      for (const m of data.markets || []) sum += Number(m.volume_24h || 0);
+      cursor = data.cursor;
+      if (!cursor) break;
+    }
+    if (sum > 0) kalshi = sum; // Kalshi volume is in contracts ≈ dollars at $1 max payout
+  } catch { /* keep last */ }
+  try {
+    const r = await fetch('https://gamma-api.polymarket.com/markets?closed=false&order=volume24hr&ascending=false&limit=500', {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36' },
+    });
+    if (r.ok) {
+      const arr = await r.json();
+      const sum = (Array.isArray(arr) ? arr : []).reduce((a, m) => a + Number(m.volume24hr || 0), 0);
+      if (sum > 0) polymarket = sum;
+    }
+  } catch { /* keep last */ }
+  exchangeVolCache = { fetched: Date.now(), kalshi, polymarket };
+  return exchangeVolCache;
+}
+
 app.get('/api/pulse', async (req, res) => {
   try {
     const [userCount, waitlistCount, markets, txCount, volumeRow] = await Promise.all([
@@ -2256,10 +2289,10 @@ app.get('/api/pulse', async (req, res) => {
       Market.findAll({ attributes: ['id', 'status', 'category'] }),
       Transaction.count(),
       // Ground-truth volume: sum the real trade ledger (Prediction.stake_amount),
-      // not each market's cached total_volume field — a cache can go stale or
-      // carry pre-existing values; the ledger is the actual money moved.
-      Prediction.sum('stake_amount'),
+      // excluding demo-account noise — the actual paper money real users moved.
+      Prediction.sum('stake_amount', { where: { user_id: { [Op.ne]: 'demo_user' } } }),
     ]);
+    const exchanges = await getExchangeVolumes();
     const totalVolume = Number(volumeRow || 0);
     const activeMarkets = markets.filter(m => m.status === 'active').length;
     const byCategory = {};
@@ -2272,6 +2305,8 @@ app.get('/api/pulse', async (req, res) => {
       markets_total: markets.length,
       markets_active: activeMarkets,
       paper_volume_traded: totalVolume,
+      kalshi_24h_volume: exchanges.kalshi,
+      polymarket_24h_volume: exchanges.polymarket,
       transactions: txCount,
       markets_by_category: byCategory,
       generated_at: new Date().toISOString(),

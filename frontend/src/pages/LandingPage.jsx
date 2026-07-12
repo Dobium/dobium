@@ -33,6 +33,30 @@ function compactMoney(n) {
 }
 
 /* ── News ticker (top of page) ── */
+function VolumeBar({ pulse }) {
+  if (!pulse) return null;
+  const items = [
+    { label: 'DOBIUM PAPER VOLUME', value: pulse.paper_volume_traded, gold: true },
+    { label: 'KALSHI 24H VOLUME', value: pulse.kalshi_24h_volume },
+    { label: 'POLYMARKET 24H VOLUME', value: pulse.polymarket_24h_volume },
+  ].filter((i) => i.value != null);
+  if (items.length === 0) return null;
+  const loop = [...items, ...items, ...items, ...items]; // seamless marquee
+  return (
+    <div style={{ overflow: 'hidden', background: '#060D24', borderBottom: '1px solid #1B2240', whiteSpace: 'nowrap' }}>
+      <div className="dbm-ticker-track" style={{ display: 'inline-flex', alignItems: 'center', padding: '7px 0' }}>
+        {loop.map((it, i) => (
+          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, margin: '0 26px', fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700 }}>
+            <span style={{ width: 6, height: 6, borderRadius: 999, background: it.gold ? '#F0C04A' : '#4A5378', display: 'inline-block' }} />
+            <span style={{ color: it.gold ? '#FFDF9B' : '#8E94AF', letterSpacing: '0.05em' }}>{it.label}:</span>
+            <span style={{ color: it.gold ? '#FFDF9B' : '#DCE1FF' }}>{compactMoney(it.value)}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Ticker({ markets }) {
   const items = [...markets]
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
@@ -164,6 +188,7 @@ export default function LandingPage() {
 
   return (
     <div style={{ background: '#0B1229' }}>
+      <VolumeBar pulse={pulse} />
       <Ticker markets={markets} />
 
       <div className="max-w-7xl mx-auto p-6 lg:p-8">
