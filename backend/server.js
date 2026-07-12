@@ -2312,6 +2312,7 @@ function getExchangeVolumesNonBlocking() {
 }
 
 app.get('/api/pulse', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
   try {
     const [userCount, waitlistCount, markets, txCount, volumeRow] = await Promise.all([
       User.count(),
