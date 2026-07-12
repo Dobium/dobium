@@ -6,6 +6,7 @@
 // categorizes them, applies a harm filter, dedupes, and stores suggestions.
 
 const { MarketSuggestion, Market } = require('../lib/database/models');
+const { Op } = require('sequelize');
 
 const UA = 'DobiumMarketScout/1.0 (entertainment prediction markets; contact: team@dobium.com)';
 
