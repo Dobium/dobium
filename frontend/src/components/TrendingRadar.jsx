@@ -20,7 +20,9 @@ export default function TrendingRadar({ radarKey, sidebar }) {
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [scanMsg, setScanMsg] = useState('');
-  const [stats, setStats] = useState(null); // { scanned, mirrored, fresh }
+  const [stats, setStats] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('radar_stats')) || null; } catch { return null; }
+  }); // { scanned, mirrored, fresh }
   const [drafts, setDrafts] = useState({});
   const [busy, setBusy] = useState({});
 
@@ -28,17 +30,30 @@ export default function TrendingRadar({ radarKey, sidebar }) {
     try {
       const data = await api.getSuggestions('pending', radarKey);
       setSuggestions(Array.isArray(data) ? data : []);
-    } catch { setSuggestions([]); }
-    setLoading(false);
+      return Array.isArray(data) ? data.length : 0;
+    } catch { setSuggestions([]); return 0; }
+    finally { setLoading(false); }
   }, [radarKey]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    (async () => {
+      const n = await load();
+      // Never show an empty radar: if the queue is drained, scan automatically
+      if (n === 0 && !sessionStorage.getItem('radar_autoscanned')) {
+        sessionStorage.setItem('radar_autoscanned', '1');
+        scanNow();
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load]);
 
   const scanNow = async () => {
     setScanning(true); setScanMsg('');
     try {
       const r = await api.runMarketScout(radarKey);
-      setStats({ scanned: r.scanned || 0, mirrored: r.exchange_markets || 0, fresh: r.new_suggestions || 0 });
+      const st = { scanned: r.scanned || 0, mirrored: r.exchange_markets || 0, fresh: r.new_suggestions || 0 };
+      setStats(st);
+      try { localStorage.setItem('radar_stats', JSON.stringify(st)); } catch { /* ignore */ }
       setScanMsg(`${r.junk_purged || 0} old junk purged · ${(r.auto_published || []).length || 0} hot markets auto-published`);
       await load();
     } catch (e) {

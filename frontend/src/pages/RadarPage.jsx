@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import TrendingRadar from '../components/TrendingRadar';
 import ResolveQueue from '../components/ResolveQueue';
 import WaitlistAdmin from '../components/WaitlistAdmin';
@@ -12,6 +14,8 @@ const STORAGE_KEY = 'dobium_radar_unlocked';
 // The passphrase is a light lock (this repo is public), not real secrecy —
 // it stops anyone who stumbles onto the link, not a determined source-code reader.
 export default function RadarPage() {
+  const navigate = useNavigate();
+  const { openAuthModal } = useAuth();
   const [unlocked, setUnlocked] = useState(false);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
@@ -72,7 +76,44 @@ export default function RadarPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 lg:p-8">
+    <div>
+      {/* Mock top bar: Dobium Radar brand · Markets / Portfolio / Radar / Activity · Connect Wallet */}
+      <div style={{ borderBottom: '1px solid var(--line)', background: '#0B1229' }}>
+        <div className="max-w-7xl mx-auto px-6 lg:px-8" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, height: 58 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
+            <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 17, color: 'var(--gold)', cursor: 'pointer' }} onClick={() => navigate('/')}>
+              Dobium Radar
+            </span>
+            <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {[
+                { label: 'Markets', to: '/explore' },
+                { label: 'Portfolio', to: '/portfolio' },
+                { label: 'Radar', to: '/radar' },
+                { label: 'Activity', to: '/portfolio' },
+              ].map((l) => (
+                <button key={l.label} onClick={() => navigate(l.to)}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                    padding: '6px 10px', color: l.label === 'Radar' ? '#DCE1FF' : '#8E94AF',
+                    borderBottom: l.label === 'Radar' ? '2px solid var(--gold)' : '2px solid transparent',
+                  }}>
+                  {l.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 19, color: '#8E94AF', cursor: 'pointer' }}>notifications</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 19, color: '#8E94AF', cursor: 'pointer' }}>settings</span>
+            <button onClick={() => openAuthModal('login')}
+              style={{ background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))', color: '#1a1405', fontWeight: 800, fontSize: 12.5, border: 'none', borderRadius: 8, padding: '9px 16px', cursor: 'pointer' }}>
+              Connect Wallet
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto p-6 lg:p-8">
       {/* Mock header: Dobium Radar + one-line purpose */}
       <div style={{ marginBottom: 22 }}>
         <h1 style={{ fontFamily: 'var(--wordmark)', fontSize: 28, fontWeight: 800, color: 'var(--text)', margin: 0 }}>
@@ -103,7 +144,9 @@ export default function RadarPage() {
                   setSeedBusy(true); setSeedMsg('');
                   try {
                     const r = await api.seedCuratedMarkets(RADAR_KEY);
-                    setSeedMsg(`Created ${r.created} new markets · skipped ${r.skipped_existing} already live`);
+                    setSeedMsg(r.created > 0
+                      ? `✓ ${r.created} new markets published · ${r.skipped_existing} already live`
+                      : `✓ All ${r.skipped_existing} curated markets are live on the site`);
                   } catch (e) {
                     setSeedMsg(`Failed: ${e.message}`);
                   }
@@ -152,6 +195,7 @@ export default function RadarPage() {
           </>
         }
       />
+      </div>
     </div>
   );
 }
