@@ -2288,9 +2288,9 @@ app.get('/api/pulse', async (req, res) => {
       Waitlist.count(),
       Market.findAll({ attributes: ['id', 'status', 'category'] }),
       Transaction.count(),
-      // Ground-truth volume: sum the real trade ledger (Prediction.stake_amount),
-      // excluding demo-account noise — the actual paper money real users moved.
-      Prediction.sum('stake_amount', { where: { user_id: { [Op.ne]: 'demo_user' } } }),
+      // Ground-truth volume: sum the real trade ledger (Prediction.stake_amount) —
+      // this is every actual paper trade, logged-in or guest.
+      Prediction.sum('stake_amount'),
     ]);
     const exchanges = await getExchangeVolumes();
     const totalVolume = Number(volumeRow || 0);
