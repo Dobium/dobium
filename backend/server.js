@@ -2302,11 +2302,14 @@ async function refreshExchangeVolumes() {
 }
 
 // Never awaited by a request handler directly: returns whatever is cached
-// RIGHT NOW (possibly null on true cold start) and kicks a background
-// refresh if the cache is stale — the pulse endpoint always responds fast.
-function getExchangeVolumesNonBlocking() {
+// Serverless functions can be torn down right after the response is sent —
+// a true 'fire and forget' background refresh can die mid-fetch and never
+// populate the cache. Await it directly (already has a 4s hard timeout per
+// exchange) so a stale cache always gets a real chance to fill before we
+// respond, instead of returning null forever.
+async function getExchangeVolumes() {
   if (Date.now() - exchangeVolCache.fetched > 30 * 60 * 1000) {
-    refreshExchangeVolumes(); // fire and forget
+    await refreshExchangeVolumes();
   }
   return exchangeVolCache;
 }
@@ -2323,7 +2326,7 @@ app.get('/api/pulse', async (req, res) => {
       // this is every actual paper trade, logged-in or guest.
       Prediction.sum('stake_amount'),
     ]);
-    const exchanges = getExchangeVolumesNonBlocking();
+    const exchanges = await getExchangeVolumes();
     const totalVolume = Number(volumeRow || 0);
     const activeMarkets = markets.filter(m => m.status === 'active').length;
     const byCategory = {};
