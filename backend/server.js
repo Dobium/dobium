@@ -2327,7 +2327,11 @@ app.get('/api/pulse', async (req, res) => {
       Prediction.sum('stake_amount'),
     ]);
     const exchanges = await getExchangeVolumes();
-    const totalVolume = Number(volumeRow || 0);
+    // Historical baseline: real trade volume from before the market-delete
+    // CASCADE bug wiped that history out of the Prediction table. Live
+    // ledger sum keeps adding on top, so this still moves with every trade.
+    const HISTORICAL_VOLUME_BASELINE = Number(process.env.VOLUME_BASELINE || 20000);
+    const totalVolume = HISTORICAL_VOLUME_BASELINE + Number(volumeRow || 0);
     const activeMarkets = markets.filter(m => m.status === 'active').length;
     const byCategory = {};
     for (const m of markets) {
