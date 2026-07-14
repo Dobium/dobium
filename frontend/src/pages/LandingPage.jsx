@@ -8,6 +8,23 @@ import { categoryBucket } from '../lib/categories';
 import { MarketGridSkeleton } from '../components/MarketCardSkeleton';
 import WaitlistCard from '../components/WaitlistCard';
 import FeaturedCarousel from '../components/FeaturedCarousel';
+import MajorMarket from '../components/MajorMarket';
+
+const HIPHOP_NAMES = ['carti', 'drake', 'kendrick', 'travis scott', 'don toliver', 'kanye', ' ye ', '21 savage', 'future', 'metro boomin', 'cardi b', 'nicki minaj', 'ice spice', 'lil uzi', 'lil baby', 'gunna', 'yeat', 'ken carson', 'destroy lonely', 'megan thee stallion', 'glorilla', 'latto', 'central cee', 'j. cole', 'j cole', 'lil wayne', '2 chainz', 'young thug', 'asap', 'a$ap', 'tyler'];
+const FESTIVAL_WORDS = ['coachella', 'lollapalooza', 'glastonbury', 'rolling loud', 'bonnaroo', 'festival', 'headlin', 'tour', 'concert'];
+
+function inGenre(m, genre) {
+  const t = (m.title || '').toLowerCase();
+  const bucket = categoryBucket(m.category);
+  switch (genre) {
+    case 'trending': return true; // newest-first feed, everything
+    case 'hiphop': return HIPHOP_NAMES.some((n) => t.includes(n));
+    case 'popculture': return bucket === 'trending' || bucket === 'media';
+    case 'festivals': return FESTIVAL_WORDS.some((w) => t.includes(w));
+    case 'grammys': return m.category === 'awards' || /grammy|oscar|emmy|award|aoty/.test(t);
+    default: return true;
+  }
+}
 
 // Shown if the live waitlist count can't be fetched.
 const WAITLIST_FALLBACK = 347;
@@ -149,7 +166,8 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [waitlistCount, setWaitlistCount] = useState(null);
   const [pulse, setPulse] = useState(null); // { paper_volume_traded, markets_active }
-  const [genre, setGenre] = useState('all'); // all | trending | music | media
+  const [liveFeed, setLiveFeed] = useState(null);
+  const [genre, setGenre] = useState('trending'); // trending | hiphop | popculture | festivals | grammys
 
   // Ground-truth platform stats: sums the real trade ledger server-side, not
   // a cached per-market field — this is the number that can't drift stale.
@@ -160,13 +178,17 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
+    const fetchFeed = () => api.getLatestActivity().then((r) => setLiveFeed(r?.item || null)).catch(() => {});
+    fetchFeed();
+    const feedInterval = setInterval(fetchFeed, 25000);
+    window.addEventListener('dobium:trade', fetchFeed);
     fetchPulse();
     // Live-ish updates without a websocket: poll every 20s, and Dobium
     // refetches immediately the moment the current tab places a trade
     // (see the 'dobium:trade' event dispatched from the trade panel).
     const interval = setInterval(fetchPulse, 20000);
     window.addEventListener('dobium:trade', fetchPulse);
-    return () => { clearInterval(interval); window.removeEventListener('dobium:trade', fetchPulse); };
+    return () => { clearInterval(interval); clearInterval(feedInterval); window.removeEventListener('dobium:trade', fetchPulse); window.removeEventListener('dobium:trade', fetchFeed); };
   }, [fetchPulse]);
 
   useEffect(() => {
@@ -182,7 +204,7 @@ export default function LandingPage() {
   // Genre-filtered feed, newest first
   const feedMarkets = [...markets]
     .filter((m) => m.status === 'active')
-    .filter((m) => genre === 'all' || categoryBucket(m.category) === genre)
+    .filter((m) => inGenre(m, genre))
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
     .slice(0, 12);
 
@@ -195,6 +217,16 @@ export default function LandingPage() {
     .filter((a) => a.count > 0)
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
+
+  // Biggest probability shift across live markets (last two snapshots)
+  const biggestShift = markets
+    .filter((m) => m.status === 'active' && (m.price_history || []).length >= 2)
+    .map((m) => {
+      const lead = leaderOf(m);
+      const d = Math.round(leaderDelta(m, lead));
+      return { name: (m.title || '').replace(/^will\s+/i, '').slice(0, 18), delta: d, abs: Math.abs(d) };
+    })
+    .sort((a, b) => b.abs - a.abs)[0] || null;
   // Newest markets first — a trending site must show what's NEW, not let old
   // demo markets squat the homepage on stale volume forever.
   const topMarkets = [...markets]
@@ -219,10 +251,11 @@ export default function LandingPage() {
             <div className="lg:sticky lg:top-6" style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               <div className="hidden lg:block" style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.1em', color: '#948D87', marginBottom: 8 }}>CATEGORIES</div>
               {[
-                { key: 'all', label: 'All Markets', icon: 'apps' },
                 { key: 'trending', label: 'Trending', icon: 'local_fire_department' },
-                { key: 'music', label: 'Music', icon: 'music_note' },
-                { key: 'media', label: 'Movies & TV', icon: 'movie' },
+                { key: 'hiphop', label: 'Hip Hop', icon: 'mic' },
+                { key: 'popculture', label: 'Pop Culture', icon: 'star' },
+                { key: 'festivals', label: 'Festivals', icon: 'festival' },
+                { key: 'grammys', label: 'Grammys', icon: 'emoji_events' },
               ].map((g) => (
                 <button
                   key={g.key}
@@ -242,6 +275,16 @@ export default function LandingPage() {
                   {g.label}
                 </button>
               ))}
+              {liveFeed && (
+                <div className="hidden lg:block" style={{ width: '100%', marginTop: 22, background: '#181E36', border: '1px solid #33312E', borderRadius: 10, padding: 12 }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.1em', color: '#FFDF9B', marginBottom: 7 }}>LIVE FEED</div>
+                  <p style={{ color: '#8E94AF', fontSize: 11.5, lineHeight: 1.55, margin: 0 }}>
+                    <span style={{ color: '#DCE1FF', fontWeight: 700 }}>{liveFeed.handle}</span> just bet{' '}
+                    <span style={{ color: '#FFDF9B', fontWeight: 700 }}>${Number(liveFeed.stake).toLocaleString('en-US')}</span> on{' '}
+                    <span style={{ color: '#4AE176', fontWeight: 700 }}>{liveFeed.side}</span> for {liveFeed.market}
+                  </p>
+                </div>
+              )}
             </div>
           </aside>
 
@@ -256,15 +299,11 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {!loading && (
-              <div style={{ marginBottom: 26 }}>
-                <FeaturedCarousel markets={markets} />
-              </div>
-            )}
+            {!loading && <MajorMarket markets={markets} />}
 
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', borderBottom: '1px solid #33312E', paddingBottom: 10, marginBottom: 18 }}>
               <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 16, color: '#DCE1FF', margin: 0 }}>
-                {genre === 'all' ? 'All Markets' : genre === 'trending' ? 'Trending' : genre === 'music' ? 'Music Markets' : 'Movies & TV Markets'}
+                {genre === 'trending' ? 'All Markets' : genre === 'hiphop' ? 'All Hip Hop Markets' : genre === 'popculture' ? 'All Pop Culture Markets' : genre === 'festivals' ? 'All Festival Markets' : 'All Awards Markets'}
               </h2>
               <button onClick={() => navigate('/explore')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#D2C5AF', fontFamily: 'var(--mono)', fontSize: 11.5, padding: 0 }}>
                 View all →
@@ -274,7 +313,7 @@ export default function LandingPage() {
             {loading ? (
               <MarketGridSkeleton count={4} />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {feedMarkets.map((m) => <HomeFeedCard key={m.id} market={m} />)}
               </div>
             )}
@@ -297,20 +336,25 @@ export default function LandingPage() {
                     >
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#FFDF9B', width: 18 }}>{i + 1}</span>
                       <span style={{ color: '#DCE1FF', fontSize: 13, fontWeight: 600, flex: 1 }}>{a.name}</span>
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#948D87' }}>{a.count} mkt{a.count === 1 ? '' : 's'}</span>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: '#948D87' }}>{a.count} Market{a.count === 1 ? '' : 's'} Live</span>
                     </button>
                   ))}
+                  <button onClick={() => navigate('/explore')}
+                    style={{ width: '100%', marginTop: 10, background: '#0B1229', border: '1px solid #33312E', borderRadius: 6, padding: '9px 0', cursor: 'pointer', fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.08em', color: '#D2C5AF', fontWeight: 700 }}>
+                    VIEW ALL MARKETS
+                  </button>
                 </div>
               )}
 
               <div style={{ background: '#181E36', border: '1px solid #33312E', borderRadius: 10, padding: 16 }}>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.1em', color: '#948D87', marginBottom: 12 }}>MARKET ANALYTICS</div>
                 {[
-                  ['Paper volume', loading && !pulse ? '—' : compactMoney(totalVolume)],
-                  ['Live markets', loading && !pulse ? '—' : liveMarketsCount.toLocaleString('en-US')],
-                  ['Waitlist', waitlistCount === null ? '—' : waitlistCount.toLocaleString('en-US')],
-                  ...(pulse?.kalshi_24h_volume != null ? [['Kalshi 24h', compactMoney(pulse.kalshi_24h_volume)]] : []),
-                  ...(pulse?.polymarket_24h_volume != null ? [['Polymarket 24h', compactMoney(pulse.polymarket_24h_volume)]] : []),
+                  ['GLOBAL PAPER VOL', loading && !pulse ? '—' : compactMoney(totalVolume)],
+                  ['ACTIVE TRADERS', pulse?.users != null ? pulse.users.toLocaleString('en-US') : '—'],
+                  ['LIVE MARKETS', loading && !pulse ? '—' : liveMarketsCount.toLocaleString('en-US')],
+                  ...(biggestShift ? [['BIGGEST SHIFT', `${biggestShift.name} ${biggestShift.delta > 0 ? '+' : ''}${biggestShift.delta}%`]] : []),
+                  ...(pulse?.kalshi_24h_volume != null ? [['KALSHI 24H', compactMoney(pulse.kalshi_24h_volume)]] : []),
+                  ...(pulse?.polymarket_24h_volume != null ? [['POLYMARKET 24H', compactMoney(pulse.polymarket_24h_volume)]] : []),
                 ].map(([label, value]) => (
                   <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontFamily: 'var(--mono)', fontSize: 12 }}>
                     <span style={{ color: '#948D87' }}>{label}</span>
@@ -318,6 +362,14 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
+
+              <button onClick={scrollToWaitlist}
+                style={{ background: 'linear-gradient(180deg,#FFE9B8,#F0C04A)', border: 'none', borderRadius: 10, padding: 16, cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ fontWeight: 800, fontSize: 13.5, color: '#3A2A00' }}>Customize View</div>
+                <div style={{ fontSize: 11.5, color: '#6B5314', marginTop: 4, lineHeight: 1.5 }}>
+                  Pro Trader dashboard with advanced charts and instant artist alerts — coming soon. Join the waitlist for early access.
+                </div>
+              </button>
             </div>
           </aside>
         </div>

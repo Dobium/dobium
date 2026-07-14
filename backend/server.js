@@ -2314,6 +2314,35 @@ async function getExchangeVolumes() {
   return exchangeVolCache;
 }
 
+// Latest trade for the homepage LIVE FEED box — anonymized handle + market title
+app.get('/api/activity/latest', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try {
+    const last = await Prediction.findOne({
+      order: [['created_at', 'DESC']],
+      include: [
+        { model: Market, as: 'market', attributes: ['title'] },
+        { model: Outcome, as: 'outcome', attributes: ['title'] },
+        { model: User, as: 'user', attributes: ['username'] },
+      ],
+    });
+    if (!last) return res.json({ item: null });
+    const handle = last.user?.username ? `@${last.user.username}` : '@trader';
+    res.json({
+      item: {
+        handle,
+        stake: Number(last.stake_amount || 0),
+        side: (last.outcome?.title || '').slice(0, 24),
+        market: (last.market?.title || '').slice(0, 60),
+        at: last.created_at,
+      },
+    });
+  } catch (error) {
+    console.error('Latest activity error:', error);
+    res.json({ item: null });
+  }
+});
+
 app.get('/api/pulse', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
