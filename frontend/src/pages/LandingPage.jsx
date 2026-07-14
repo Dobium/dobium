@@ -3,7 +3,8 @@ import FlipNumber from '../components/FlipNumber';
 import { useNavigate } from 'react-router-dom';
 import { useMarkets } from '../hooks/useMarkets';
 import { api } from '../api/client';
-import TrendingMarketCard from '../components/TrendingMarketCard';
+import HomeFeedCard from '../components/HomeFeedCard';
+import { categoryBucket } from '../lib/categories';
 import { MarketGridSkeleton } from '../components/MarketCardSkeleton';
 import WaitlistCard from '../components/WaitlistCard';
 import FeaturedCarousel from '../components/FeaturedCarousel';
@@ -148,6 +149,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [waitlistCount, setWaitlistCount] = useState(null);
   const [pulse, setPulse] = useState(null); // { paper_volume_traded, markets_active }
+  const [genre, setGenre] = useState('all'); // all | trending | music | media
 
   // Ground-truth platform stats: sums the real trade ledger server-side, not
   // a cached per-market field — this is the number that can't drift stale.
@@ -176,6 +178,23 @@ export default function LandingPage() {
 
   const totalVolume = pulse ? pulse.paper_volume_traded : markets.reduce((s, m) => s + (m.total_volume || 0), 0);
   const liveMarketsCount = pulse ? pulse.markets_active : markets.length;
+
+  // Genre-filtered feed, newest first
+  const feedMarkets = [...markets]
+    .filter((m) => m.status === 'active')
+    .filter((m) => genre === 'all' || categoryBucket(m.category) === genre)
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+    .slice(0, 12);
+
+  // Trending artists: which names appear across live market titles
+  const ARTIST_NAMES = ['Playboi Carti', 'Don Toliver', 'Kendrick Lamar', 'Drake', 'Taylor Swift',
+    'Rihanna', 'Kanye', 'Travis Scott', 'SZA', 'Bad Bunny', 'Morgan Wallen', 'Ariana Grande',
+    'Billie Eilish', 'The Weeknd', 'Olivia Rodrigo', 'Frank Ocean', 'Beyonc\u00e9'];
+  const trendingArtists = ARTIST_NAMES
+    .map((name) => ({ name, count: markets.filter((m) => m.status === 'active' && (m.title || '').toLowerCase().includes(name.toLowerCase())).length }))
+    .filter((a) => a.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
   // Newest markets first — a trending site must show what's NEW, not let old
   // demo markets squat the homepage on stale volume forever.
   const topMarkets = [...markets]
@@ -192,130 +211,147 @@ export default function LandingPage() {
       <Ticker markets={markets} />
 
       <div className="max-w-7xl mx-auto p-6 lg:p-8">
-        {/* ── Hero ── */}
-        <div style={{ textAlign: 'center', padding: '68px 24px 0' }}>
-          <h1
-            style={{
-              fontFamily: 'var(--wordmark)',
-              fontWeight: 600,
-              fontSize: 'clamp(36px,5.5vw,58px)',
-              lineHeight: 1.15,
-              margin: '0 auto 44px',
-              maxWidth: 720,
-              color: '#FFDF9B',
-            }}
-          >
-            The entertainment
-            <br />
-            prediction market
-          </h1>
+        {/* ── Community-first layout: genre sidebar · feed · trending rail ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-[200px_minmax(0,1fr)_270px] gap-6" style={{ paddingTop: 26 }}>
 
-          <p style={{ color: '#D2C5AF', fontSize: 13.5, margin: '-26px auto 34px', maxWidth: 460 }}>
-            High-stakes predictions on the culture that moves you.
-          </p>
-
-          {/* Featured trending carousel (mockup) */}
-          {!loading && (
-            <div style={{ marginBottom: 44, maxWidth: 1120, marginLeft: 'auto', marginRight: 'auto' }}>
-              <FeaturedCarousel markets={markets} />
+          {/* Left: genre navigation */}
+          <aside>
+            <div className="lg:sticky lg:top-6" style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              <div className="hidden lg:block" style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.1em', color: '#948D87', marginBottom: 8 }}>CATEGORIES</div>
+              {[
+                { key: 'all', label: 'All Markets', icon: 'apps' },
+                { key: 'trending', label: 'Trending', icon: 'local_fire_department' },
+                { key: 'music', label: 'Music', icon: 'music_note' },
+                { key: 'media', label: 'Movies & TV', icon: 'movie' },
+              ].map((g) => (
+                <button
+                  key={g.key}
+                  onClick={() => setGenre(g.key)}
+                  className="lg:w-full"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+                    background: genre === g.key ? '#181E36' : 'transparent',
+                    border: 'none',
+                    borderLeft: genre === g.key ? '2px solid #F0C04A' : '2px solid transparent',
+                    borderRadius: 6, padding: '9px 12px', cursor: 'pointer',
+                    color: genre === g.key ? '#DCE1FF' : '#8E94AF',
+                    fontWeight: 600, fontSize: 13.5,
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 17, color: genre === g.key ? '#FFDF9B' : '#8E94AF' }}>{g.icon}</span>
+                  {g.label}
+                </button>
+              ))}
             </div>
-          )}
+          </aside>
 
-          {/* CTA buttons */}
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 96 }}>
-            <button
-              onClick={() => navigate('/explore')}
-              style={{
-                background: '#F0C04A',
-                color: '#4A3600',
-                fontFamily: 'var(--mono)',
-                fontWeight: 600, fontSize: 13.5,
-                border: 'none', borderRadius: 4,
-                padding: '12px 22px',
-                cursor: 'pointer',
-              }}
-            >
-              Start Predicting
-            </button>
-            <button
-              onClick={scrollToWaitlist}
-              style={{
-                background: 'transparent',
-                color: '#DCE1FF',
-                fontFamily: 'var(--mono)',
-                fontWeight: 500, fontSize: 13.5,
-                border: '1px solid #33312E', borderRadius: 4,
-                padding: '12px 22px',
-                cursor: 'pointer',
-              }}
-            >
-              Join Waitlist for Real Money
-            </button>
-          </div>
+          {/* Center: brand line + featured + feed */}
+          <main style={{ minWidth: 0 }}>
+            <div style={{ marginBottom: 18 }}>
+              <h1 style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 22, color: '#FFDF9B', margin: 0 }}>
+                The entertainment prediction market
+              </h1>
+              <p style={{ color: '#948D87', fontSize: 12.5, margin: '5px 0 0' }}>
+                High-stakes paper predictions on the culture that moves you.
+              </p>
+            </div>
 
-          {/* Stats strip */}
-          <div
-            style={{
-              display: 'flex', flexWrap: 'wrap', alignItems: 'stretch',
-              textAlign: 'left',
-              background: '#181E36',
-              borderRadius: 6, overflow: 'hidden',
-              marginBottom: 40,
-            }}
-          >
-            <StatBlock label="Paper Volume Traded" value={loading && !pulse ? '—' : <FlipNumber text={compactMoney(totalVolume)} />} gold />
-            <div style={{ width: 1, background: '#313136' }} />
-            <StatBlock label="Live Markets" value={loading && !pulse ? '—' : <FlipNumber text={liveMarketsCount.toLocaleString('en-US')} />} />
-            <div style={{ width: 1, background: '#313136' }} />
-            <StatBlock
-              label="Waitlist Count"
-              value={waitlistCount === null ? '—' : <FlipNumber text={waitlistCount.toLocaleString('en-US')} />}
-            />
-            {pulse?.kalshi_24h_volume != null && (
-              <>
-                <div style={{ width: 1, background: '#313136' }} />
-                <StatBlock label="Kalshi 24h Volume" value={<FlipNumber text={compactMoney(pulse.kalshi_24h_volume)} />} />
-              </>
+            {!loading && (
+              <div style={{ marginBottom: 26 }}>
+                <FeaturedCarousel markets={markets} />
+              </div>
             )}
-          </div>
+
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', borderBottom: '1px solid #33312E', paddingBottom: 10, marginBottom: 18 }}>
+              <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 16, color: '#DCE1FF', margin: 0 }}>
+                {genre === 'all' ? 'All Markets' : genre === 'trending' ? 'Trending' : genre === 'music' ? 'Music Markets' : 'Movies & TV Markets'}
+              </h2>
+              <button onClick={() => navigate('/explore')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#D2C5AF', fontFamily: 'var(--mono)', fontSize: 11.5, padding: 0 }}>
+                View all →
+              </button>
+            </div>
+
+            {loading ? (
+              <MarketGridSkeleton count={4} />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {feedMarkets.map((m) => <HomeFeedCard key={m.id} market={m} />)}
+              </div>
+            )}
+            {!loading && feedMarkets.length === 0 && (
+              <p style={{ color: '#948D87', fontSize: 13 }}>No markets in this category yet — check Trending.</p>
+            )}
+          </main>
+
+          {/* Right: trending artists + analytics */}
+          <aside>
+            <div className="lg:sticky lg:top-6" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {trendingArtists.length > 0 && (
+                <div style={{ background: '#181E36', border: '1px solid #33312E', borderRadius: 10, padding: 16 }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.1em', color: '#948D87', marginBottom: 12 }}>TRENDING ARTISTS</div>
+                  {trendingArtists.map((a, i) => (
+                    <button
+                      key={a.name}
+                      onClick={() => navigate(`/explore?q=${encodeURIComponent(a.name)}`)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: '7px 0' }}
+                    >
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#FFDF9B', width: 18 }}>{i + 1}</span>
+                      <span style={{ color: '#DCE1FF', fontSize: 13, fontWeight: 600, flex: 1 }}>{a.name}</span>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#948D87' }}>{a.count} mkt{a.count === 1 ? '' : 's'}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ background: '#181E36', border: '1px solid #33312E', borderRadius: 10, padding: 16 }}>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.1em', color: '#948D87', marginBottom: 12 }}>MARKET ANALYTICS</div>
+                {[
+                  ['Paper volume', loading && !pulse ? '—' : compactMoney(totalVolume)],
+                  ['Live markets', loading && !pulse ? '—' : liveMarketsCount.toLocaleString('en-US')],
+                  ['Waitlist', waitlistCount === null ? '—' : waitlistCount.toLocaleString('en-US')],
+                  ...(pulse?.kalshi_24h_volume != null ? [['Kalshi 24h', compactMoney(pulse.kalshi_24h_volume)]] : []),
+                  ...(pulse?.polymarket_24h_volume != null ? [['Polymarket 24h', compactMoney(pulse.polymarket_24h_volume)]] : []),
+                ].map(([label, value]) => (
+                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontFamily: 'var(--mono)', fontSize: 12 }}>
+                    <span style={{ color: '#948D87' }}>{label}</span>
+                    <span style={{ color: '#DCE1FF', fontWeight: 700 }}>{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </aside>
         </div>
-        {/* ── /Hero ── */}
+
+        {/* ── Stats strip ── */}
+        <div
+          style={{
+            display: 'flex', flexWrap: 'wrap', alignItems: 'stretch',
+            textAlign: 'left',
+            background: '#181E36',
+            borderRadius: 6, overflow: 'hidden',
+            margin: '48px 0 40px',
+          }}
+        >
+          <StatBlock label="Paper Volume Traded" value={loading && !pulse ? '—' : <FlipNumber text={compactMoney(totalVolume)} />} gold />
+          <div style={{ width: 1, background: '#313136' }} />
+          <StatBlock label="Live Markets" value={loading && !pulse ? '—' : <FlipNumber text={liveMarketsCount.toLocaleString('en-US')} />} />
+          <div style={{ width: 1, background: '#313136' }} />
+          <StatBlock
+            label="Waitlist Count"
+            value={waitlistCount === null ? '—' : <FlipNumber text={waitlistCount.toLocaleString('en-US')} />}
+          />
+          {pulse?.kalshi_24h_volume != null && (
+            <>
+              <div style={{ width: 1, background: '#313136' }} />
+              <StatBlock label="Kalshi 24h Volume" value={<FlipNumber text={compactMoney(pulse.kalshi_24h_volume)} />} />
+            </>
+          )}
+        </div>
 
         {/* ── Secure Early Access (waitlist — the #1 priority element) ── */}
         <div id="waitlist" style={{ scrollMarginTop: 24 }}>
           <WaitlistCard />
         </div>
-
-        {/* ── Trending Markets ── */}
-        {!loading && topMarkets.length > 0 && (
-          <div style={{ marginTop: 72, marginBottom: 40 }}>
-            <div
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                flexWrap: 'wrap', gap: 8,
-                borderBottom: '1px solid #33312E',
-                paddingBottom: 14, marginBottom: 28,
-              }}
-            >
-              <h2 style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 19, color: '#DCE1FF', margin: 0 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#FFDF9B' }}>trending_up</span>
-                Trending Markets
-              </h2>
-              <button
-                onClick={() => navigate('/explore')}
-                style={{
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  color: '#D2C5AF', fontFamily: 'var(--mono)', fontSize: 12, padding: 0,
-                }}
-              >
-                View All →
-              </button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-auto">
-              {topMarkets.map((m) => <TrendingMarketCard key={m.id} market={m} />)}
-            </div>
-          </div>
-        )}
 
         {loading && (
           <div style={{ marginTop: 72 }}>
