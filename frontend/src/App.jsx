@@ -14,6 +14,7 @@ import LeaguesPage from './pages/LeaguesPage';
 import LeagueDetailPage from './pages/LeagueDetailPage';
 import UserProfilePage from './pages/UserProfilePage';
 import GlobalLeaderboardPage from './pages/GlobalLeaderboardPage';
+import WaitlistPage from './pages/WaitlistPage';
 
 
 function AppRoutes() {
@@ -46,6 +47,7 @@ function AppRoutes() {
           <Route path="/leagues/leaderboard" element={<GlobalLeaderboardPage />} />
           <Route path="/leagues/:id" element={<LeagueDetailPage />} />
           <Route path="/profile/:id" element={<UserProfilePage />} />
+          <Route path="/waitlist" element={<WaitlistPage />} />
           <Route path="/news" element={<NewsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

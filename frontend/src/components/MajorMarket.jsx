@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 
-// "MAJOR MARKET" hero — the mock's centerpiece: featured question with live
-// probability, total volume, YES/NO buttons with real payout multipliers
-// (from the actual payout formula: win = stake + stake*(1-p)*0.99), plus a
-// 7-day probability chart (solid YES line + dashed NO line, % axis on the
-// right) and the latest headline for the market.
+// "MAJOR MARKET" hero — matched to the reference mock: ONE card, split by an
+// internal vertical divider. Left: badge row, big question, probability +
+// volume stats, large YES/NO payout buttons. Right: 7-day probability chart
+// (solid green YES line, dashed salmon NO line, % axis on the right, 1H/1D/ALL
+// chips) with the LATEST NEWS inset box underneath.
 export default function MajorMarket({ markets }) {
   const navigate = useNavigate();
   const [news, setNews] = useState(null);
@@ -55,10 +55,9 @@ export default function MajorMarket({ markets }) {
     .filter((v) => typeof v === 'number');
   const chartData = points.length >= 2 ? points : [p * 100, p * 100];
 
-  const W = 260; const H = 130; const PAD = 8; const RPAD = 34; // room for the % axis labels
-  const min = 0; const max = 100;
+  const W = 380; const H = 205; const PAD = 10; const RPAD = 42; // room for the % axis labels
   const px = (i) => PAD + (i / (chartData.length - 1)) * (W - PAD - RPAD);
-  const py = (v) => PAD + ((max - v) / (max - min)) * (H - 2 * PAD);
+  const py = (v) => PAD + ((100 - v) / 100) * (H - 2 * PAD);
   const yesPath = chartData.map((v, i) => `${i === 0 ? 'M' : 'L'}${px(i)},${py(v)}`).join(' ');
   const noPath = chartData.map((v, i) => `${i === 0 ? 'M' : 'L'}${px(i)},${py(100 - v)}`).join(' ');
 
@@ -70,102 +69,104 @@ export default function MajorMarket({ markets }) {
   const chanceName = isBinary ? 'YES' : (leader?.title || '').replace(/\s*\((Yes|No)\)\s*$/i, '').slice(0, 12).toUpperCase();
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-4" style={{ marginBottom: 26 }}>
-      {/* Left: the major market card */}
-      <div style={{ background: '#181E36', border: '1px solid #2D344C', borderRadius: 12, padding: 22, cursor: 'pointer' }}
-        onClick={() => navigate(`/markets/${market.id}`)}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', color: '#1a1405', background: 'linear-gradient(180deg,#FFDF9B,#F0C04A)', borderRadius: 4, padding: '4px 8px' }}>
+    <div
+      className="grid grid-cols-1 lg:grid-cols-[minmax(0,58fr)_42fr]"
+      style={{ background: '#161D3A', border: '1px solid #2A3352', borderRadius: 10, marginBottom: 30, overflow: 'hidden' }}
+    >
+      {/* Left: question, stats, YES/NO */}
+      <div
+        style={{ padding: '36px 40px', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
+        onClick={() => navigate(`/markets/${market.id}`)}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', color: '#2A1F00', background: '#F3C74F', borderRadius: 4, padding: '5px 10px' }}>
             MAJOR MARKET
           </span>
           {closes && (
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.06em', color: '#8E94AF' }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: '#AEB6D6' }}>
               CLOSES {closes}
             </span>
           )}
         </div>
 
-        <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 24, lineHeight: 1.25, color: '#DCE1FF', margin: '0 0 18px' }}>
+        <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 28, lineHeight: 1.3, color: '#F2F5FF', margin: '20px 0 22px', maxWidth: 480 }}>
           {market.title}
         </h2>
 
-        <div style={{ display: 'flex', gap: 36, flexWrap: 'wrap', marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 52, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.08em', color: '#8E94AF', marginBottom: 4 }}>{chanceName} PROBABILITY</div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 800, color: '#4AE176' }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: '#8E94AF', marginBottom: 6 }}>{chanceName} PROBABILITY</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 800, color: '#3DDC84' }}>
               {Math.round(p * 100)}%{' '}
               {delta !== 0 && (
-                <span style={{ fontSize: 12, color: delta > 0 ? '#4AE176' : '#FF7B72' }}>({delta > 0 ? '+' : ''}{delta}%)</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#C9CFE8' }}>({delta > 0 ? '+' : ''}{delta}%)</span>
               )}
             </div>
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.08em', color: '#8E94AF', marginBottom: 4 }}>TOTAL VOLUME</div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 800, color: '#DCE1FF' }}>{volLabel}</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: '#8E94AF', marginBottom: 6 }}>TOTAL VOLUME</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 800, color: '#F2F5FF' }}>{volLabel}</div>
           </div>
         </div>
 
+        <div style={{ flex: 1, minHeight: 42 }} />
+
         {isBinary ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
             <button
               onClick={(e) => { e.stopPropagation(); navigate(`/markets/${market.id}`); }}
-              style={{ background: 'rgba(74,225,118,.10)', border: '1px solid #2E7D4F', borderRadius: 8, padding: '13px 10px', cursor: 'pointer', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 14, color: '#4AE176' }}>YES</div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: '#8E94AF', marginTop: 3 }}>Payout: {yesMult}x</div>
+              style={{ background: 'rgba(61,220,132,.07)', border: '1px solid #2E9E63', borderRadius: 6, padding: '13px 10px', cursor: 'pointer', textAlign: 'center' }}>
+              <div style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 16, letterSpacing: '0.04em', color: '#3DDC84' }}>YES</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#8E94AF', marginTop: 5 }}>Payout: {yesMult}x</div>
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); navigate(`/markets/${market.id}`); }}
-              style={{ background: '#232A45', border: '1px solid #3A4160', borderRadius: 8, padding: '13px 10px', cursor: 'pointer', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 14, color: '#DCE1FF' }}>NO</div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: '#8E94AF', marginTop: 3 }}>Payout: {noMult}x</div>
+              style={{ background: 'rgba(240,138,128,.04)', border: '1px solid #7A4A48', borderRadius: 6, padding: '13px 10px', cursor: 'pointer', textAlign: 'center' }}>
+              <div style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 16, letterSpacing: '0.04em', color: '#F08A80' }}>NO</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#8E94AF', marginTop: 5 }}>Payout: {noMult}x</div>
             </button>
           </div>
         ) : (
           <button
             onClick={(e) => { e.stopPropagation(); navigate(`/markets/${market.id}`); }}
-            style={{ width: '100%', background: 'linear-gradient(180deg,#FFDF9B,#F0C04A)', border: 'none', borderRadius: 8, padding: '13px 10px', cursor: 'pointer', fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 13.5, color: '#1a1405' }}>
+            style={{ width: '100%', background: '#F3C74F', border: 'none', borderRadius: 6, padding: '14px 10px', cursor: 'pointer', fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 14, color: '#2A1F00' }}>
             VIEW {outcomes.length} OUTCOMES
           </button>
         )}
       </div>
 
-      {/* Right: 7-day probability chart + latest news */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ background: '#181E36', border: '1px solid #2D344C', borderRadius: 12, padding: 14, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.08em', color: '#8E94AF' }}>7-DAY PROBABILITY CHART</span>
-            <span style={{ display: 'inline-flex', gap: 2 }}>
-              {['1H', '1D', 'ALL'].map((r) => (
-                <span key={r} style={{ fontFamily: 'var(--mono)', fontSize: 9, padding: '3px 7px', borderRadius: 3, background: r === '1H' ? '#F0C04A' : '#0B1229', color: r === '1H' ? '#4A3600' : '#8E94AF', fontWeight: 700 }}>{r}</span>
-              ))}
-            </span>
-          </div>
-          <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-            {[100, 75, 50, 25].map((v) => (
-              <g key={v}>
-                <line x1={PAD} y1={py(v)} x2={W - RPAD} y2={py(v)} stroke="#3A4160" strokeWidth="1" strokeDasharray="1,5" opacity="0.7" />
-                <text x={W - RPAD + 6} y={py(v) + 3} fontSize="8" fill="#8E94AF" fontFamily="var(--mono)">{v}%</text>
-              </g>
+      {/* Right: chart panel behind the internal divider */}
+      <div className="lg:border-l" style={{ borderColor: '#2A3352', padding: '22px 24px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: '#C9CFE8' }}>7-DAY PROBABILITY CHART</span>
+          <span style={{ display: 'inline-flex', gap: 4 }}>
+            {['1H', '1D', 'ALL'].map((r) => (
+              <span key={r} style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', padding: '4px 9px', borderRadius: 4, background: r === '1H' ? '#2A3352' : 'transparent', color: r === '1H' ? '#FFFFFF' : '#6E7694' }}>{r}</span>
             ))}
-            <path d={noPath} fill="none" stroke="#9AA3C4" strokeWidth="1.5" strokeDasharray="4,4" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
-            <path d={yesPath} fill="none" stroke="#4AE176" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx={px(chartData.length - 1)} cy={py(chartData[chartData.length - 1])} r="3.5" fill="#4AE176" />
-          </svg>
+          </span>
         </div>
+
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', flex: 1 }}>
+          {[100, 75, 50, 25, 0].map((v) => (
+            <text key={v} x={W - RPAD + 10} y={py(v) + 3} fontSize="9.5" fill="#6E7694" fontFamily="var(--mono)">{v}%</text>
+          ))}
+          <path d={noPath} fill="none" stroke="#E8837B" strokeWidth="1.6" strokeDasharray="3,4" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+          <path d={yesPath} fill="none" stroke="#3DDC84" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
 
         {news && (
           <a href={news.link} target="_blank" rel="noopener noreferrer"
-            style={{ background: '#181E36', border: '1px solid #2D344C', borderRadius: 12, padding: 14, textDecoration: 'none', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            style={{ background: '#0D1329', border: '1px solid #2A3352', borderRadius: 8, padding: 14, textDecoration: 'none', display: 'flex', gap: 14, alignItems: 'center', marginTop: 14 }}>
             <span style={{
-              width: 34, height: 34, borderRadius: 8, background: '#232A45', flexShrink: 0,
+              width: 48, height: 48, borderRadius: 6, background: '#1E2452', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 17, color: '#8E94AF' }}>graphic_eq</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#7B86D9' }}>album</span>
             </span>
             <span style={{ minWidth: 0 }}>
-              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.08em', color: '#FFDF9B' }}>LATEST NEWS</span>
-              <span style={{ display: 'block', color: '#D2C5AF', fontSize: 12, lineHeight: 1.5, margin: '6px 0 0' }}>
-                {news.title.slice(0, 110)}{news.title.length > 110 ? '…' : ''}
+              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 800, letterSpacing: '0.16em', color: '#E8ECFF' }}>LATEST NEWS</span>
+              <span style={{ display: 'block', color: '#C9CFE8', fontSize: 12.5, lineHeight: 1.5, margin: '5px 0 0' }}>
+                {news.title.slice(0, 100)}{news.title.length > 100 ? '…' : ''}
               </span>
             </span>
           </a>

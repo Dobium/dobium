@@ -50,8 +50,8 @@ function compactStake(n) {
   return `$${Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 }
 
-/* ── News ticker (top of page) — mock format:
-   ● TITLE VOL: $1.8M  -7.3%  ── */
+/* ── Top ticker — mock format on near-black:
+   ● KENDRICK LAMAR VOL: $4.2M +12.4% ── */
 function Ticker({ markets }) {
   const items = [...markets]
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
@@ -70,20 +70,20 @@ function Ticker({ markets }) {
   const loop = [...items, ...items]; // duplicated for a seamless marquee
 
   return (
-    <div style={{ overflow: 'hidden', borderBottom: '1px solid #1B2240', background: '#060D24', whiteSpace: 'nowrap' }}>
-      <div className="dbm-ticker-track" style={{ display: 'inline-flex', alignItems: 'center', padding: '8px 0' }}>
+    <div style={{ overflow: 'hidden', background: '#020409', whiteSpace: 'nowrap' }}>
+      <div className="dbm-ticker-track" style={{ display: 'inline-flex', alignItems: 'center', padding: '9px 0' }}>
         {loop.map((it, i) => (
           <span
             key={`${it.id}-${i}`}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
-              margin: '0 26px', fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700,
+              margin: '0 30px', fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
             }}
           >
-            <span style={{ width: 6, height: 6, borderRadius: 999, background: i % 2 === 0 ? '#F0C04A' : '#4AE176', display: 'inline-block', flexShrink: 0 }} />
-            <span style={{ color: '#DCE1FF', letterSpacing: '0.04em' }}>{it.title}</span>
-            <span style={{ color: '#8E94AF' }}>VOL: <span style={{ color: '#DCE1FF' }}>{it.vol}</span></span>
-            <span style={{ color: it.delta < 0 ? '#FF7B72' : '#4AE176' }}>
+            <span style={{ width: 6, height: 6, borderRadius: 999, background: '#3DDC84', display: 'inline-block', flexShrink: 0 }} />
+            <span style={{ color: '#E8ECFF' }}>{it.title} VOL:</span>
+            <span style={{ color: '#FFFFFF', fontWeight: 800 }}>{it.vol}</span>
+            <span style={{ color: it.delta < 0 ? '#F0655B' : '#3DDC84', fontWeight: 800 }}>
               {it.delta >= 0 ? '+' : ''}{it.delta.toFixed(1)}%
             </span>
           </span>
@@ -97,6 +97,14 @@ function Ticker({ markets }) {
     </div>
   );
 }
+
+const CATEGORIES = [
+  { key: 'trending', label: 'Trending', icon: 'trending_up' },
+  { key: 'hiphop', label: 'Hip Hop', icon: 'music_note' },
+  { key: 'popculture', label: 'Pop Culture', icon: 'bolt' },
+  { key: 'festivals', label: 'Festivals', icon: 'festival' },
+  { key: 'grammys', label: 'Grammys', icon: 'emoji_events' },
+];
 
 export default function LandingPage() {
   const { markets, loading } = useMarkets();
@@ -161,166 +169,195 @@ export default function LandingPage() {
           : genre === 'festivals' ? 'All Festival Markets'
             : 'All Awards Markets';
 
+  const liveFeedCard = liveFeed && (
+    <div style={{ background: '#161D3A', border: '1px solid #2A3352', borderRadius: 8, padding: 13 }}>
+      <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.16em', color: '#F3C74F', marginBottom: 8 }}>LIVE FEED</div>
+      <p style={{ color: '#8E94AF', fontSize: 11.5, lineHeight: 1.6, margin: 0 }}>
+        User <span style={{ color: '#F2F5FF', fontWeight: 700 }}>@{String(liveFeed.handle || '').replace(/^@/, '')}</span> just bet{' '}
+        <span style={{ color: '#F3C74F', fontWeight: 700 }}>{compactStake(Number(liveFeed.stake))}</span> on{' '}
+        <span style={{ color: '#3DDC84', fontWeight: 700 }}>{liveFeed.side}</span> for {liveFeed.market}
+      </p>
+    </div>
+  );
+
   return (
-    <div style={{ background: '#0B1229' }}>
+    <div style={{ background: '#0A1128' }}>
       <Ticker markets={markets} />
 
-      <div className="max-w-7xl mx-auto p-6 lg:p-8">
-        {/* ── Mock layout: genre sidebar · feed · trending rail ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[190px_minmax(0,1fr)_270px] gap-6" style={{ paddingTop: 8 }}>
+      {/* ── Mock structure: full-height bordered sidebar · content (main + rail) ── */}
+      <div style={{ display: 'flex', alignItems: 'stretch' }}>
 
-          {/* Left: genre navigation */}
-          <aside>
-            <div className="lg:sticky lg:top-6" style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 5 }}>
-              <div className="hidden lg:block" style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em', color: '#8E94AF', marginBottom: 8 }}>CATEGORIES</div>
-              {[
-                { key: 'trending', label: 'Trending', icon: 'local_fire_department' },
-                { key: 'hiphop', label: 'Hip Hop', icon: 'mic' },
-                { key: 'popculture', label: 'Pop Culture', icon: 'star' },
-                { key: 'festivals', label: 'Festivals', icon: 'festival' },
-                { key: 'grammys', label: 'Grammys', icon: 'emoji_events' },
-              ].map((g) => (
+        {/* Left: full-height category rail (desktop) */}
+        <aside className="hidden lg:block" style={{ width: 248, flexShrink: 0, borderRight: '1px solid #1B2240' }}>
+          <div style={{ position: 'sticky', top: 63, padding: '22px 16px' }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', color: '#5E668A', margin: '0 0 14px 6px' }}>CATEGORIES</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {CATEGORIES.map((g) => (
                 <button
                   key={g.key}
                   onClick={() => setGenre(g.key)}
-                  className="lg:w-full"
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
-                    background: genre === g.key ? '#1E2540' : 'transparent',
+                    display: 'flex', alignItems: 'center', gap: 13, textAlign: 'left', width: '100%',
+                    background: genre === g.key ? '#262E4E' : 'transparent',
                     border: 'none',
-                    borderRadius: 8, padding: '10px 12px', cursor: 'pointer',
-                    color: genre === g.key ? '#DCE1FF' : '#8E94AF',
-                    fontWeight: 600, fontSize: 13.5,
+                    borderRadius: 8, padding: '13px 14px', cursor: 'pointer',
+                    color: genre === g.key ? '#E8ECFF' : '#7E86A6',
+                    fontWeight: 600, fontSize: 15,
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: 17, color: genre === g.key ? '#DCE1FF' : '#8E94AF' }}>{g.icon}</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 19, color: genre === g.key ? '#E8ECFF' : '#7E86A6' }}>{g.icon}</span>
                   {g.label}
                 </button>
               ))}
-              {liveFeed && (
-                <div className="hidden lg:block" style={{ width: '100%', marginTop: 130, background: '#181E36', border: '1px solid #2D344C', borderRadius: 10, padding: 12 }}>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.1em', color: '#FFDF9B', marginBottom: 7 }}>LIVE FEED</div>
-                  <p style={{ color: '#8E94AF', fontSize: 11.5, lineHeight: 1.55, margin: 0 }}>
-                    User <span style={{ color: '#DCE1FF', fontWeight: 700 }}>@{String(liveFeed.handle || '').replace(/^@/, '')}</span> just bet{' '}
-                    <span style={{ color: '#FFDF9B', fontWeight: 700 }}>{compactStake(Number(liveFeed.stake))}</span> on{' '}
-                    <span style={{ color: '#4AE176', fontWeight: 700 }}>{liveFeed.side}</span> for {liveFeed.market}
-                  </p>
-                </div>
-              )}
             </div>
-          </aside>
-
-          {/* Center: major market + feed */}
-          <main style={{ minWidth: 0 }}>
-            {!loading && <MajorMarket markets={markets} />}
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, marginBottom: 14, marginTop: 6 }}>
-              <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 19, color: '#DCE1FF', margin: 0 }}>
-                {feedHeading}
-              </h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <button onClick={() => navigate('/explore')} aria-label="Filter markets"
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#8E94AF', padding: 4, display: 'flex' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>filter_list</span>
-                </button>
-                <button onClick={() => navigate('/explore')} aria-label="View all markets"
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#8E94AF', padding: 4, display: 'flex' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>grid_view</span>
-                </button>
-              </div>
+            <div style={{ marginTop: 240 }}>
+              {liveFeedCard}
             </div>
+          </div>
+        </aside>
 
-            {loading ? (
-              <MarketGridSkeleton count={4} />
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {feedMarkets.map((m) => <HomeFeedCard key={m.id} market={m} />)}
-              </div>
-            )}
-            {!loading && feedMarkets.length === 0 && (
-              <p style={{ color: '#8E94AF', fontSize: 13 }}>No markets in this category yet — check Trending.</p>
-            )}
-          </main>
+        {/* Content column */}
+        <div style={{ flex: 1, minWidth: 0, padding: '18px 24px 0' }}>
 
-          {/* Right: trending artists + analytics + customize view */}
-          <aside>
-            <div className="lg:sticky lg:top-6" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {trendingArtists.length > 0 && (
-                <div style={{ background: '#181E36', border: '1px solid #2D344C', borderRadius: 10, padding: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                    <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 14.5, color: '#DCE1FF' }}>Trending Artists</span>
-                    <span className="material-symbols-outlined" style={{ fontSize: 15, color: '#F0C04A' }}>auto_awesome</span>
-                  </div>
-                  {trendingArtists.map((a, i) => (
-                    <button
-                      key={a.name}
-                      onClick={() => navigate(`/explore?q=${encodeURIComponent(a.name)}`)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0' }}
-                    >
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#8E94AF', width: 16, flexShrink: 0 }}>{String(i + 1).padStart(2, '0')}</span>
-                      <span style={{
-                        width: 32, height: 32, borderRadius: 999, background: '#232A45', flexShrink: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#8E94AF', fontWeight: 700, fontSize: 12,
-                      }}>{a.name.charAt(0)}</span>
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ display: 'block', color: '#DCE1FF', fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
-                        <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 9.5, color: '#8E94AF', marginTop: 2 }}>{a.count} Market{a.count === 1 ? '' : 's'} Live</span>
-                      </span>
-                      <span className="material-symbols-outlined" style={{ fontSize: 15, color: '#4AE176', flexShrink: 0 }}>trending_up</span>
-                    </button>
-                  ))}
-                  <button onClick={() => navigate('/leagues/leaderboard')}
-                    style={{ width: '100%', marginTop: 12, background: '#0B1229', border: '1px solid #2D344C', borderRadius: 6, padding: '9px 0', cursor: 'pointer', fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.1em', color: '#8E94AF', fontWeight: 700 }}>
-                    VIEW ALL LEADERS
+          {/* Mobile category chips */}
+          <div className="flex flex-wrap lg:hidden" style={{ gap: 6, marginBottom: 16 }}>
+            {CATEGORIES.map((g) => (
+              <button
+                key={g.key}
+                onClick={() => setGenre(g.key)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  background: genre === g.key ? '#262E4E' : 'transparent',
+                  border: 'none', borderRadius: 8, padding: '9px 12px', cursor: 'pointer',
+                  color: genre === g.key ? '#E8ECFF' : '#7E86A6',
+                  fontWeight: 600, fontSize: 13.5,
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{g.icon}</span>
+                {g.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_290px] gap-8">
+
+            {/* Center: major market + feed */}
+            <main style={{ minWidth: 0 }}>
+              {!loading && <MajorMarket markets={markets} />}
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+                <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 20, color: '#F2F5FF', margin: 0 }}>
+                  {feedHeading}
+                </h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button onClick={() => navigate('/explore')} aria-label="Filter markets"
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#7E86A6', padding: 4, display: 'flex' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 19 }}>filter_list</span>
+                  </button>
+                  <button onClick={() => navigate('/explore')} aria-label="View all markets"
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#7E86A6', padding: 4, display: 'flex' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 19 }}>grid_view</span>
                   </button>
                 </div>
-              )}
-
-              <div style={{ background: '#181E36', border: '1px solid #2D344C', borderRadius: 10, padding: 16 }}>
-                <div style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 14.5, color: '#DCE1FF', marginBottom: 12 }}>Market Analytics</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0B1229', borderRadius: 6, padding: '10px 12px' }}>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.06em', color: '#8E94AF' }}>GLOBAL VOL (24H)</span>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 800, color: '#DCE1FF' }}>{loading && !pulse ? '—' : compactMoney(totalVolume)}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0B1229', borderRadius: 6, padding: '10px 12px' }}>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.06em', color: '#8E94AF' }}>ACTIVE TRADERS</span>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 800, color: '#DCE1FF' }}>{pulse?.users != null ? pulse.users.toLocaleString('en-US') : '—'}</span>
-                  </div>
-                  {biggestShift && (
-                    <div style={{ background: '#0B1229', borderRadius: 6, padding: '10px 12px' }}>
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.06em', color: '#8E94AF', marginBottom: 5 }}>HIGHEST PROBABILITY SHIFT</div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ color: '#DCE1FF', fontSize: 12.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{biggestShift.name}</span>
-                        <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 800, color: biggestShift.delta < 0 ? '#FF7B72' : '#4AE176', flexShrink: 0, marginLeft: 8 }}>
-                          {biggestShift.delta > 0 ? '+' : ''}{biggestShift.delta}%
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
 
-              <button onClick={() => navigate('/portfolio')}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: 'linear-gradient(180deg,#FFE9B8,#F0C04A)', border: 'none', borderRadius: 10, padding: '16px 16px', cursor: 'pointer', textAlign: 'left' }}>
-                <span>
-                  <span style={{ display: 'block', fontWeight: 800, fontSize: 14, color: '#3A2A00' }}>Customize View</span>
-                  <span style={{ display: 'block', fontSize: 11.5, color: '#6B5314', marginTop: 4, lineHeight: 1.5 }}>
-                    Switch to 'Pro Trader' dashboard for advanced charts
-                  </span>
-                </span>
-                <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#3A2A00', flexShrink: 0 }}>chevron_right</span>
-              </button>
-            </div>
-          </aside>
-        </div>
+              {loading ? (
+                <MarketGridSkeleton count={4} />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  {feedMarkets.map((m) => <HomeFeedCard key={m.id} market={m} />)}
+                </div>
+              )}
+              {!loading && feedMarkets.length === 0 && (
+                <p style={{ color: '#7E86A6', fontSize: 13 }}>No markets in this category yet — check Trending.</p>
+              )}
 
-        {loading && (
-          <div style={{ marginTop: 72 }}>
-            <MarketGridSkeleton count={3} />
+              {/* Live feed shown inline on mobile where the sidebar is hidden */}
+              <div className="lg:hidden" style={{ marginTop: 18 }}>
+                {liveFeedCard}
+              </div>
+            </main>
+
+            {/* Right rail */}
+            <aside>
+              <div className="lg:sticky lg:top-20" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {trendingArtists.length > 0 && (
+                  <div style={{ background: '#161D3A', border: '1px solid #2A3352', borderRadius: 10, padding: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                      <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 13.5, color: '#F3C74F' }}>Trending Artists</span>
+                      <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#F3C74F' }}>auto_awesome</span>
+                    </div>
+                    {trendingArtists.map((a, i) => (
+                      <button
+                        key={a.name}
+                        onClick={() => navigate(`/explore?q=${encodeURIComponent(a.name)}`)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: '9px 0' }}
+                      >
+                        <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, color: '#6E7694', width: 14, flexShrink: 0 }}>{i + 1}</span>
+                        <span style={{
+                          width: 30, height: 30, borderRadius: 999, background: '#1B2150', flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: '#6F7BD9', fontWeight: 700, fontSize: 11.5,
+                        }}>{a.name.charAt(0)}</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: 'block', color: '#F2F5FF', fontSize: 12.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
+                          <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 9.5, color: '#8E94AF', marginTop: 3 }}>{a.count} Market{a.count === 1 ? '' : 's'} Live</span>
+                        </span>
+                        <span className="material-symbols-outlined" style={{ fontSize: 15, color: '#3DDC84', flexShrink: 0 }}>show_chart</span>
+                      </button>
+                    ))}
+                    <button onClick={() => navigate('/leagues/leaderboard')}
+                      style={{ width: '100%', marginTop: 12, background: '#0D1329', border: '1px solid #2A3352', borderRadius: 6, padding: '10px 0', cursor: 'pointer', fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: '#AEB6D6' }}>
+                      VIEW ALL LEADERS
+                    </button>
+                  </div>
+                )}
+
+                <div style={{ background: '#161D3A', border: '1px solid #2A3352', borderRadius: 10, padding: 16 }}>
+                  <div style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 13.5, color: '#F3C74F', marginBottom: 12 }}>Market Analytics</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0D1329', borderRadius: 4, padding: '10px 12px' }}>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#8E94AF' }}>GLOBAL VOL (24H)</span>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, fontWeight: 800, color: '#F2F5FF' }}>{loading && !pulse ? '—' : compactMoney(totalVolume)}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0D1329', borderRadius: 4, padding: '10px 12px' }}>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#8E94AF' }}>ACTIVE TRADERS</span>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, fontWeight: 800, color: '#F2F5FF' }}>{pulse?.users != null ? pulse.users.toLocaleString('en-US') : '—'}</span>
+                    </div>
+                    {biggestShift && (
+                      <div style={{ background: '#0D1329', borderRadius: 4, padding: '10px 12px' }}>
+                        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#8E94AF', marginBottom: 6 }}>HIGHEST PROBABILITY SHIFT</div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#F2F5FF', fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{biggestShift.name}</span>
+                          <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 800, color: biggestShift.delta < 0 ? '#F0655B' : '#3DDC84', flexShrink: 0, marginLeft: 8 }}>
+                            {biggestShift.delta > 0 ? '+' : ''}{biggestShift.delta}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <button onClick={() => navigate('/portfolio')}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: '#F3C74F', border: 'none', borderRadius: 8, padding: '14px 14px', cursor: 'pointer', textAlign: 'left' }}>
+                  <span>
+                    <span style={{ display: 'block', fontWeight: 800, fontSize: 13.5, color: '#2A1F00' }}>Customize View</span>
+                    <span style={{ display: 'block', fontSize: 11, color: '#5C4A10', marginTop: 4, lineHeight: 1.45 }}>
+                      Switch to 'Pro Trader' dashboard for advanced charts.
+                    </span>
+                  </span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#2A1F00', flexShrink: 0 }}>chevron_right</span>
+                </button>
+              </div>
+            </aside>
           </div>
-        )}
+
+          {loading && (
+            <div style={{ marginTop: 72 }}>
+              <MarketGridSkeleton count={3} />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
