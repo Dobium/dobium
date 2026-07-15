@@ -1,9 +1,23 @@
 import { useNavigate } from 'react-router-dom';
-import { bucketLabel } from '../lib/categories';
+
+// Per-category chip colors from the reference mock (FESTIVALS green,
+// AWARDS gold); everything else stays in the same palette family.
+const CHIP_COLORS = [
+  [/festival/, '#3DDC84'],
+  [/award|grammy/, '#F3C74F'],
+  [/music|hip ?hop/, '#F0857B'],
+  [/entertainment|media|movie|tv|streaming|celebrity|culture|gaming/, '#8F9BE8'],
+];
+function chipColor(category) {
+  const c = (category || '').toLowerCase();
+  for (const [re, color] of CHIP_COLORS) if (re.test(c)) return color;
+  return '#F3C74F';
+}
 
 // Home-feed market card — matched to the reference mock: big deep-indigo
-// square tile with a small glyph, gold category chip + VOL line, bold
-// question, YES/NO label-over-value stats, blue Yes / dark No buttons.
+// square tile with a small glyph, colored category chip + VOL line, bold
+// question, YES/NO label-over-value stats, blue Yes / dark No buttons
+// bottom-aligned with the stats row.
 export default function HomeFeedCard({ market }) {
   const navigate = useNavigate();
   const outcomes = market.outcomes || [];
@@ -38,7 +52,7 @@ export default function HomeFeedCard({ market }) {
     >
       {/* Artwork placeholder tile — deep indigo with a small glyph */}
       <span style={{
-        width: 128, height: 128, borderRadius: 8, background: '#1B2150', flexShrink: 0,
+        width: 140, height: 140, borderRadius: 8, background: '#1B2150', flexShrink: 0,
         alignItems: 'center', justifyContent: 'center',
       }} className="hidden sm:flex">
         <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#6F7BD9' }}>image</span>
@@ -46,8 +60,8 @@ export default function HomeFeedCard({ market }) {
 
       <div style={{ flex: 1, minWidth: 0, padding: '4px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 9 }}>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', color: '#2A1F00', background: '#F3C74F', borderRadius: 3, padding: '3px 8px' }}>
-            {bucketLabel(market.category).toUpperCase()}
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', color: chipColor(market.category), background: `${chipColor(market.category)}1F`, borderRadius: 3, padding: '3px 8px' }}>
+            {(market.category || 'trending').toUpperCase()}
           </span>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', color: '#D2C5AF' }}>VOL: {volLabel}</span>
         </div>
@@ -73,7 +87,7 @@ export default function HomeFeedCard({ market }) {
       </div>
 
       {isBinary && (
-        <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 10, flexShrink: 0, alignSelf: 'flex-end', paddingBottom: 6 }}>
           <button onClick={(e) => { e.stopPropagation(); go(); }}
             style={{ fontWeight: 700, fontSize: 13, background: '#3E4FD8', border: 'none', color: '#FFFFFF', borderRadius: 6, padding: '8px 22px', cursor: 'pointer' }}>
             Yes

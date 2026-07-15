@@ -6,7 +6,7 @@ import { useWallet } from '../hooks/useWallet';
 const LINKS = [
   { label: 'Markets', to: '/' },
   { label: 'Explore', to: '/explore' },
-  { label: 'Charts', to: '/portfolio' },
+  { label: 'Paper Portfolio', to: '/portfolio' },
   { label: 'Awards', to: '/explore?filter=awards' },
   { label: 'Waitlist', to: '/waitlist' },
 ];
@@ -77,7 +77,7 @@ function PortfolioBlock({ balance, buttonAction, menuItems }) {
           fontFamily: 'var(--wordmark)',
         }}
       >
-        Portfolio
+        Join Waitlist
       </button>
 
       {open && (
@@ -205,7 +205,7 @@ export default function TopNav() {
           const q = e.currentTarget.q.value.trim();
           navigate(q ? `/explore?q=${encodeURIComponent(q)}` : '/explore');
         }}
-        style={{ position: 'relative', flex: '1 1 240px', maxWidth: 300, minWidth: 130, marginLeft: 'auto' }}
+        style={{ position: 'relative', flex: '1 1 240px', maxWidth: 240, minWidth: 130, marginLeft: 'auto' }}
       >
         <span className="material-symbols-outlined" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 17, color: '#8E94AF', pointerEvents: 'none' }}>
           search
@@ -225,13 +225,13 @@ export default function TopNav() {
       {session ? (
         <PortfolioBlock
           balance={balance}
-          buttonAction={() => navigate('/portfolio')}
+          buttonAction={() => navigate('/waitlist')}
           menuItems={loggedInMenu}
         />
       ) : (
         <PortfolioBlock
           balance={balance || 100}
-          buttonAction={() => openAuthModal('signup')}
+          buttonAction={() => navigate('/waitlist')}
           menuItems={guestMenu}
         />
       )}

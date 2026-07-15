@@ -70,7 +70,7 @@ function Ticker({ markets }) {
   const loop = [...items, ...items]; // duplicated for a seamless marquee
 
   return (
-    <div style={{ overflow: 'hidden', background: '#020409', whiteSpace: 'nowrap' }}>
+    <div style={{ overflow: 'hidden', background: '#070D1F', whiteSpace: 'nowrap' }}>
       <div className="dbm-ticker-track" style={{ display: 'inline-flex', alignItems: 'center', padding: '9px 0' }}>
         {loop.map((it, i) => (
           <span
@@ -102,7 +102,7 @@ const CATEGORIES = [
   { key: 'trending', label: 'Trending', icon: 'trending_up' },
   { key: 'hiphop', label: 'Hip Hop', icon: 'music_note' },
   { key: 'popculture', label: 'Pop Culture', icon: 'bolt' },
-  { key: 'festivals', label: 'Festivals', icon: 'festival' },
+  { key: 'festivals', label: 'Festivals', icon: 'account_balance' },
   { key: 'grammys', label: 'Grammys', icon: 'emoji_events' },
 ];
 
@@ -147,7 +147,11 @@ export default function LandingPage() {
     'Rihanna', 'Kanye', 'Travis Scott', 'SZA', 'Bad Bunny', 'Morgan Wallen', 'Ariana Grande',
     'Billie Eilish', 'The Weeknd', 'Olivia Rodrigo', 'Frank Ocean', 'Beyonc\u00e9', 'Chappell Roan', 'Ice Spice'];
   const trendingArtists = ARTIST_NAMES
-    .map((name) => ({ name, count: markets.filter((m) => m.status === 'active' && (m.title || '').toLowerCase().includes(name.toLowerCase())).length }))
+    .map((name) => {
+      const theirs = markets.filter((m) => m.status === 'active' && (m.title || '').toLowerCase().includes(name.toLowerCase()));
+      const momentum = theirs.reduce((s2, m) => s2 + leaderDelta(m, leaderOf(m)), 0);
+      return { name, count: theirs.length, momentum };
+    })
     .filter((a) => a.count > 0)
     .sort((a, b) => b.count - a.count)
     .slice(0, 3);
@@ -173,7 +177,7 @@ export default function LandingPage() {
     <div style={{ background: '#161D3A', border: '1px solid #2A3352', borderRadius: 8, padding: 13 }}>
       <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.16em', color: '#F3C74F', marginBottom: 8 }}>LIVE FEED</div>
       <p style={{ color: '#8E94AF', fontSize: 11.5, lineHeight: 1.6, margin: 0 }}>
-        User <span style={{ color: '#F2F5FF', fontWeight: 700 }}>@{String(liveFeed.handle || '').replace(/^@/, '')}</span> just bet{' '}
+        User <span style={{ color: '#F2F5FF', fontWeight: 700 }}>@{String(liveFeed.handle || '').replace(/^@/, '')}</span> just traded{' '}
         <span style={{ color: '#F3C74F', fontWeight: 700 }}>{compactStake(Number(liveFeed.stake))}</span> on{' '}
         <span style={{ color: '#3DDC84', fontWeight: 700 }}>{liveFeed.side}</span> for {liveFeed.market}
       </p>
@@ -198,19 +202,19 @@ export default function LandingPage() {
                   onClick={() => setGenre(g.key)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 13, textAlign: 'left', width: '100%',
-                    background: genre === g.key ? '#262E4E' : 'transparent',
+                    background: genre === g.key ? '#3D4768' : 'transparent',
                     border: 'none',
                     borderRadius: 8, padding: '13px 14px', cursor: 'pointer',
-                    color: genre === g.key ? '#E8ECFF' : '#7E86A6',
+                    color: genre === g.key ? '#DDE4FF' : '#8E96B8',
                     fontWeight: 600, fontSize: 15,
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: 19, color: genre === g.key ? '#E8ECFF' : '#7E86A6' }}>{g.icon}</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 19, color: genre === g.key ? '#DDE4FF' : '#8E96B8' }}>{g.icon}</span>
                   {g.label}
                 </button>
               ))}
             </div>
-            <div style={{ marginTop: 240 }}>
+            <div style={{ borderTop: '1px solid #1B2240', marginTop: 230, paddingTop: 18 }}>
               {liveFeedCard}
             </div>
           </div>
@@ -227,9 +231,9 @@ export default function LandingPage() {
                 onClick={() => setGenre(g.key)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
-                  background: genre === g.key ? '#262E4E' : 'transparent',
+                  background: genre === g.key ? '#3D4768' : 'transparent',
                   border: 'none', borderRadius: 8, padding: '9px 12px', cursor: 'pointer',
-                  color: genre === g.key ? '#E8ECFF' : '#7E86A6',
+                  color: genre === g.key ? '#DDE4FF' : '#8E96B8',
                   fontWeight: 600, fontSize: 13.5,
                 }}
               >
@@ -283,8 +287,8 @@ export default function LandingPage() {
               <div className="lg:sticky lg:top-20" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 {trendingArtists.length > 0 && (
                   <div style={{ background: '#161D3A', border: '1px solid #2A3352', borderRadius: 10, padding: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                      <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 13.5, color: '#F3C74F' }}>Trending Artists</span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, paddingBottom: 10, borderBottom: '1px solid #2A3352' }}>
+                      <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 13.5, color: '#E8ECFF' }}>Trending Artists</span>
                       <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#F3C74F' }}>auto_awesome</span>
                     </div>
                     {trendingArtists.map((a, i) => (
@@ -293,17 +297,17 @@ export default function LandingPage() {
                         onClick={() => navigate(`/explore?q=${encodeURIComponent(a.name)}`)}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: '9px 0' }}
                       >
-                        <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, color: '#6E7694', width: 14, flexShrink: 0 }}>{i + 1}</span>
+                        <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, color: '#6E7694', width: 16, flexShrink: 0 }}>{String(i + 1).padStart(2, '0')}</span>
                         <span style={{
-                          width: 30, height: 30, borderRadius: 999, background: '#1B2150', flexShrink: 0,
+                          width: 30, height: 30, borderRadius: 999, background: '#2A346B', flexShrink: 0,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: '#6F7BD9', fontWeight: 700, fontSize: 11.5,
+                          color: '#8FA0E8', fontWeight: 700, fontSize: 11.5,
                         }}>{a.name.charAt(0)}</span>
                         <span style={{ flex: 1, minWidth: 0 }}>
                           <span style={{ display: 'block', color: '#F2F5FF', fontSize: 12.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
                           <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 9.5, color: '#8E94AF', marginTop: 3 }}>{a.count} Market{a.count === 1 ? '' : 's'} Live</span>
                         </span>
-                        <span className="material-symbols-outlined" style={{ fontSize: 15, color: '#3DDC84', flexShrink: 0 }}>show_chart</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: 15, color: a.momentum < 0 ? '#F0857B' : '#3DDC84', flexShrink: 0 }}>{a.momentum < 0 ? 'trending_down' : 'trending_up'}</span>
                       </button>
                     ))}
                     <button onClick={() => navigate('/leagues/leaderboard')}
@@ -316,16 +320,16 @@ export default function LandingPage() {
                 <div style={{ background: '#161D3A', border: '1px solid #2A3352', borderRadius: 10, padding: 16 }}>
                   <div style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 13.5, color: '#F3C74F', marginBottom: 12 }}>Market Analytics</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0D1329', borderRadius: 4, padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#10172E', border: '1px solid #2A3352', borderRadius: 4, padding: '10px 12px' }}>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#8E94AF' }}>GLOBAL VOL (24H)</span>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, fontWeight: 800, color: '#F2F5FF' }}>{loading && !pulse ? '—' : compactMoney(totalVolume)}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0D1329', borderRadius: 4, padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#10172E', border: '1px solid #2A3352', borderRadius: 4, padding: '10px 12px' }}>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#8E94AF' }}>ACTIVE TRADERS</span>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, fontWeight: 800, color: '#F2F5FF' }}>{pulse?.users != null ? pulse.users.toLocaleString('en-US') : '—'}</span>
                     </div>
                     {biggestShift && (
-                      <div style={{ background: '#0D1329', borderRadius: 4, padding: '10px 12px' }}>
+                      <div style={{ background: '#10172E', border: '1px solid #2A3352', borderRadius: 4, padding: '10px 12px' }}>
                         <div style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#8E94AF', marginBottom: 6 }}>HIGHEST PROBABILITY SHIFT</div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <span style={{ color: '#F2F5FF', fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{biggestShift.name}</span>

@@ -89,7 +89,7 @@ export default function MajorMarket({ markets }) {
           )}
         </div>
 
-        <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 28, lineHeight: 1.3, color: '#F2F5FF', margin: '20px 0 22px', maxWidth: 480 }}>
+        <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 31, lineHeight: 1.3, color: '#F2F5FF', margin: '20px 0 22px', maxWidth: 480 }}>
           {market.title}
         </h2>
 
@@ -115,13 +115,13 @@ export default function MajorMarket({ markets }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
             <button
               onClick={(e) => { e.stopPropagation(); navigate(`/markets/${market.id}`); }}
-              style={{ background: 'rgba(61,220,132,.07)', border: '1px solid #2E9E63', borderRadius: 6, padding: '13px 10px', cursor: 'pointer', textAlign: 'center' }}>
+              style={{ background: 'rgba(61,220,132,.07)', border: '1px solid #3FAE6E', borderRadius: 6, padding: '13px 10px', cursor: 'pointer', textAlign: 'center' }}>
               <div style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 16, letterSpacing: '0.04em', color: '#3DDC84' }}>YES</div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#8E94AF', marginTop: 5 }}>Payout: {yesMult}x</div>
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); navigate(`/markets/${market.id}`); }}
-              style={{ background: 'rgba(240,138,128,.04)', border: '1px solid #7A4A48', borderRadius: 6, padding: '13px 10px', cursor: 'pointer', textAlign: 'center' }}>
+              style={{ background: 'rgba(201,138,130,.05)', border: '1px solid #C98A82', borderRadius: 6, padding: '13px 10px', cursor: 'pointer', textAlign: 'center' }}>
               <div style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 16, letterSpacing: '0.04em', color: '#F08A80' }}>NO</div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#8E94AF', marginTop: 5 }}>Payout: {noMult}x</div>
             </button>
@@ -141,7 +141,7 @@ export default function MajorMarket({ markets }) {
           <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: '#C9CFE8' }}>7-DAY PROBABILITY CHART</span>
           <span style={{ display: 'inline-flex', gap: 4 }}>
             {['1H', '1D', 'ALL'].map((r) => (
-              <span key={r} style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', padding: '4px 9px', borderRadius: 4, background: r === '1H' ? '#2A3352' : 'transparent', color: r === '1H' ? '#FFFFFF' : '#6E7694' }}>{r}</span>
+              <span key={r} style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', padding: '4px 9px', borderRadius: 4, background: r === '1H' ? '#2E3A64' : 'transparent', color: r === '1H' ? '#FFFFFF' : '#6E7694' }}>{r}</span>
             ))}
           </span>
         </div>
@@ -150,8 +150,8 @@ export default function MajorMarket({ markets }) {
           {[100, 75, 50, 25, 0].map((v) => (
             <text key={v} x={W - RPAD + 10} y={py(v) + 3} fontSize="9.5" fill="#6E7694" fontFamily="var(--mono)">{v}%</text>
           ))}
-          <path d={noPath} fill="none" stroke="#E8837B" strokeWidth="1.6" strokeDasharray="3,4" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
-          <path d={yesPath} fill="none" stroke="#3DDC84" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={noPath} fill="none" stroke="#E8837B" strokeWidth="2.2" strokeDasharray="1,6" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" />
+          <path d={yesPath} fill="none" stroke="#3DDC84" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
 
         {news && (
