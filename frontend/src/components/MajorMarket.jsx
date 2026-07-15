@@ -15,9 +15,11 @@ export default function MajorMarket({ markets }) {
     .filter((m) => m.status === 'active' && (m.outcomes || []).length > 0)
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const market = candidates[0];
+  const dest = market?.demo ? '/explore' : `/markets/${market?.id}`;
 
   useEffect(() => {
     if (!market?.id) return;
+    if (market.demo_news) { setNews(market.demo_news); return; }
     let alive = true;
     api.getMarketNews(market.id)
       .then((r) => { if (alive) setNews((r?.items || [])[0] || null); })
@@ -33,9 +35,10 @@ export default function MajorMarket({ markets }) {
   const leader = [...outcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
   const p = ((isBinary ? yes?.probability : leader?.probability) || 50) / 100;
 
-  // Real payout multipliers from the live payout formula
-  const yesMult = (1 + (1 - p) * 0.99).toFixed(2);
-  const noMult = (1 + p * 0.99).toFixed(2);
+  // Real payout multipliers from the live payout formula (demo content pins
+  // the reference screenshot's figures)
+  const yesMult = market.demo_payouts?.yes || (1 + (1 - p) * 0.99).toFixed(2);
+  const noMult = market.demo_payouts?.no || (1 + p * 0.99).toFixed(2);
 
   // Probability delta from the last two snapshots
   const hist = market.price_history || [];
@@ -46,6 +49,7 @@ export default function MajorMarket({ markets }) {
     const prev = hist[hist.length - 2]?.prices?.[target.id];
     if (typeof last === 'number' && typeof prev === 'number') delta = Math.round(last - prev);
   }
+  if (typeof market.demo_delta === 'number') delta = market.demo_delta;
 
   // 7-day chart points from price history
   const cutoff = Date.now() - 7 * 86400000;
@@ -76,7 +80,7 @@ export default function MajorMarket({ markets }) {
       {/* Left: question, stats, YES/NO */}
       <div
         style={{ padding: '36px 40px', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
-        onClick={() => navigate(`/markets/${market.id}`)}
+        onClick={() => navigate(dest)}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', color: '#2A1F00', background: '#F3C74F', borderRadius: 4, padding: '5px 10px' }}>
@@ -114,13 +118,13 @@ export default function MajorMarket({ markets }) {
         {isBinary ? (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
             <button
-              onClick={(e) => { e.stopPropagation(); navigate(`/markets/${market.id}`); }}
+              onClick={(e) => { e.stopPropagation(); navigate(dest); }}
               style={{ background: 'rgba(61,220,132,.07)', border: '1px solid #3FAE6E', borderRadius: 6, padding: '13px 10px', cursor: 'pointer', textAlign: 'center' }}>
               <div style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 16, letterSpacing: '0.04em', color: '#3DDC84' }}>YES</div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#8E94AF', marginTop: 5 }}>Payout: {yesMult}x</div>
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); navigate(`/markets/${market.id}`); }}
+              onClick={(e) => { e.stopPropagation(); navigate(dest); }}
               style={{ background: 'rgba(201,138,130,.05)', border: '1px solid #C98A82', borderRadius: 6, padding: '13px 10px', cursor: 'pointer', textAlign: 'center' }}>
               <div style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 16, letterSpacing: '0.04em', color: '#F08A80' }}>NO</div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#8E94AF', marginTop: 5 }}>Payout: {noMult}x</div>
@@ -128,7 +132,7 @@ export default function MajorMarket({ markets }) {
           </div>
         ) : (
           <button
-            onClick={(e) => { e.stopPropagation(); navigate(`/markets/${market.id}`); }}
+            onClick={(e) => { e.stopPropagation(); navigate(dest); }}
             style={{ width: '100%', background: '#F3C74F', border: 'none', borderRadius: 6, padding: '14px 10px', cursor: 'pointer', fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 14, color: '#2A1F00' }}>
             VIEW {outcomes.length} OUTCOMES
           </button>

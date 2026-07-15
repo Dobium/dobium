@@ -35,9 +35,10 @@ export default function HomeFeedCard({ market }) {
       : '—';
 
   const vol = Number(market.total_volume || 0);
-  const volLabel = vol >= 1e6 ? `$${(vol / 1e6).toFixed(1)}M` : vol >= 1e3 ? `$${(vol / 1e3).toFixed(1)}K` : `$${vol.toFixed(0)}`;
+  const trim = (x) => { const v = x.toFixed(1); return v.endsWith('.0') ? v.slice(0, -2) : v; };
+  const volLabel = vol >= 1e6 ? `$${trim(vol / 1e6)}M` : vol >= 1e3 ? `$${trim(vol / 1e3)}K` : `$${vol.toFixed(0)}`;
 
-  const go = () => navigate(`/markets/${market.id}`);
+  const go = () => navigate(market.demo ? '/explore' : `/markets/${market.id}`);
 
   return (
     <div

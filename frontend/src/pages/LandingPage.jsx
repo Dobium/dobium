@@ -6,6 +6,7 @@ import HomeFeedCard from '../components/HomeFeedCard';
 import { categoryBucket } from '../lib/categories';
 import { MarketGridSkeleton } from '../components/MarketCardSkeleton';
 import MajorMarket from '../components/MajorMarket';
+import { DEMO_PARITY, DEMO_HERO, DEMO_FEED, DEMO_TICKER, DEMO_ARTISTS, DEMO_ANALYTICS, DEMO_LIVE_FEED } from '../lib/demoContent';
 
 const HIPHOP_NAMES = ['carti', 'drake', 'kendrick', 'travis scott', 'don toliver', 'kanye', ' ye ', '21 savage', 'future', 'metro boomin', 'cardi b', 'nicki minaj', 'ice spice', 'lil uzi', 'lil baby', 'gunna', 'yeat', 'ken carson', 'destroy lonely', 'megan thee stallion', 'glorilla', 'latto', 'central cee', 'j. cole', 'j cole', 'lil wayne', '2 chainz', 'young thug', 'asap', 'a$ap', 'tyler'];
 const FESTIVAL_WORDS = ['coachella', 'lollapalooza', 'glastonbury', 'rolling loud', 'bonnaroo', 'festival', 'headlin', 'tour', 'concert'];
@@ -38,9 +39,14 @@ function leaderDelta(market, leader) {
   return 0;
 }
 
+function trimFixed(x) {
+  const v = x.toFixed(1);
+  return v.endsWith('.0') ? v.slice(0, -2) : v;
+}
+
 function compactMoney(n) {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1_000_000) return `$${trimFixed(n / 1_000_000)}M`;
+  if (n >= 1_000) return `$${trimFixed(n / 1_000)}K`;
   return `$${(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 }
 
@@ -52,16 +58,16 @@ function compactStake(n) {
 
 /* ── Top ticker — mock format on near-black:
    ● KENDRICK LAMAR VOL: $4.2M +12.4% ── */
-function Ticker({ markets }) {
-  const items = [...markets]
+function Ticker({ markets, fixedItems }) {
+  const items = fixedItems || [...markets]
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
     .slice(0, 10)
     .map((m) => {
       const leader = leaderOf(m);
       return {
         id: m.id,
-        title: (m.title || '').replace(/^will\s+/i, '').replace(/\?+$/, '').slice(0, 30).toUpperCase(),
-        vol: compactMoney(m.total_volume || 0),
+        label: `${(m.title || '').replace(/^will\s+/i, '').replace(/\?+$/, '').slice(0, 30).toUpperCase()} VOL:`,
+        value: compactMoney(m.total_volume || 0),
         delta: leaderDelta(m, leader),
       };
     });
@@ -81,8 +87,8 @@ function Ticker({ markets }) {
             }}
           >
             <span style={{ width: 6, height: 6, borderRadius: 999, background: '#3DDC84', display: 'inline-block', flexShrink: 0 }} />
-            <span style={{ color: '#E8ECFF' }}>{it.title} VOL:</span>
-            <span style={{ color: '#FFFFFF', fontWeight: 800 }}>{it.vol}</span>
+            <span style={{ color: '#E8ECFF' }}>{it.label}</span>
+            <span style={{ color: '#FFFFFF', fontWeight: 800 }}>{it.value}</span>
             <span style={{ color: it.delta < 0 ? '#F0655B' : '#3DDC84', fontWeight: 800 }}>
               {it.delta >= 0 ? '+' : ''}{it.delta.toFixed(1)}%
             </span>
@@ -133,10 +139,12 @@ export default function LandingPage() {
     return () => { clearInterval(interval); clearInterval(feedInterval); window.removeEventListener('dobium:trade', fetchPulse); window.removeEventListener('dobium:trade', fetchFeed); };
   }, [fetchPulse]);
 
+  const demo = DEMO_PARITY;
   const totalVolume = pulse ? pulse.paper_volume_traded : markets.reduce((s, m) => s + (m.total_volume || 0), 0);
+  const shownLiveFeed = demo ? DEMO_LIVE_FEED : liveFeed;
 
   // Genre-filtered feed, newest first
-  const feedMarkets = [...markets]
+  const feedMarkets = [...(demo ? DEMO_FEED : markets)]
     .filter((m) => m.status === 'active')
     .filter((m) => inGenre(m, genre))
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
@@ -146,7 +154,7 @@ export default function LandingPage() {
   const ARTIST_NAMES = ['Playboi Carti', 'Don Toliver', 'Kendrick Lamar', 'Drake', 'Taylor Swift',
     'Rihanna', 'Kanye', 'Travis Scott', 'SZA', 'Bad Bunny', 'Morgan Wallen', 'Ariana Grande',
     'Billie Eilish', 'The Weeknd', 'Olivia Rodrigo', 'Frank Ocean', 'Beyonc\u00e9', 'Chappell Roan', 'Ice Spice'];
-  const trendingArtists = ARTIST_NAMES
+  const trendingArtists = demo ? DEMO_ARTISTS : ARTIST_NAMES
     .map((name) => {
       const theirs = markets.filter((m) => m.status === 'active' && (m.title || '').toLowerCase().includes(name.toLowerCase()));
       const momentum = theirs.reduce((s2, m) => s2 + leaderDelta(m, leaderOf(m)), 0);
@@ -157,7 +165,7 @@ export default function LandingPage() {
     .slice(0, 3);
 
   // Biggest probability shift across live markets (last two snapshots)
-  const biggestShift = markets
+  const biggestShift = demo ? DEMO_ANALYTICS.shift : markets
     .filter((m) => m.status === 'active' && (m.price_history || []).length >= 2)
     .map((m) => {
       const lead = leaderOf(m);
@@ -173,20 +181,20 @@ export default function LandingPage() {
           : genre === 'festivals' ? 'All Festival Markets'
             : 'All Awards Markets';
 
-  const liveFeedCard = liveFeed && (
+  const liveFeedCard = shownLiveFeed && (
     <div style={{ background: '#161D3A', border: '1px solid #2A3352', borderRadius: 8, padding: 13 }}>
       <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.16em', color: '#F3C74F', marginBottom: 8 }}>LIVE FEED</div>
       <p style={{ color: '#8E94AF', fontSize: 11.5, lineHeight: 1.6, margin: 0 }}>
-        User <span style={{ color: '#F2F5FF', fontWeight: 700 }}>@{String(liveFeed.handle || '').replace(/^@/, '')}</span> just traded{' '}
-        <span style={{ color: '#F3C74F', fontWeight: 700 }}>{compactStake(Number(liveFeed.stake))}</span> on{' '}
-        <span style={{ color: '#3DDC84', fontWeight: 700 }}>{liveFeed.side}</span> for {liveFeed.market}
+        User <span style={{ color: '#F2F5FF', fontWeight: 700 }}>@{String(shownLiveFeed.handle || '').replace(/^@/, '')}</span> just traded{' '}
+        <span style={{ color: '#F3C74F', fontWeight: 700 }}>{compactStake(Number(shownLiveFeed.stake))}</span> on{' '}
+        <span style={{ color: '#3DDC84', fontWeight: 700 }}>{shownLiveFeed.side}</span> for {shownLiveFeed.market}
       </p>
     </div>
   );
 
   return (
     <div style={{ background: '#0A1128' }}>
-      <Ticker markets={markets} />
+      <Ticker markets={markets} fixedItems={demo ? DEMO_TICKER : null} />
 
       {/* ── Mock structure: full-height bordered sidebar · content (main + rail) ── */}
       <div style={{ display: 'flex', alignItems: 'stretch' }}>
@@ -247,7 +255,7 @@ export default function LandingPage() {
 
             {/* Center: major market + feed */}
             <main style={{ minWidth: 0 }}>
-              {!loading && <MajorMarket markets={markets} />}
+              {(demo || !loading) && <MajorMarket markets={demo ? [DEMO_HERO] : markets} />}
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                 <h2 style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 20, color: '#F2F5FF', margin: 0 }}>
@@ -265,14 +273,14 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {loading ? (
+              {!demo && loading ? (
                 <MarketGridSkeleton count={4} />
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                   {feedMarkets.map((m) => <HomeFeedCard key={m.id} market={m} />)}
                 </div>
               )}
-              {!loading && feedMarkets.length === 0 && (
+              {(demo || !loading) && feedMarkets.length === 0 && (
                 <p style={{ color: '#7E86A6', fontSize: 13 }}>No markets in this category yet — check Trending.</p>
               )}
 
@@ -322,11 +330,11 @@ export default function LandingPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#10172E', border: '1px solid #2A3352', borderRadius: 4, padding: '10px 12px' }}>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#8E94AF' }}>GLOBAL VOL (24H)</span>
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, fontWeight: 800, color: '#F2F5FF' }}>{loading && !pulse ? '—' : compactMoney(totalVolume)}</span>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, fontWeight: 800, color: '#F2F5FF' }}>{demo ? DEMO_ANALYTICS.globalVol : (loading && !pulse ? '—' : compactMoney(totalVolume))}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#10172E', border: '1px solid #2A3352', borderRadius: 4, padding: '10px 12px' }}>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#8E94AF' }}>ACTIVE TRADERS</span>
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, fontWeight: 800, color: '#F2F5FF' }}>{pulse?.users != null ? pulse.users.toLocaleString('en-US') : '—'}</span>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, fontWeight: 800, color: '#F2F5FF' }}>{demo ? DEMO_ANALYTICS.traders : (pulse?.users != null ? pulse.users.toLocaleString('en-US') : '—')}</span>
                     </div>
                     {biggestShift && (
                       <div style={{ background: '#10172E', border: '1px solid #2A3352', borderRadius: 4, padding: '10px 12px' }}>
@@ -356,7 +364,7 @@ export default function LandingPage() {
             </aside>
           </div>
 
-          {loading && (
+          {!demo && loading && (
             <div style={{ marginTop: 72 }}>
               <MarketGridSkeleton count={3} />
             </div>
