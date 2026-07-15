@@ -46,14 +46,14 @@ export default function HomeFeedCard({ market }) {
       style={{
         display: 'flex', alignItems: 'center', gap: 18,
         background: '#161D3A', border: '1px solid #2A3352', borderRadius: 10,
-        padding: 16, cursor: 'pointer', transition: 'border-color .15s ease',
+        padding: 18, cursor: 'pointer', transition: 'border-color .15s ease',
       }}
       onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#F3C74F')}
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#2A3352')}
     >
       {/* Artwork placeholder tile — deep indigo with a small glyph */}
       <span style={{
-        width: 140, height: 140, borderRadius: 8, background: '#1B2150', flexShrink: 0,
+        width: 148, height: 148, borderRadius: 8, background: '#1B2150', flexShrink: 0,
         alignItems: 'center', justifyContent: 'center',
       }} className="hidden sm:flex">
         <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#6F7BD9' }}>image</span>
@@ -90,11 +90,11 @@ export default function HomeFeedCard({ market }) {
       {isBinary && (
         <div style={{ display: 'flex', gap: 10, flexShrink: 0, alignSelf: 'flex-end', paddingBottom: 6 }}>
           <button onClick={(e) => { e.stopPropagation(); go(); }}
-            style={{ fontWeight: 700, fontSize: 13, background: '#3E4FD8', border: 'none', color: '#FFFFFF', borderRadius: 6, padding: '8px 22px', cursor: 'pointer' }}>
+            style={{ fontWeight: 700, fontSize: 13, background: '#3E4FD8', border: 'none', color: '#FFFFFF', borderRadius: 6, padding: '9px 22px', cursor: 'pointer' }}>
             Yes
           </button>
           <button onClick={(e) => { e.stopPropagation(); go(); }}
-            style={{ fontWeight: 700, fontSize: 13, background: '#232A45', border: '1px solid #3A4160', color: '#DCE1FF', borderRadius: 6, padding: '8px 22px', cursor: 'pointer' }}>
+            style={{ fontWeight: 700, fontSize: 13, background: '#232A45', border: '1px solid #3A4160', color: '#DCE1FF', borderRadius: 6, padding: '9px 22px', cursor: 'pointer' }}>
             No
           </button>
         </div>

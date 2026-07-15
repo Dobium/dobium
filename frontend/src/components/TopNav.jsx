@@ -72,8 +72,8 @@ function PortfolioBlock({ balance, buttonAction, menuItems }) {
         style={{
           flexShrink: 0, cursor: 'pointer',
           background: '#F3C74F',
-          color: '#2A1F00', fontWeight: 800, fontSize: 15,
-          border: 'none', borderRadius: 8, padding: '11px 24px',
+          color: '#2A1F00', fontWeight: 800, fontSize: 16.5,
+          border: 'none', borderRadius: 10, padding: '12px 28px',
           fontFamily: 'var(--wordmark)',
         }}
       >
@@ -157,8 +157,8 @@ export default function TopNav() {
     <div
       style={{
         position: 'sticky', top: 0, zIndex: 40,
-        display: 'flex', alignItems: 'center', gap: 26,
-        padding: '13px 24px',
+        display: 'flex', alignItems: 'center', gap: 30,
+        padding: '14px 26px',
         background: 'rgba(10,17,40,.97)', backdropFilter: 'blur(10px)',
         borderBottom: '1px solid #1B2240',
       }}
@@ -175,7 +175,7 @@ export default function TopNav() {
       </div>
 
       {/* Nav links — active tab is white with an underline (mock style) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, overflowX: 'auto', flexShrink: 0, scrollbarWidth: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 18, overflowX: 'auto', flexShrink: 0, scrollbarWidth: 'none' }}>
         {LINKS.map((l) => {
           const active = isActive(l.to);
           return (
@@ -184,7 +184,7 @@ export default function TopNav() {
               onClick={() => navigate(l.to)}
               style={{
                 background: 'transparent', border: 'none',
-                padding: '8px 10px 0', cursor: 'pointer', whiteSpace: 'nowrap',
+                padding: '8px 14px 0', cursor: 'pointer', whiteSpace: 'nowrap',
                 color: active ? '#FFFFFF' : '#8E94AF',
                 fontSize: 15.5, fontWeight: active ? 700 : 500,
                 transition: 'color .15s ease',
@@ -205,7 +205,7 @@ export default function TopNav() {
           const q = e.currentTarget.q.value.trim();
           navigate(q ? `/explore?q=${encodeURIComponent(q)}` : '/explore');
         }}
-        style={{ position: 'relative', flex: '1 1 240px', maxWidth: 240, minWidth: 130, marginLeft: 'auto' }}
+        style={{ position: 'relative', flex: '1 1 240px', maxWidth: 200, minWidth: 130, marginLeft: 'auto' }}
       >
         <span className="material-symbols-outlined" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 17, color: '#8E94AF', pointerEvents: 'none' }}>
           search
@@ -216,7 +216,7 @@ export default function TopNav() {
           placeholder="Trade on Music and Entertainment"
           style={{
             width: '100%', background: '#0D1329', border: '1px solid #2A3352', borderRadius: 8,
-            padding: '10px 12px 10px 36px', color: '#DCE1FF', fontSize: 13.5, outline: 'none',
+            padding: '8px 12px 8px 34px', color: '#DCE1FF', fontSize: 13, outline: 'none',
           }}
         />
       </form>
