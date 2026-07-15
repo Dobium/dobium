@@ -8,7 +8,6 @@ const LINKS = [
   { label: 'Explore', to: '/explore' },
   { label: 'Charts', to: '/portfolio' },
   { label: 'Awards', to: '/explore?filter=awards' },
-  { label: 'News', to: '/news' },
 ];
 
 // Avatar + hover/click dropdown: Portfolio, Settings, Log out.
@@ -54,21 +53,25 @@ function ProfileMenu({ session, balance }) {
       onMouseLeave={scheduleClose}
     >
       <div style={{ textAlign: 'right', lineHeight: 1.2, cursor: 'pointer' }} onClick={() => setOpen(o => !o)}>
-        <span style={{ display: 'block', fontFamily: 'var(--mono)', fontWeight: 500, fontSize: 15, color: '#DCE1FF' }}>
+        <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 8.5, letterSpacing: '0.12em', color: '#8E94AF', marginBottom: 2 }}>
+          PORTFOLIO
+        </span>
+        <span style={{ display: 'block', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 14, color: '#DCE1FF' }}>
           ${Number(balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       </div>
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => { setOpen(false); navigate('/portfolio'); }}
+        title={initial}
         style={{
-          width: 34, height: 34, borderRadius: 999, flexShrink: 0, cursor: 'pointer',
-          background: '#0B1229',
-          color: '#FFDF9B', fontWeight: 700, fontSize: 14,
-          border: '1.5px solid #F0C04A',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, cursor: 'pointer',
+          background: 'linear-gradient(180deg,#FFE9B8,#F0C04A)',
+          color: '#3A2A00', fontWeight: 800, fontSize: 13,
+          border: 'none', borderRadius: 8, padding: '9px 18px',
+          fontFamily: 'var(--wordmark)',
         }}
       >
-        {initial}
+        Portfolio
       </button>
 
       {open && (
@@ -152,22 +155,26 @@ function GuestMenu({ balance, openAuthModal }) {
       onMouseEnter={() => { cancelClose(); setOpen(true); }}
       onMouseLeave={scheduleClose}
     >
-      <span
-        onClick={() => setOpen(o => !o)}
-        style={{ fontFamily: 'var(--mono)', fontWeight: 500, fontSize: 15, color: '#DCE1FF', cursor: 'pointer' }}
-      >
-        ${Number(balance || 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-      </span>
+      <div style={{ textAlign: 'right', lineHeight: 1.2, cursor: 'pointer' }} onClick={() => setOpen(o => !o)}>
+        <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 8.5, letterSpacing: '0.12em', color: '#8E94AF', marginBottom: 2 }}>
+          PORTFOLIO
+        </span>
+        <span style={{ display: 'block', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 14, color: '#DCE1FF' }}>
+          ${Number(balance || 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </span>
+      </div>
       <button
-        onClick={() => setOpen(o => !o)}
-        aria-label="Account menu"
+        onClick={() => { setOpen(false); openAuthModal('signup'); }}
+        aria-label="Portfolio — sign up"
         style={{
-          width: 34, height: 34, borderRadius: 999, flexShrink: 0, cursor: 'pointer',
-          background: '#0B1229', border: '1.5px solid #F0C04A',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, cursor: 'pointer',
+          background: 'linear-gradient(180deg,#FFE9B8,#F0C04A)',
+          color: '#3A2A00', fontWeight: 800, fontSize: 13,
+          border: 'none', borderRadius: 8, padding: '9px 18px',
+          fontFamily: 'var(--wordmark)',
         }}
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#FFDF9B' }}>person</span>
+        Portfolio
       </button>
 
       {open && (
@@ -267,9 +274,6 @@ export default function TopNav() {
                 cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .15s ease',
               }}
             >
-              {active && (
-                <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--no)', display: 'inline-block' }} />
-              )}
               {l.label}
             </button>
           );
@@ -291,7 +295,7 @@ export default function TopNav() {
         <input
           name="q"
           type="text"
-          placeholder="Search markets or artists"
+          placeholder="Trade on Music and Entertainment"
           style={{
             width: '100%', background: '#0B1229', border: '1px solid #33312E', borderRadius: 8,
             padding: '8px 12px 8px 34px', color: '#DCE1FF', fontSize: 13, outline: 'none',

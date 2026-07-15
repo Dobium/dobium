@@ -2,9 +2,9 @@ import { useNavigate } from 'react-router-dom';
 import { bucketLabel } from '../lib/categories';
 import MarketIcon from './MarketIcon';
 
-// Home-feed market card — the approved mockup design: category chip + live
-// status up top, bold question, VOLUME / CHANCE row, big Yes/No price
-// buttons. (Explore keeps its own MarketCard; this is homepage-only.)
+// Home-feed market card — matched to the mock: big square icon tile on the
+// left, gold category + volume line, bold question, YES/NO percentages
+// underneath, and compact Yes/No buttons on the right edge.
 export default function HomeFeedCard({ market }) {
   const navigate = useNavigate();
   const outcomes = market.outcomes || [];
@@ -24,9 +24,6 @@ export default function HomeFeedCard({ market }) {
   const vol = Number(market.total_volume || 0);
   const volLabel = vol >= 1e6 ? `$${(vol / 1e6).toFixed(1)}M` : vol >= 1e3 ? `$${(vol / 1e3).toFixed(1)}K` : `$${vol.toFixed(0)}`;
 
-  const yesPrice = isBinary ? `$${(chancePct / 100).toFixed(2)}` : null;
-  const noPrice = isBinary ? `$${((100 - chancePct) / 100).toFixed(2)}` : null;
-
   const go = () => navigate(`/markets/${market.id}`);
 
   return (
@@ -34,46 +31,46 @@ export default function HomeFeedCard({ market }) {
       onClick={go}
       style={{
         display: 'flex', alignItems: 'center', gap: 16,
-        background: '#181E36', border: '1px solid #33312E', borderRadius: 10,
-        padding: '14px 16px', cursor: 'pointer', transition: 'border-color .15s ease',
+        background: '#181E36', border: '1px solid #2D344C', borderRadius: 12,
+        padding: 16, cursor: 'pointer', transition: 'border-color .15s ease',
       }}
       onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#FFDF9B')}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#33312E')}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#2D344C')}
     >
-      <MarketIcon market={market} size={46} radius={8} />
+      <MarketIcon market={market} size={88} radius={10} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', color: '#D2C5AF', background: '#2D344C', borderRadius: 3, padding: '2px 7px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', color: '#FFDF9B' }}>
             {bucketLabel(market.category).toUpperCase()}
           </span>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#948D87' }}>VOL: {volLabel}</span>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#8E94AF' }}>VOL: {volLabel}</span>
         </div>
-        <p style={{ color: '#DCE1FF', fontWeight: 700, fontSize: 14, lineHeight: 1.35, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <p style={{ color: '#DCE1FF', fontWeight: 700, fontSize: 14.5, lineHeight: 1.35, margin: '0 0 10px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {market.title}
         </p>
+        {isBinary ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700 }}>
+            <span style={{ color: '#4AE176' }}>YES {chancePct}%</span>
+            <span style={{ color: '#8E94AF' }}>NO {100 - chancePct}%</span>
+          </div>
+        ) : (
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: '#FFDF9B' }}>
+            {chanceLabel}
+          </div>
+        )}
       </div>
 
-      {isBinary ? (
-        <>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, textAlign: 'right', flexShrink: 0 }}>
-            <div style={{ color: '#4AE176', fontWeight: 700 }}>YES {chancePct}%</div>
-            <div style={{ color: '#8E94AF', marginTop: 3 }}>NO {100 - chancePct}%</div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-            <button onClick={(e) => { e.stopPropagation(); go(); }}
-              style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 12, background: 'rgba(74,225,118,.12)', border: '1px solid #2E7D4F', color: '#4AE176', borderRadius: 6, padding: '8px 18px', cursor: 'pointer' }}>
-              Yes
-            </button>
-            <button onClick={(e) => { e.stopPropagation(); go(); }}
-              style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 12, background: '#232A45', border: '1px solid #33312E', color: '#DCE1FF', borderRadius: 6, padding: '8px 18px', cursor: 'pointer' }}>
-              No
-            </button>
-          </div>
-        </>
-      ) : (
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: '#FFDF9B', fontWeight: 700, flexShrink: 0 }}>
-          {chanceLabel}
+      {isBinary && (
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <button onClick={(e) => { e.stopPropagation(); go(); }}
+            style={{ fontWeight: 700, fontSize: 12.5, background: '#232A45', border: '1px solid #3A4160', color: '#DCE1FF', borderRadius: 8, padding: '9px 20px', cursor: 'pointer' }}>
+            Yes
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); go(); }}
+            style={{ fontWeight: 700, fontSize: 12.5, background: '#232A45', border: '1px solid #3A4160', color: '#DCE1FF', borderRadius: 8, padding: '9px 20px', cursor: 'pointer' }}>
+            No
+          </button>
         </div>
       )}
     </div>
