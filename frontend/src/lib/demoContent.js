@@ -119,3 +119,15 @@ export const WAITLIST_ALERTS = [
     text: "Unexpected festival lineup change for 'Desert Bloom'. Intelligence points to health-related withdrawal.",
   },
 ];
+
+// Explore page (reference mock content)
+export const EXPLORE_FLASH = {
+  title: 'Will Kendrick Lamar drop a surprise album before Sunday?',
+  body: 'Insider rumors are peaking after the sudden Coachella performance. High-stakes liquidity pool active for the next 48 hours.',
+};
+
+export const MARKET_INTEL = [
+  { label: 'WHALE ALERT', text: 'User @vault_master just placed $45,000 on "Yes" for SpaceX IPO.' },
+  { label: 'VOLATILITY WARNING', text: 'Kendrick Lamar album market seeing 400% volume increase in 1h.' },
+  { label: 'COMMUNITY SENTIMENT', text: '68% of Top 100 traders are betting "No" on World Cup Young Player.' },
+];

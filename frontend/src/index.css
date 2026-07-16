@@ -875,3 +875,9 @@ a,
   .dbm-hero-chart { border-left: 1px solid #2A3352; }
   .dbm-rail { position: sticky; top: 80px; }
 }
+
+/* Explore: flash-market banner + intelligence rail */
+.dbm-explore-flash { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 1024px) {
+  .dbm-explore-flash { grid-template-columns: minmax(0, 2fr) 1fr; }
+}
