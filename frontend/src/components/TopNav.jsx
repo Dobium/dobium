@@ -157,12 +157,12 @@ export default function TopNav() {
     <div
       style={{
         position: 'sticky', top: 0, zIndex: 40,
-        display: 'flex', alignItems: 'center', gap: 30,
         padding: '14px 26px',
         background: 'rgba(10,17,40,.97)', backdropFilter: 'blur(10px)',
         borderBottom: '1px solid #1B2240',
       }}
     >
+      <div className="dbm-navwrap" style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
       {/* Logo — gold waveform mark + gold wordmark */}
       <div
         onClick={() => navigate('/')}
@@ -235,6 +235,7 @@ export default function TopNav() {
           menuItems={guestMenu}
         />
       )}
+      </div>
     </div>
   );
 }

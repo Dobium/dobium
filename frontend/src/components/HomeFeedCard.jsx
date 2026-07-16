@@ -55,7 +55,7 @@ export default function HomeFeedCard({ market }) {
       <span style={{
         width: 148, height: 148, borderRadius: 8, background: '#1B2150', flexShrink: 0,
         alignItems: 'center', justifyContent: 'center',
-      }} className="hidden sm:flex">
+      }} className="dbm-tile">
         <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#6F7BD9' }}>image</span>
       </span>
 

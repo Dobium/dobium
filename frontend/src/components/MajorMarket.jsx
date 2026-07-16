@@ -74,7 +74,7 @@ export default function MajorMarket({ markets }) {
 
   return (
     <div
-      className="grid grid-cols-1 lg:grid-cols-[minmax(0,58fr)_42fr]"
+      className="dbm-hero-grid"
       style={{ background: '#161D3A', border: '1px solid #2A3352', borderRadius: 10, marginBottom: 30, overflow: 'hidden' }}
     >
       {/* Left: question, stats, YES/NO */}
@@ -140,7 +140,7 @@ export default function MajorMarket({ markets }) {
       </div>
 
       {/* Right: chart panel behind the internal divider */}
-      <div className="lg:border-l" style={{ borderColor: '#2A3352', padding: '22px 24px', display: 'flex', flexDirection: 'column' }}>
+      <div className="dbm-hero-chart" style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: '#C9CFE8' }}>7-DAY PROBABILITY CHART</span>
           <span style={{ display: 'inline-flex', gap: 4 }}>

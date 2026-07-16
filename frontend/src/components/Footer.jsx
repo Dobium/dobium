@@ -13,6 +13,7 @@ export default function Footer() {
       }}
     >
       <div
+        className="dbm-footwrap"
         style={{
           display: 'flex',
           alignItems: 'center',

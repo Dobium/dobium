@@ -851,3 +851,27 @@ a,
 .btn-full {
   width: 100%;
 }
+/* ── Dobium homepage layout (mock parity) ─────────────────────────────
+   Structural rules live here, not in utility classes, so the sidebar and
+   grids cannot break via purge/config changes. Page content is capped at
+   1440px and centered — the reference design's canvas width. */
+.dbm-shell, .dbm-navwrap, .dbm-footwrap { max-width: 1440px; margin: 0 auto; width: 100%; }
+.dbm-side { display: none; }
+.dbm-chips { display: flex; flex-wrap: wrap; }
+.dbm-mobile-only { display: block; }
+.dbm-main-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 40px; }
+.dbm-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
+.dbm-rail { position: static; }
+.dbm-tile { display: none; }
+@media (min-width: 640px) {
+  .dbm-tile { display: flex; }
+}
+@media (min-width: 1024px) {
+  .dbm-side { display: block; }
+  .dbm-chips { display: none; }
+  .dbm-mobile-only { display: none; }
+  .dbm-main-grid { grid-template-columns: minmax(0, 1fr) 290px; }
+  .dbm-hero-grid { grid-template-columns: minmax(0, 58fr) 42fr; }
+  .dbm-hero-chart { border-left: 1px solid #2A3352; }
+  .dbm-rail { position: sticky; top: 80px; }
+}

@@ -197,10 +197,10 @@ export default function LandingPage() {
       <Ticker markets={markets} fixedItems={demo ? DEMO_TICKER : null} />
 
       {/* ── Mock structure: full-height bordered sidebar · content (main + rail) ── */}
-      <div style={{ display: 'flex', alignItems: 'stretch' }}>
+      <div className="dbm-shell" style={{ display: 'flex', alignItems: 'stretch' }}>
 
         {/* Left: full-height category rail (desktop) */}
-        <aside className="hidden lg:block" style={{ width: 264, flexShrink: 0, borderRight: '1px solid #1B2240' }}>
+        <aside className="dbm-side" style={{ width: 264, flexShrink: 0, borderRight: '1px solid #1B2240' }}>
           <div style={{ padding: '18px 14px' }}>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', color: '#AEB6D2', margin: '0 0 12px 6px' }}>CATEGORIES</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -232,7 +232,7 @@ export default function LandingPage() {
         <div style={{ flex: 1, minWidth: 0, padding: '18px 22px 0' }}>
 
           {/* Mobile category chips */}
-          <div className="flex flex-wrap lg:hidden" style={{ gap: 6, marginBottom: 16 }}>
+          <div className="dbm-chips" style={{ gap: 6, marginBottom: 16 }}>
             {CATEGORIES.map((g) => (
               <button
                 key={g.key}
@@ -251,7 +251,7 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_290px] gap-10">
+          <div className="dbm-main-grid">
 
             {/* Center: major market + feed */}
             <main style={{ minWidth: 0 }}>
@@ -285,14 +285,14 @@ export default function LandingPage() {
               )}
 
               {/* Live feed shown inline on mobile where the sidebar is hidden */}
-              <div className="lg:hidden" style={{ marginTop: 18 }}>
+              <div className="dbm-mobile-only" style={{ marginTop: 18 }}>
                 {liveFeedCard}
               </div>
             </main>
 
             {/* Right rail */}
             <aside>
-              <div className="lg:sticky lg:top-20" style={{ display: 'flex', flexDirection: 'column', gap: 44 }}>
+              <div className="dbm-rail" style={{ display: 'flex', flexDirection: 'column', gap: 44 }}>
                 {trendingArtists.length > 0 && (
                   <div style={{ background: '#161D3A', border: '1px solid #2A3352', borderRadius: 10, padding: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, paddingBottom: 10, borderBottom: '1px solid #2A3352' }}>
