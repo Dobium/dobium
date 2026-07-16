@@ -10,16 +10,18 @@ import { DEMO_PARITY, DEMO_HERO, DEMO_FEED, DEMO_TICKER, DEMO_ARTISTS, DEMO_ANAL
 
 const HIPHOP_NAMES = ['carti', 'drake', 'kendrick', 'travis scott', 'don toliver', 'kanye', ' ye ', '21 savage', 'future', 'metro boomin', 'cardi b', 'nicki minaj', 'ice spice', 'lil uzi', 'lil baby', 'gunna', 'yeat', 'ken carson', 'destroy lonely', 'megan thee stallion', 'glorilla', 'latto', 'central cee', 'j. cole', 'j cole', 'lil wayne', '2 chainz', 'young thug', 'asap', 'a$ap', 'tyler'];
 const FESTIVAL_WORDS = ['coachella', 'lollapalooza', 'glastonbury', 'rolling loud', 'bonnaroo', 'festival', 'headlin', 'tour', 'concert'];
+const MOVIE_WORDS = ['movie', 'film', 'box office', 'trailer', ' tv ', 'series', 'season ', 'netflix', 'hbo', 'streaming service', 'oscar', 'emmy', 'golden globe', 'documentary', 'premiere', 'sequel'];
+const SOCIAL_WORDS = ['tiktok', 'viral', 'instagram', 'twitter', 'youtube', 'meme', 'trend', 'followers', 'streams', 'spotify', 'billboard', 'hot 100'];
 
 function inGenre(m, genre) {
   const t = (m.title || '').toLowerCase();
   const bucket = categoryBucket(m.category);
   switch (genre) {
     case 'trending': return true; // newest-first feed, everything
-    case 'hiphop': return HIPHOP_NAMES.some((n) => t.includes(n));
-    case 'popculture': return bucket === 'trending' || bucket === 'media';
+    case 'music': return bucket === 'music' || HIPHOP_NAMES.some((n) => t.includes(n)) || /album|single|song|tour|artist|rapper|grammy|aoty|billboard/.test(t);
+    case 'moviestv': return bucket === 'media' || MOVIE_WORDS.some((w) => t.includes(w));
+    case 'socialtrends': return bucket === 'trending' || SOCIAL_WORDS.some((w) => t.includes(w));
     case 'festivals': return FESTIVAL_WORDS.some((w) => t.includes(w));
-    case 'grammys': return m.category === 'awards' || /grammy|oscar|emmy|award|aoty/.test(t);
     default: return true;
   }
 }
@@ -106,10 +108,10 @@ function Ticker({ markets, fixedItems }) {
 
 const CATEGORIES = [
   { key: 'trending', label: 'Trending', icon: 'trending_up' },
-  { key: 'hiphop', label: 'Hip Hop', icon: 'music_note' },
-  { key: 'popculture', label: 'Pop Culture', icon: 'bolt' },
+  { key: 'music', label: 'Music', icon: 'music_note' },
+  { key: 'moviestv', label: 'Movies & TV', icon: 'movie' },
+  { key: 'socialtrends', label: 'Social Trends', icon: 'tag' },
   { key: 'festivals', label: 'Festivals', icon: 'account_balance' },
-  { key: 'grammys', label: 'Grammys', icon: 'emoji_events' },
 ];
 
 export default function LandingPage() {
@@ -117,7 +119,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [pulse, setPulse] = useState(null); // { paper_volume_traded, markets_active, users }
   const [liveFeed, setLiveFeed] = useState(null);
-  const [genre, setGenre] = useState('trending'); // trending | hiphop | popculture | festivals | grammys
+  const [genre, setGenre] = useState('trending'); // trending | music | moviestv | socialtrends | festivals
 
   // Ground-truth platform stats: sums the real trade ledger server-side, not
   // a cached per-market field — this is the number that can't drift stale.
@@ -174,12 +176,13 @@ export default function LandingPage() {
     })
     .sort((a, b) => b.abs - a.abs)[0] || null;
 
-  const feedHeading =
-    genre === 'trending' ? 'All Music Markets'
-      : genre === 'hiphop' ? 'All Hip Hop Markets'
-        : genre === 'popculture' ? 'All Pop Culture Markets'
-          : genre === 'festivals' ? 'All Festival Markets'
-            : 'All Awards Markets';
+  const feedHeading = {
+    trending: 'All Music Markets',
+    music: 'All Music Markets',
+    moviestv: 'All Movies & TV Markets',
+    socialtrends: 'All Social Trends Markets',
+    festivals: 'All Festival Markets',
+  }[genre] || 'All Music Markets';
 
   const liveFeedCard = shownLiveFeed && (
     <div style={{ background: '#131A33', border: '1px solid #262E4E', borderRadius: 8, padding: 13 }}>
