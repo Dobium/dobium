@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import TopNav from './TopNav';
 import Footer from './Footer';
 import PaperTradingDisclaimer from './PaperTradingDisclaimer';
@@ -10,6 +10,20 @@ import ResolutionModal from './ResolutionModal';
 // caused the "hybrid old + new UI" look (it sat underneath the new top bar
 // on every page, offsetting content 80px to the right).
 export default function Layout() {
+  const { pathname } = useLocation();
+
+  // The waitlist landing page ships its own terminal-styled nav and footer
+  // (per the approved mock), so the global chrome steps aside for it.
+  if (pathname === '/waitlist') {
+    return (
+      <>
+        <Outlet />
+        <AuthModal />
+        <ResolutionModal />
+      </>
+    );
+  }
+
   return (
     <>
       <PaperTradingDisclaimer />

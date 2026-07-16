@@ -91,3 +91,31 @@ export const DEMO_LIVE_FEED = {
   side: 'YES',
   market: 'Kendrick Album drop.',
 };
+
+// Waitlist landing page (reference mock content)
+export const DEMO_WAITLIST = {
+  total: '43,079',
+  slots: '1,204',
+  capacityPct: 85,
+};
+
+export const WAITLIST_ALERTS = [
+  {
+    time: '12:04:22 UTC',
+    tag: 'CONFIRMED',
+    tagColor: '#3DDC84',
+    text: 'Warner Music leak suggests Q3 partnership with major LLM for procedural song generation.',
+  },
+  {
+    time: '11:58:05 UTC',
+    tag: 'PENDING',
+    tagColor: '#A8B0C8',
+    text: "Viral TikTok snippet 'Midnight Rain' ID'd as unreleased artist. Volume spike detected in predicted secondary markets.",
+  },
+  {
+    time: '11:42:19 UTC',
+    tag: 'VOLATILE',
+    tagColor: '#4AD8C4',
+    text: "Unexpected festival lineup change for 'Desert Bloom'. Intelligence points to health-related withdrawal.",
+  },
+];
