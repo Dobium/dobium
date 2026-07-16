@@ -71,8 +71,8 @@ export default function ExplorePage() {
                 key={c.id}
                 onClick={() => setChip(c.id)}
                 style={{
-                  fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.04em',
-                  padding: '6px 13px', borderRadius: 4, cursor: 'pointer',
+                  fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em',
+                  padding: '8px 18px', borderRadius: 4, cursor: 'pointer',
                   background: active ? '#F3C74F' : '#1A2138',
                   border: active ? '1px solid #F3C74F' : '1px solid #2A3352',
                   color: active ? '#2A1F00' : '#AEB6D2',
@@ -107,13 +107,13 @@ export default function ExplorePage() {
           No markets match — try another category.
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 14 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 20 }}>
           {filtered.map((m) => <ExploreCard key={m.id} market={m} />)}
         </div>
       )}
 
       {/* ── Flash market banner + market intelligence ── */}
-      <div className="dbm-explore-flash" style={{ marginTop: 16 }}>
+      <div className="dbm-explore-flash" style={{ marginTop: 20 }}>
         <div style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg,#2B3792 0%,#1C2354 55%,#161D48 100%)', border: '1px solid #3A46A0', borderRadius: 8, padding: '26px 28px' }}>
           <svg viewBox="0 0 220 140" aria-hidden="true"
             style={{ position: 'absolute', right: -10, top: 0, height: '100%', width: 'auto', opacity: 0.3, pointerEvents: 'none' }}>

@@ -877,7 +877,7 @@ a,
 }
 
 /* Explore: flash-market banner + intelligence rail */
-.dbm-explore-flash { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.dbm-explore-flash { display: grid; grid-template-columns: 1fr; gap: 20px; }
 @media (min-width: 1024px) {
   .dbm-explore-flash { grid-template-columns: minmax(0, 2fr) 1fr; }
 }
