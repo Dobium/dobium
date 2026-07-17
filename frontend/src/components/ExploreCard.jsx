@@ -37,16 +37,16 @@ function collapseOutcomes(outcomes) {
 // SPORTS/AWARDS even though filtering buckets them under Trending), fall
 // back to the bucket.
 const RAW_META = {
-  sports: { label: 'SPORTS', icon: 'sports_basketball', color: '#F3C74F' },
-  awards: { label: 'AWARDS', icon: 'emoji_events', color: '#F3C74F' },
+  sports: { label: 'SPORTS', icon: 'sports_basketball', color: '#CFC5B5' },
+  awards: { label: 'AWARDS', icon: 'emoji_events', color: '#E1C382' },
   politics: { label: 'POLITICS', icon: 'gavel', color: '#F0857B' },
-  music: { label: 'MUSIC', icon: 'music_note', color: '#A78BFA' },
-  festivals: { label: 'FESTIVALS', icon: 'festival', color: '#3DDC84' },
+  music: { label: 'MUSIC', icon: 'music_note', color: '#E1C382' },
+  festivals: { label: 'FESTIVALS', icon: 'festival', color: '#4BE176' },
 };
 const BUCKET_META = {
-  trending: { color: '#3DDC84' },
-  music: { color: '#A78BFA' },
-  media: { color: '#6FA8FF' },
+  trending: { color: '#4BE176' },
+  music: { color: '#E1C382' },
+  media: { color: '#8FA8D8' },
   politics: { color: '#F0857B' },
 };
 
@@ -106,8 +106,8 @@ function seriesFor(market, outcome) {
   return outcome.inverted ? data.map((v) => 100 - v) : data;
 }
 
-const DUAL_COLORS = ['#F3C74F', '#A78BFA'];
-const W = 280; const H = 58;
+const DUAL_COLORS = ['#E1C382', '#A9B8E8'];
+const W = 280; const H = 68;
 
 export default function ExploreCard({ market }) {
   const navigate = useNavigate();
@@ -119,7 +119,7 @@ export default function ExploreCard({ market }) {
   const meta = RAW_META[(market.category || '').toLowerCase()] || {
     label: bucketLabel(market.category).toUpperCase(),
     icon: bucketIcon(bucket),
-    color: (BUCKET_META[bucket] || {}).color || '#F3C74F',
+    color: (BUCKET_META[bucket] || {}).color || '#E1C382',
   };
 
   const yes = isBinary ? raw.find((o) => (o.title || '').toLowerCase().startsWith('yes')) : null;
@@ -130,7 +130,7 @@ export default function ExploreCard({ market }) {
   let chart = null;
   if (isBinary) {
     const s = seriesFor(market, yes);
-    const color = s[s.length - 1] >= s[0] ? '#3DDC84' : '#F0857B';
+    const color = s[s.length - 1] >= s[0] ? '#6BFE8F' : '#FFB4AB';
     chart = (
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
         <path d={buildPath(s, W, H, domainFor([s]))} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -153,26 +153,26 @@ export default function ExploreCard({ market }) {
       onClick={go}
       style={{
         display: 'flex', flexDirection: 'column',
-        background: '#0D1226', border: '1px solid #262E4E', borderRadius: 8,
-        padding: '14px 16px', cursor: 'pointer', transition: 'border-color .15s ease',
+        background: '#001F43', border: '1px solid #2F3A4A', borderRadius: 8,
+        padding: '16px 18px', cursor: 'pointer', transition: 'border-color .15s ease',
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#F3C74F')}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#262E4E')}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#FFDF9B')}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#2F3A4A')}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 13, color: meta.color }}>{meta.icon}</span>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 800, letterSpacing: '0.12em', color: meta.color }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 14, color: meta.color }}>{meta.icon}</span>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.14em', color: meta.color }}>
             {meta.label}
           </span>
         </span>
         <span style={{ textAlign: 'right', lineHeight: 1.3, flexShrink: 0 }}>
-          <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 7.5, letterSpacing: '0.1em', color: '#7E88A6' }}>VOL:</span>
-          <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 700, color: '#C9D4F2' }}>{volLabel(market.total_volume)}</span>
+          <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 8.5, letterSpacing: '0.12em', color: '#CFC5B5' }}>VOL:</span>
+          <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: '#E6EDF9' }}>{volLabel(market.total_volume)}</span>
         </span>
       </div>
 
-      <p style={{ color: '#F2F5FF', fontWeight: 700, fontSize: 13, lineHeight: 1.45, margin: '10px 0 12px' }}>
+      <p style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 15, lineHeight: 1.45, margin: '12px 0 14px' }}>
         {market.title}
       </p>
 
@@ -182,13 +182,13 @@ export default function ExploreCard({ market }) {
         <>
           {chart}
           <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-            <span style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: 'rgba(61,220,132,.06)', border: '1px solid #2E9E63', borderRadius: 4, padding: '8px 12px' }}>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: '#3DDC84' }}>Yes</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: '#3DDC84' }}>{Math.round(yes?.probability || 0)}¢</span>
+            <span style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: '#0B364B', border: '1px solid #6BFE8F', borderRadius: 4, padding: '9px 14px' }}>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: '#6BFE8F' }}>Yes</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: '#6BFE8F' }}>{Math.round(yes?.probability || 0)}¢</span>
             </span>
-            <span style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: '#1A2138', border: '1px solid #3A2A32', borderRadius: 4, padding: '8px 12px' }}>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: '#DCE1FF' }}>No</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: '#F0857B' }}>{Math.round(no?.probability || 0)}¢</span>
+            <span style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: '#0F1C3D', border: '1px solid #FFB4AB', borderRadius: 4, padding: '9px 14px' }}>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: '#FFB4AB' }}>No</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: '#FFB4AB' }}>{Math.round(no?.probability || 0)}¢</span>
             </span>
           </div>
         </>
@@ -197,9 +197,9 @@ export default function ExploreCard({ market }) {
           {chart}
           <div style={{ marginTop: 12 }}>
             {options.map((o, i) => (
-              <div key={o.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '6px 0', borderBottom: i < options.length - 1 ? '1px solid #1A2138' : 'none' }}>
-                <span style={{ fontSize: 11, color: '#DCE1FF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.title}</span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: '#F3C74F', flexShrink: 0 }}>{Math.round(o.probability || 0)}¢</span>
+              <div key={o.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '7px 0', borderBottom: i < options.length - 1 ? '1px solid #172B40' : 'none' }}>
+                <span style={{ fontSize: 12, color: '#D5E3FF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.title}</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: '#E1C382', flexShrink: 0 }}>{Math.round(o.probability || 0)}¢</span>
               </div>
             ))}
           </div>
@@ -208,14 +208,14 @@ export default function ExploreCard({ market }) {
         <>
           <div>
             {options.slice(0, 3).map((o, i) => (
-              <div key={o.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '6px 0', borderBottom: i < Math.min(options.length, 3) - 1 ? '1px solid #1A2138' : 'none' }}>
-                <span style={{ fontSize: 11, color: '#DCE1FF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.title}</span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: '#F3C74F', flexShrink: 0 }}>{Math.round(o.probability || 0)}¢</span>
+              <div key={o.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '7px 0', borderBottom: i < Math.min(options.length, 3) - 1 ? '1px solid #172B40' : 'none' }}>
+                <span style={{ fontSize: 12, color: '#D5E3FF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.title}</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: '#E1C382', flexShrink: 0 }}>{Math.round(o.probability || 0)}¢</span>
               </div>
             ))}
           </div>
           {options.length > 3 && (
-            <span style={{ display: 'block', textAlign: 'center', marginTop: 10, background: '#1A2138', border: '1px solid #2A3352', borderRadius: 4, padding: '8px 0', fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.04em', color: '#C9D4F2' }}>
+            <span style={{ display: 'block', textAlign: 'center', marginTop: 12, background: '#1B3A62', border: 'none', borderRadius: 4, padding: '10px 0', fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: '#FFFFFF' }}>
               View all {options.length} options
             </span>
           )}

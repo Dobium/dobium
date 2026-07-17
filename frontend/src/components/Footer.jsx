@@ -26,8 +26,58 @@ function FooterLink({ label, style }) {
   );
 }
 
+const EXPLORE_COLUMNS = [
+  { title: 'PROTOCOL', links: ['Terms of Service', 'Privacy Policy', 'Market Integrity'] },
+  { title: 'ECOSYSTEM', links: ['Community Discord', 'Developer API'] },
+];
+
 export default function Footer() {
   const { pathname } = useLocation();
+
+  if (pathname === '/explore') {
+    return (
+      <footer style={{ borderTop: '1px solid #14223E', background: '#000E24', marginTop: 48 }}>
+        <div
+          className="dbm-footwrap"
+          style={{
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+            flexWrap: 'wrap', gap: 36, padding: '30px 28px 34px',
+          }}
+        >
+          <div style={{ maxWidth: 250 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <WaveMark height={15} />
+              <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15.5, color: '#F2F5FF' }}>
+                Dobium
+              </span>
+            </div>
+            <p style={{ color: '#CFC5B5', fontSize: 11.5, lineHeight: 1.65, margin: '12px 0 0' }}>
+              © 2024 Dobium Markets. High-fidelity prediction protocols for a deterministic future.
+            </p>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 56 }}>
+            {EXPLORE_COLUMNS.map((col) => (
+              <div key={col.title}>
+                <div
+                  style={{
+                    fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700,
+                    letterSpacing: '0.16em', color: '#CFC5B5',
+                  }}
+                >
+                  {col.title}
+                </div>
+                <nav style={{ marginTop: 13, display: 'flex', flexDirection: 'column' }}>
+                  {col.links.map((label) => (
+                    <FooterLink key={label} label={label} style={{ color: '#8E9AB0', fontSize: 11.5, marginBottom: 9 }} />
+                  ))}
+                </nav>
+              </div>
+            ))}
+          </div>
+        </div>
+      </footer>
+    );
+  }
 
   if (pathname === '/') {
     return (
