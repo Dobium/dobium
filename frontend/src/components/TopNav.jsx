@@ -158,8 +158,8 @@ export default function TopNav() {
       style={{
         position: 'sticky', top: 0, zIndex: 40,
         padding: '14px 26px',
-        background: 'rgba(10,17,40,.97)', backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid #1B2240',
+        background: 'rgba(0,19,45,.97)', backdropFilter: 'blur(10px)',
+        borderBottom: '1px solid #14223E',
       }}
     >
       <div className="dbm-navwrap" style={{ display: 'flex', alignItems: 'center', gap: 30 }}>

@@ -892,7 +892,7 @@ a,
   .dbm-mobile-only { display: none; }
   .dbm-main-grid { grid-template-columns: minmax(0, 1fr) 290px; }
   .dbm-hero-grid { grid-template-columns: minmax(0, 58fr) 42fr; }
-  .dbm-hero-chart { border-left: 1px solid #2A3352; }
+  .dbm-hero-chart { border-left: 1px solid #2F3A4A; }
   .dbm-rail { position: sticky; top: 80px; }
 }
 

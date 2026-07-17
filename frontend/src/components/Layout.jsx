@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import TopNav from './TopNav';
+import { HomeTicker } from '../pages/LandingPage';
 import Footer from './Footer';
 import PaperTradingDisclaimer from './PaperTradingDisclaimer';
 import AuthModal from './AuthModal';
@@ -28,6 +29,7 @@ export default function Layout() {
     <>
       <PaperTradingDisclaimer />
       <div className="main-content" style={{ background: 'var(--bg)', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        {pathname === '/' && <HomeTicker />}
         <TopNav />
         <div style={{ flex: 1 }}>
           <Outlet />

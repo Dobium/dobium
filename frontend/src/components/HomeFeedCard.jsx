@@ -3,15 +3,15 @@ import { useNavigate } from 'react-router-dom';
 // Per-category chip colors from the reference mock (FESTIVALS green,
 // AWARDS gold); everything else stays in the same palette family.
 const CHIP_COLORS = [
-  [/festival/, '#3DDC84'],
-  [/award|grammy/, '#F3C74F'],
+  [/festival/, '#4BE176'],
+  [/award|grammy/, '#FFDF9B'],
   [/music|hip ?hop/, '#F0857B'],
   [/entertainment|media|movie|tv|streaming|celebrity|culture|gaming/, '#8F9BE8'],
 ];
 function chipColor(category) {
   const c = (category || '').toLowerCase();
   for (const [re, color] of CHIP_COLORS) if (re.test(c)) return color;
-  return '#F3C74F';
+  return '#FFDF9B';
 }
 
 // Home-feed market card — matched to the reference mock: big deep-indigo
@@ -45,15 +45,15 @@ export default function HomeFeedCard({ market }) {
       onClick={go}
       style={{
         display: 'flex', alignItems: 'center', gap: 18,
-        background: '#161D3A', border: '1px solid #2A3352', borderRadius: 10,
+        background: '#0C203A', border: '1px solid #2F3A4A', borderRadius: 8,
         padding: 18, cursor: 'pointer', transition: 'border-color .15s ease',
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#F3C74F')}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#2A3352')}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#FFDF9B')}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#2F3A4A')}
     >
       {/* Artwork placeholder tile — deep indigo with a small glyph */}
       <span style={{
-        width: 148, height: 148, borderRadius: 8, background: '#1B2150', flexShrink: 0,
+        width: 148, height: 148, borderRadius: 8, background: '#192855', flexShrink: 0,
         alignItems: 'center', justifyContent: 'center',
       }} className="dbm-tile">
         <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#6F7BD9' }}>image</span>
@@ -64,7 +64,7 @@ export default function HomeFeedCard({ market }) {
           <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', color: chipColor(market.category), background: `${chipColor(market.category)}1F`, borderRadius: 3, padding: '3px 8px' }}>
             {(market.category || 'trending').toUpperCase()}
           </span>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', color: '#D2C5AF' }}>VOL: {volLabel}</span>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', color: '#CFC5B5' }}>VOL: {volLabel}</span>
         </div>
         <p style={{ color: '#F2F5FF', fontWeight: 700, fontSize: 15, lineHeight: 1.4, margin: '0 0 14px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {market.title}
@@ -72,16 +72,16 @@ export default function HomeFeedCard({ market }) {
         {isBinary ? (
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 30 }}>
             <span>
-              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#8E94AF' }}>YES</span>
+              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#CFC5B5' }}>YES</span>
               <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 800, color: '#F2F5FF', marginTop: 3 }}>{chancePct}%</span>
             </span>
             <span>
-              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#8E94AF' }}>NO</span>
+              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#CFC5B5' }}>NO</span>
               <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 800, color: '#F2F5FF', marginTop: 3 }}>{100 - chancePct}%</span>
             </span>
           </div>
         ) : (
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: '#F3C74F' }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: '#FFDF9B' }}>
             {chanceLabel}
           </div>
         )}
@@ -90,11 +90,11 @@ export default function HomeFeedCard({ market }) {
       {isBinary && (
         <div style={{ display: 'flex', gap: 10, flexShrink: 0, alignSelf: 'flex-end', paddingBottom: 6 }}>
           <button onClick={(e) => { e.stopPropagation(); go(); }}
-            style={{ fontWeight: 700, fontSize: 13, background: '#3E4FD8', border: 'none', color: '#FFFFFF', borderRadius: 6, padding: '9px 22px', cursor: 'pointer' }}>
+            style={{ fontWeight: 700, fontSize: 13, background: '#1B3A62', border: 'none', color: '#D5E3FF', borderRadius: 6, padding: '9px 22px', cursor: 'pointer' }}>
             Yes
           </button>
           <button onClick={(e) => { e.stopPropagation(); go(); }}
-            style={{ fontWeight: 700, fontSize: 13, background: '#232A45', border: '1px solid #3A4160', color: '#DCE1FF', borderRadius: 6, padding: '9px 22px', cursor: 'pointer' }}>
+            style={{ fontWeight: 700, fontSize: 13, background: '#1B3A62', border: 'none', color: '#D5E3FF', borderRadius: 6, padding: '9px 22px', cursor: 'pointer' }}>
             No
           </button>
         </div>

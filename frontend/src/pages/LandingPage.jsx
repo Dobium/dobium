@@ -22,6 +22,7 @@ function inGenre(m, genre) {
     case 'moviestv': return bucket === 'media' || MOVIE_WORDS.some((w) => t.includes(w));
     case 'socialtrends': return bucket === 'trending' || SOCIAL_WORDS.some((w) => t.includes(w));
     case 'festivals': return FESTIVAL_WORDS.some((w) => t.includes(w));
+    case 'grammys': return bucket === 'awards' || /grammy|award|aoty|album of the year|best new artist|song of the year|record of the year/.test(t);
     default: return true;
   }
 }
@@ -78,7 +79,7 @@ function Ticker({ markets, fixedItems }) {
   const loop = [...items, ...items]; // duplicated for a seamless marquee
 
   return (
-    <div style={{ overflow: 'hidden', background: '#070D1F', whiteSpace: 'nowrap' }}>
+    <div style={{ overflow: 'hidden', background: '#000A1A', borderBottom: '1px solid #10203A', whiteSpace: 'nowrap' }}>
       <div className="dbm-ticker-track" style={{ display: 'inline-flex', alignItems: 'center', padding: '12px 0' }}>
         {loop.map((it, i) => (
           <span
@@ -88,10 +89,10 @@ function Ticker({ markets, fixedItems }) {
               margin: '0 34px', fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
             }}
           >
-            <span style={{ width: 6, height: 6, borderRadius: 999, background: '#3DDC84', display: 'inline-block', flexShrink: 0 }} />
-            <span style={{ color: '#E8ECFF' }}>{it.label}</span>
+            <span style={{ width: 6, height: 6, borderRadius: 999, background: '#4BE176', display: 'inline-block', flexShrink: 0 }} />
+            <span style={{ color: '#CFC5B5' }}>{it.label}</span>
             <span style={{ color: '#FFFFFF', fontWeight: 800 }}>{it.value}</span>
-            <span style={{ color: it.delta < 0 ? '#F0655B' : '#3DDC84', fontWeight: 800 }}>
+            <span style={{ color: it.delta < 0 ? '#F0655B' : '#4BE176', fontWeight: 800 }}>
               {it.delta >= 0 ? '+' : ''}{it.delta.toFixed(1)}%
             </span>
           </span>
@@ -106,13 +107,34 @@ function Ticker({ markets, fixedItems }) {
   );
 }
 
+// Sidebar icons drawn inline (the self-hosted icon-font subset only carries
+// glyphs already used in src, so new names would render as raw words).
+function CatIcon({ kind, color }) {
+  const common = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { flexShrink: 0 } };
+  switch (kind) {
+    case 'trend': return <svg {...common}><path d="M3 17l6-6 4 4 8-8M15 7h6v6" /></svg>;
+    case 'note': return <svg {...common}><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>;
+    case 'bolt': return <svg {...common}><path d="M13 2L3 14h9l-1 8 10-12h-9z" /></svg>;
+    case 'stage': return <svg {...common}><path d="M3 21h18M4 18h16M6 18v-7M10 18v-7M14 18v-7M18 18v-7M3 9l9-6 9 6z" /></svg>;
+    case 'trophy': return <svg {...common}><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0zM7 6H4a2 2 0 002 4h1M17 6h3a2 2 0 01-2 4h-1" /></svg>;
+    default: return null;
+  }
+}
+
 const CATEGORIES = [
-  { key: 'trending', label: 'Trending', icon: 'trending_up' },
-  { key: 'music', label: 'Music', icon: 'music_note' },
-  { key: 'moviestv', label: 'Movies & TV', icon: 'movie' },
-  { key: 'socialtrends', label: 'Social Trends', icon: 'tag' },
-  { key: 'festivals', label: 'Festivals', icon: 'account_balance' },
+  { key: 'trending', label: 'Trending', icon: 'trend' },
+  { key: 'music', label: 'Hip Hop', icon: 'note' },
+  { key: 'socialtrends', label: 'Pop Culture', icon: 'bolt' },
+  { key: 'festivals', label: 'Festivals', icon: 'stage' },
+  { key: 'grammys', label: 'Grammys', icon: 'trophy' },
 ];
+
+// Rendered by Layout ABOVE the top nav on the home route (mock places the
+// tape at the very top of the page).
+export function HomeTicker() {
+  const { markets } = useMarkets();
+  return <Ticker markets={markets} fixedItems={DEMO_PARITY ? DEMO_TICKER : null} />;
+}
 
 export default function LandingPage() {
   const { markets, loading } = useMarkets();
@@ -178,34 +200,33 @@ export default function LandingPage() {
 
   const feedHeading = {
     trending: 'All Music Markets',
-    music: 'All Music Markets',
-    moviestv: 'All Movies & TV Markets',
-    socialtrends: 'All Social Trends Markets',
+    music: 'All Hip Hop Markets',
+    socialtrends: 'All Pop Culture Markets',
     festivals: 'All Festival Markets',
+    grammys: 'All Grammys Markets',
   }[genre] || 'All Music Markets';
 
   const liveFeedCard = shownLiveFeed && (
-    <div style={{ background: '#131A33', border: '1px solid #262E4E', borderRadius: 8, padding: 13 }}>
-      <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.16em', color: '#F3C74F', marginBottom: 8 }}>LIVE FEED</div>
-      <p style={{ color: '#8E94AF', fontSize: 11.5, lineHeight: 1.6, margin: 0 }}>
+    <div style={{ background: '#0C203A', border: '1px solid #22314A', borderRadius: 6, padding: 13 }}>
+      <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.16em', color: '#CFC5B5', marginBottom: 8 }}>LIVE FEED</div>
+      <p style={{ color: '#8E9AB0', fontSize: 11.5, lineHeight: 1.6, margin: 0 }}>
         User <span style={{ color: '#F2F5FF', fontWeight: 700 }}>@{String(shownLiveFeed.handle || '').replace(/^@/, '')}</span> just traded{' '}
-        <span style={{ color: '#F3C74F', fontWeight: 700 }}>{compactStake(Number(shownLiveFeed.stake))}</span> on{' '}
-        <span style={{ color: '#3DDC84', fontWeight: 700 }}>{shownLiveFeed.side}</span> for {shownLiveFeed.market}
+        <span style={{ color: '#FFDF9B', fontWeight: 700 }}>{compactStake(Number(shownLiveFeed.stake))}</span> on{' '}
+        <span style={{ color: '#4BE176', fontWeight: 700 }}>{shownLiveFeed.side}</span> for {shownLiveFeed.market}
       </p>
     </div>
   );
 
   return (
-    <div style={{ background: '#0A1128' }}>
-      <Ticker markets={markets} fixedItems={demo ? DEMO_TICKER : null} />
+    <div style={{ background: '#00132D' }}>
 
       {/* ── Mock structure: full-height bordered sidebar · content (main + rail) ── */}
       <div className="dbm-shell" style={{ display: 'flex', alignItems: 'stretch' }}>
 
         {/* Left: full-height category rail (desktop) */}
-        <aside className="dbm-side" style={{ width: 264, flexShrink: 0, borderRight: '1px solid #1B2240' }}>
+        <aside className="dbm-side" style={{ width: 264, flexShrink: 0, borderRight: '1px solid #22314A' }}>
           <div style={{ padding: '18px 14px' }}>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', color: '#AEB6D2', margin: '0 0 12px 6px' }}>CATEGORIES</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', color: '#CFC5B5', margin: '0 0 12px 6px' }}>CATEGORIES</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {CATEGORIES.map((g) => (
                 <button
@@ -213,19 +234,19 @@ export default function LandingPage() {
                   onClick={() => setGenre(g.key)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', width: '100%',
-                    background: genre === g.key ? '#3A4262' : 'transparent',
+                    background: genre === g.key ? '#394666' : 'transparent',
                     border: 'none',
                     borderRadius: 8, padding: '13px 14px', cursor: 'pointer',
-                    color: genre === g.key ? '#B7C1EE' : '#C9C5BA',
+                    color: genre === g.key ? '#DCE6F5' : '#CFC5B5',
                     fontWeight: 600, fontSize: 16.5,
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: genre === g.key ? '#B7C1EE' : '#C9C5BA' }}>{g.icon}</span>
+                  <CatIcon kind={g.icon} color={genre === g.key ? '#DCE6F5' : '#CFC5B5'} />
                   {g.label}
                 </button>
               ))}
             </div>
-            <div style={{ borderTop: '1px solid #1B2240', marginTop: 56, paddingTop: 18 }}>
+            <div style={{ borderTop: '1px solid #22314A', marginTop: 56, paddingTop: 18 }}>
               {liveFeedCard}
             </div>
           </div>
@@ -242,13 +263,13 @@ export default function LandingPage() {
                 onClick={() => setGenre(g.key)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
-                  background: genre === g.key ? '#3A4262' : 'transparent',
+                  background: genre === g.key ? '#394666' : 'transparent',
                   border: 'none', borderRadius: 8, padding: '9px 12px', cursor: 'pointer',
-                  color: genre === g.key ? '#B7C1EE' : '#C9C5BA',
+                  color: genre === g.key ? '#DCE6F5' : '#CFC5B5',
                   fontWeight: 600, fontSize: 13.5,
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{g.icon}</span>
+                <CatIcon kind={g.icon} color={genre === g.key ? '#DCE6F5' : '#CFC5B5'} />
                 {g.label}
               </button>
             ))}
@@ -266,11 +287,11 @@ export default function LandingPage() {
                 </h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button onClick={() => navigate('/explore')} aria-label="Filter markets"
-                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#7E86A6', padding: 4, display: 'flex' }}>
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#8E9AB0', padding: 4, display: 'flex' }}>
                     <span className="material-symbols-outlined" style={{ fontSize: 19 }}>filter_list</span>
                   </button>
                   <button onClick={() => navigate('/explore')} aria-label="View all markets"
-                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#7E86A6', padding: 4, display: 'flex' }}>
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#8E9AB0', padding: 4, display: 'flex' }}>
                     <span className="material-symbols-outlined" style={{ fontSize: 19 }}>grid_view</span>
                   </button>
                 </div>
@@ -284,7 +305,7 @@ export default function LandingPage() {
                 </div>
               )}
               {(demo || !loading) && feedMarkets.length === 0 && (
-                <p style={{ color: '#7E86A6', fontSize: 13 }}>No markets in this category yet — check Trending.</p>
+                <p style={{ color: '#8E9AB0', fontSize: 13 }}>No markets in this category yet — check Trending.</p>
               )}
 
               {/* Live feed shown inline on mobile where the sidebar is hidden */}
@@ -297,10 +318,10 @@ export default function LandingPage() {
             <aside>
               <div className="dbm-rail" style={{ display: 'flex', flexDirection: 'column', gap: 44 }}>
                 {trendingArtists.length > 0 && (
-                  <div style={{ background: '#161D3A', border: '1px solid #2A3352', borderRadius: 10, padding: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, paddingBottom: 10, borderBottom: '1px solid #2A3352' }}>
+                  <div style={{ background: '#0C203A', border: '1px solid #22314A', borderRadius: 6, padding: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, paddingBottom: 10, borderBottom: '1px solid #22314A' }}>
                       <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 13.5, color: '#E8ECFF' }}>Trending Artists</span>
-                      <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#F3C74F' }}>auto_awesome</span>
+                      <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#CFC5B5' }}>auto_awesome</span>
                     </div>
                     {trendingArtists.map((a, i) => (
                       <button
@@ -308,9 +329,9 @@ export default function LandingPage() {
                         onClick={() => navigate(`/explore?q=${encodeURIComponent(a.name)}`)}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: '10px 0' }}
                       >
-                        <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, color: '#6E7694', width: 18, flexShrink: 0 }}>{String(i + 1).padStart(2, '0')}</span>
+                        <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, color: '#CFC5B5', width: 18, flexShrink: 0 }}>{String(i + 1).padStart(2, '0')}</span>
                         <span style={{
-                          width: 34, height: 34, borderRadius: 999, background: '#2A346B', flexShrink: 0,
+                          width: 34, height: 34, borderRadius: 999, background: '#192855', flexShrink: 0,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           color: '#8FA0E8', fontWeight: 700, fontSize: 12.5,
                         }}>{a.name.charAt(0)}</span>
@@ -318,33 +339,33 @@ export default function LandingPage() {
                           <span style={{ display: 'block', color: '#F2F5FF', fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
                           <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 9.5, color: '#8E94AF', marginTop: 3 }}>{a.count} Market{a.count === 1 ? '' : 's'} Live</span>
                         </span>
-                        <span className="material-symbols-outlined" style={{ fontSize: 15, color: a.momentum < 0 ? '#F0857B' : '#3DDC84', flexShrink: 0 }}>{a.momentum < 0 ? 'trending_down' : 'trending_up'}</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: 15, color: a.momentum < 0 ? '#F0857B' : '#4BE176', flexShrink: 0 }}>{a.momentum < 0 ? 'trending_down' : 'trending_up'}</span>
                       </button>
                     ))}
                     <button onClick={() => navigate('/leagues/leaderboard')}
-                      style={{ width: '100%', marginTop: 12, background: '#0D1329', border: '1px solid #2A3352', borderRadius: 6, padding: '10px 0', cursor: 'pointer', fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: '#AEB6D6' }}>
+                      style={{ width: '100%', marginTop: 12, background: 'transparent', border: '1px solid #39465F', borderRadius: 3, padding: '10px 0', cursor: 'pointer', fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: '#CFC5B5' }}>
                       VIEW ALL LEADERS
                     </button>
                   </div>
                 )}
 
-                <div style={{ background: '#161D3A', border: '1px solid #2A3352', borderRadius: 10, padding: 16 }}>
-                  <div style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 13.5, color: '#F3C74F', marginBottom: 12 }}>Market Analytics</div>
+                <div style={{ background: '#0C203A', border: '1px solid #22314A', borderRadius: 6, padding: 16 }}>
+                  <div style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 13.5, color: '#FFDF9B', marginBottom: 12 }}>Market Analytics</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#10172E', border: '1px solid #2A3352', borderRadius: 4, padding: '11px 12px' }}>
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#8E94AF' }}>GLOBAL VOL (24H)</span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0C1E39', border: '1px solid #22314A', borderRadius: 3, padding: '11px 12px' }}>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#CFC5B5' }}>GLOBAL VOL (24H)</span>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, fontWeight: 800, color: '#F2F5FF' }}>{demo ? DEMO_ANALYTICS.globalVol : (loading && !pulse ? '—' : compactMoney(totalVolume))}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#10172E', border: '1px solid #2A3352', borderRadius: 4, padding: '11px 12px' }}>
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#8E94AF' }}>ACTIVE TRADERS</span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0C1E39', border: '1px solid #22314A', borderRadius: 3, padding: '11px 12px' }}>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#CFC5B5' }}>ACTIVE TRADERS</span>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, fontWeight: 800, color: '#F2F5FF' }}>{demo ? DEMO_ANALYTICS.traders : (pulse?.users != null ? pulse.users.toLocaleString('en-US') : '—')}</span>
                     </div>
                     {biggestShift && (
-                      <div style={{ background: '#10172E', border: '1px solid #2A3352', borderRadius: 4, padding: '11px 12px' }}>
-                        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#8E94AF', marginBottom: 6 }}>HIGHEST PROBABILITY SHIFT</div>
+                      <div style={{ background: '#0C1E39', border: '1px solid #22314A', borderRadius: 3, padding: '11px 12px' }}>
+                        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#CFC5B5', marginBottom: 6 }}>HIGHEST PROBABILITY SHIFT</div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <span style={{ color: '#F2F5FF', fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{biggestShift.name}</span>
-                          <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 800, color: biggestShift.delta < 0 ? '#F0655B' : '#3DDC84', flexShrink: 0, marginLeft: 8 }}>
+                          <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 800, color: biggestShift.delta < 0 ? '#F0655B' : '#4BE176', flexShrink: 0, marginLeft: 8 }}>
                             {biggestShift.delta > 0 ? '+' : ''}{biggestShift.delta}%
                           </span>
                         </div>
@@ -354,14 +375,14 @@ export default function LandingPage() {
                 </div>
 
                 <button onClick={() => navigate('/portfolio')}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: '#F3C74F', border: 'none', borderRadius: 8, padding: '14px 14px', cursor: 'pointer', textAlign: 'left' }}>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: '#FFDF9B', border: 'none', borderRadius: 6, padding: '14px 14px', cursor: 'pointer', textAlign: 'left' }}>
                   <span>
-                    <span style={{ display: 'block', fontWeight: 800, fontSize: 13.5, color: '#2A1F00' }}>Customize View</span>
-                    <span style={{ display: 'block', fontSize: 11, color: '#5C4A10', marginTop: 4, lineHeight: 1.45 }}>
+                    <span style={{ display: 'block', fontWeight: 800, fontSize: 13.5, color: '#00132D' }}>Customize View</span>
+                    <span style={{ display: 'block', fontSize: 11, color: '#79612A', marginTop: 4, lineHeight: 1.45 }}>
                       Switch to 'Pro Trader' dashboard for advanced charts.
                     </span>
                   </span>
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#2A1F00', flexShrink: 0 }}>chevron_right</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#00132D', flexShrink: 0 }}>chevron_right</span>
                 </button>
               </div>
             </aside>

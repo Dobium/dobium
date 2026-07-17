@@ -75,7 +75,7 @@ export default function MajorMarket({ markets }) {
   return (
     <div
       className="dbm-hero-grid"
-      style={{ background: '#161D3A', border: '1px solid #2A3352', borderRadius: 10, marginBottom: 30, overflow: 'hidden' }}
+      style={{ background: '#182A45', border: '1px solid #2F3A4A', borderRadius: 8, marginBottom: 30, overflow: 'hidden' }}
     >
       {/* Left: question, stats, YES/NO */}
       <div
@@ -83,11 +83,11 @@ export default function MajorMarket({ markets }) {
         onClick={() => navigate(dest)}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', color: '#2A1F00', background: '#F3C74F', borderRadius: 4, padding: '5px 10px' }}>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', color: '#00132D', background: '#FFDF9B', borderRadius: 4, padding: '5px 10px' }}>
             MAJOR MARKET
           </span>
           {closes && (
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: '#AEB6D6' }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: '#CFC5B5' }}>
               CLOSES {closes}
             </span>
           )}
@@ -99,16 +99,16 @@ export default function MajorMarket({ markets }) {
 
         <div style={{ display: 'flex', gap: 44, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: '#8E94AF', marginBottom: 6 }}>{chanceName} PROBABILITY</div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 800, color: '#3DDC84' }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: '#CFC5B5', marginBottom: 6 }}>{chanceName} PROBABILITY</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 800, color: '#4BE176' }}>
               {Math.round(p * 100)}%{' '}
               {delta !== 0 && (
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#C9CFE8' }}>({delta > 0 ? '+' : ''}{delta}%)</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#CFC5B5' }}>({delta > 0 ? '+' : ''}{delta}%)</span>
               )}
             </div>
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: '#8E94AF', marginBottom: 6 }}>TOTAL VOLUME</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: '#CFC5B5', marginBottom: 6 }}>TOTAL VOLUME</div>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 800, color: '#F2F5FF' }}>{volLabel}</div>
           </div>
         </div>
@@ -119,57 +119,57 @@ export default function MajorMarket({ markets }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
             <button
               onClick={(e) => { e.stopPropagation(); navigate(dest); }}
-              style={{ background: 'rgba(61,220,132,.07)', border: '1px solid #3FAE6E', borderRadius: 8, padding: '13px 10px', cursor: 'pointer', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 16, letterSpacing: '0.04em', color: '#3DDC84' }}>YES</div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#8E94AF', marginTop: 5 }}>Payout: {yesMult}x</div>
+              style={{ background: '#1D3D4A', border: '1px solid #4BE176', borderRadius: 6, padding: '13px 10px', cursor: 'pointer', textAlign: 'center' }}>
+              <div style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 16, letterSpacing: '0.04em', color: '#4BE176' }}>YES</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#CFC5B5', marginTop: 5 }}>Payout: {yesMult}x</div>
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); navigate(dest); }}
-              style={{ background: 'rgba(201,138,130,.05)', border: '1px solid #C98A82', borderRadius: 8, padding: '13px 10px', cursor: 'pointer', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 16, letterSpacing: '0.04em', color: '#F08A80' }}>NO</div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#8E94AF', marginTop: 5 }}>Payout: {noMult}x</div>
+              style={{ background: '#30384F', border: '1px solid #FFB4AB', borderRadius: 6, padding: '13px 10px', cursor: 'pointer', textAlign: 'center' }}>
+              <div style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 16, letterSpacing: '0.04em', color: '#FFB4AB' }}>NO</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#CFC5B5', marginTop: 5 }}>Payout: {noMult}x</div>
             </button>
           </div>
         ) : (
           <button
             onClick={(e) => { e.stopPropagation(); navigate(dest); }}
-            style={{ width: '100%', background: '#F3C74F', border: 'none', borderRadius: 6, padding: '14px 10px', cursor: 'pointer', fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 14, color: '#2A1F00' }}>
+            style={{ width: '100%', background: '#FFDF9B', border: 'none', borderRadius: 6, padding: '14px 10px', cursor: 'pointer', fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 14, color: '#00132D' }}>
             VIEW {outcomes.length} OUTCOMES
           </button>
         )}
       </div>
 
       {/* Right: chart panel behind the internal divider */}
-      <div className="dbm-hero-chart" style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column' }}>
+      <div className="dbm-hero-chart" style={{ background: '#0C1E39', padding: '22px 24px', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: '#C9CFE8' }}>7-DAY PROBABILITY CHART</span>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: '#CFC5B5' }}>7-DAY PROBABILITY CHART</span>
           <span style={{ display: 'inline-flex', gap: 4 }}>
             {['1H', '1D', 'ALL'].map((r) => (
-              <span key={r} style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', padding: '5px 10px', borderRadius: 5, background: r === '1H' ? '#2E3A64' : 'transparent', color: r === '1H' ? '#FFFFFF' : '#6E7694' }}>{r}</span>
+              <span key={r} style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', padding: '5px 10px', borderRadius: 5, background: r === '1H' ? '#1B3A62' : 'transparent', color: r === '1H' ? '#FFFFFF' : '#8E9AB0' }}>{r}</span>
             ))}
           </span>
         </div>
 
         <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', flex: 1 }}>
           {[100, 75, 50, 25, 0].map((v) => (
-            <text key={v} x={W - RPAD + 10} y={py(v) + 3} fontSize="9.5" fill="#6E7694" fontFamily="var(--mono)">{v}%</text>
+            <text key={v} x={W - RPAD + 10} y={py(v) + 3} fontSize="9.5" fill="#8E9AB0" fontFamily="var(--mono)">{v}%</text>
           ))}
-          <path d={noPath} fill="none" stroke="#E8837B" strokeWidth="2.2" strokeDasharray="1,6" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" />
-          <path d={yesPath} fill="none" stroke="#3DDC84" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={noPath} fill="none" stroke="#FFB4AB" strokeWidth="2.2" strokeDasharray="1,6" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" />
+          <path d={yesPath} fill="none" stroke="#6BFE8F" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
 
         {news && (
           <a href={news.link} target="_blank" rel="noopener noreferrer"
-            style={{ background: '#0D1329', border: '1px solid #2A3352', borderRadius: 8, padding: 14, textDecoration: 'none', display: 'flex', gap: 14, alignItems: 'center', marginTop: 14 }}>
+            style={{ background: '#0C203A', border: '1px solid #22314A', borderRadius: 6, padding: 14, textDecoration: 'none', display: 'flex', gap: 14, alignItems: 'center', marginTop: 14 }}>
             <span style={{
-              width: 48, height: 48, borderRadius: 6, background: '#1E2452', flexShrink: 0,
+              width: 48, height: 48, borderRadius: 6, background: '#192855', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#7B86D9' }}>album</span>
             </span>
             <span style={{ minWidth: 0 }}>
-              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 800, letterSpacing: '0.16em', color: '#E8ECFF' }}>LATEST NEWS</span>
-              <span style={{ display: 'block', color: '#C9CFE8', fontSize: 12.5, lineHeight: 1.5, margin: '5px 0 0' }}>
+              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 800, letterSpacing: '0.16em', color: '#CFC5B5' }}>LATEST NEWS</span>
+              <span style={{ display: 'block', color: '#C6D3E8', fontSize: 12.5, lineHeight: 1.5, margin: '5px 0 0' }}>
                 {news.title.slice(0, 100)}{news.title.length > 100 ? '…' : ''}
               </span>
             </span>
