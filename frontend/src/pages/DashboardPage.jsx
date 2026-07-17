@@ -6,6 +6,26 @@ import { useMarkets } from '../hooks/useMarkets';
 import { useWallet } from '../hooks/useWallet';
 import { formatCurrency } from '../store/storage';
 import ActivityHistory from '../components/ActivityHistory';
+import MarketTicker from '../components/MarketTicker';
+
+// ── Terminal-mock palette (sampled from the portfolio reference shots) ─────
+const PAGE_BG = '#00132D';
+const PANEL_BG = '#0C203A';
+const PANEL_LINE = '#22314A';
+const CHART_BG = '#000E24';
+const CHIP_BG = '#081C36';
+const WHITE = '#FFFFFF';
+const WARM = '#CFC5B5';        // mono micro-labels on this page
+const MUTED = '#7E92B0';
+const GREEN = '#6BFE8F';
+const GREEN_TEXT = '#4BE176';
+const RED = '#FF9E8E';
+const GOLD = '#FFDF9B';
+const GOLD_NUM = '#E1C382';    // muted gold for figures/titles
+const ON_GOLD = '#0A1A33';
+
+const PANEL = { background: PANEL_BG, border: `1px solid ${PANEL_LINE}`, borderRadius: 4 };
+const warmLabel = { fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: WARM };
 
 // ============================================================================
 // Robinhood-style dual-canvas equity chart
@@ -21,8 +41,8 @@ function EquityChart({ equityPoints, startingBalance, currentValue }) {
   const [tooltip, setTooltip] = useState(null);
 
   const isProfit = currentValue >= startingBalance;
-  const lineColor = isProfit ? '#22c55e' : '#ef4444';
-  const colorRgb = isProfit ? '34,197,94' : '239,68,68';
+  const lineColor = isProfit ? '#6BFE8F' : '#FF9E8E';
+  const colorRgb = isProfit ? '107,254,143' : '255,158,142';
   const PAD = { t: 20, r: 8, b: 8, l: 8 };
 
   // ── Compute pixel coordinates from data ──────────────────────────────────
@@ -65,12 +85,23 @@ function EquityChart({ equityPoints, startingBalance, currentValue }) {
     const { xs, ys, baselineY } = scale;
     ctx.clearRect(0, 0, W, H);
 
+    // Vertical session gridlines (mock: faint columns on the dark inset)
+    ctx.strokeStyle = '#0B2138';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 8; i++) {
+      const gx = (i / 8) * W;
+      ctx.beginPath();
+      ctx.moveTo(gx, 0);
+      ctx.lineTo(gx, H);
+      ctx.stroke();
+    }
+
     // Dashed baseline at starting balance
     ctx.beginPath();
     ctx.setLineDash([6, 4]);
-    ctx.strokeStyle = '#475569';
+    ctx.strokeStyle = '#1B3050';
     ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha = 0.6;
     ctx.moveTo(0, baselineY);
     ctx.lineTo(W, baselineY);
     ctx.stroke();
@@ -90,8 +121,8 @@ function EquityChart({ equityPoints, startingBalance, currentValue }) {
 
     // Gradient fill below the curve
     const grad = ctx.createLinearGradient(0, PAD.t, 0, H - PAD.b);
-    grad.addColorStop(0, `rgba(${colorRgb}, 0.22)`);
-    grad.addColorStop(1, `rgba(${colorRgb}, 0)`);
+    grad.addColorStop(0, `rgba(${colorRgb}, 0.24)`);
+    grad.addColorStop(1, `rgba(${colorRgb}, 0.05)`);
     ctx.beginPath();
     buildPath(ctx);
     ctx.lineTo(xs[xs.length - 1], H - PAD.b);
@@ -152,14 +183,14 @@ function EquityChart({ equityPoints, startingBalance, currentValue }) {
         ctx.arc(lastX, lastY, 5, 0, Math.PI * 2);
         ctx.fillStyle = lineColor;
         ctx.fill();
-        ctx.strokeStyle = '#0f172a';
+        ctx.strokeStyle = '#000E24';
         ctx.lineWidth = 2;
         ctx.stroke();
       } else {
         // ── Crosshair ─────────────────────────────────────────────────────
         ctx.beginPath();
         ctx.setLineDash([3, 3]);
-        ctx.strokeStyle = '#94a3b8';
+        ctx.strokeStyle = '#46618A';
         ctx.lineWidth = 1;
         ctx.globalAlpha = 0.6;
         ctx.moveTo(hover.x, PAD.t);
@@ -173,7 +204,7 @@ function EquityChart({ equityPoints, startingBalance, currentValue }) {
         ctx.arc(hover.x, hover.y, 5, 0, Math.PI * 2);
         ctx.fillStyle = lineColor;
         ctx.fill();
-        ctx.strokeStyle = '#0f172a';
+        ctx.strokeStyle = '#000E24';
         ctx.lineWidth = 2;
         ctx.stroke();
       }
@@ -207,7 +238,7 @@ function EquityChart({ equityPoints, startingBalance, currentValue }) {
   if (!equityPoints || equityPoints.length < 2) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-slate-600 text-sm">Make your first prediction to see your equity chart</p>
+        <p style={{ fontFamily: 'var(--mono)', color: '#46618A', fontSize: 11.5, letterSpacing: '0.05em' }}>Make your first prediction to see your equity chart</p>
       </div>
     );
   }
@@ -232,8 +263,9 @@ function EquityChart({ equityPoints, startingBalance, currentValue }) {
       {/* Floating tooltip */}
       {tooltip && (
         <div
-          className="absolute top-2 pointer-events-none px-3 py-1.5 bg-slate-800/90 border border-slate-700 rounded-lg text-xs z-10"
-          style={{ left: `${Math.min(Math.max(tooltip.pct * 100, 5), 72)}%` }}
+          className="absolute top-2 pointer-events-none px-3 py-1.5 text-xs z-10"
+          data-mock-tooltip
+          style={{ left: `${Math.min(Math.max(tooltip.pct * 100, 5), 72)}%`, background: 'rgba(8,28,54,.95)', border: '1px solid #22314A', borderRadius: 4 }}
         >
           <p className="text-white font-semibold">
             ${tooltip.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -349,57 +381,60 @@ export default function DashboardPage() {
   // Signed-out visitors used to be silently bounced to /explore, which made
   // the Charts nav link feel broken. Show a proper sign-in gate instead.
   if (!session) {
-    const guestLabel = { display: 'block', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#948D87', marginBottom: 8 };
+    const guestLabel = { ...warmLabel, display: 'block', marginBottom: 12 };
     return (
+      <div style={{ background: PAGE_BG, minHeight: '100%' }}>
+      <MarketTicker markets={markets} />
       <div className="max-w-7xl mx-auto p-6 lg:p-8">
         {/* Mockup layout, guest defaults — so the Charts tab always shows the real page */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-          <div className="lg:col-span-2 relative overflow-hidden rounded-md p-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+          <div className="lg:col-span-2 relative overflow-hidden rounded-md p-6" style={PANEL}>
             <span style={guestLabel}>Total Portfolio Value</span>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 34, fontWeight: 600, color: '#DCE1FF', lineHeight: 1 }}>$100.00</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: '#948D87' }}>starting paper balance</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 34, fontWeight: 800, color: WHITE, lineHeight: 1 }}>$100.00</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: MUTED }}>starting paper balance</span>
             </div>
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 46, background: 'linear-gradient(180deg, transparent, rgba(11,18,41,.65))', pointerEvents: 'none' }} />
           </div>
           <div className="flex flex-col gap-4">
-            <div className="rounded-md p-5 flex-1" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+            <div className="rounded-md p-5 flex-1" style={PANEL}>
               <span style={guestLabel}>Available Cash</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 600, color: '#DCE1FF' }}>$100.00</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 800, color: WHITE }}>$100.00</span>
             </div>
-            <div className="rounded-md p-5 flex-1" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+            <div className="rounded-md p-5 flex-1" style={PANEL}>
               <span style={guestLabel}>Win Rate</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 600, color: '#FFDF9B' }}>—</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 800, color: WHITE }}>—</span>
             </div>
           </div>
         </div>
 
-        <div className="rounded-md p-6 mb-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+        <div className="rounded-md p-6 mb-6" style={PANEL}>
           <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
-            <h2 className="text-base font-bold" style={{ color: '#DCE1FF' }}>Performance History</h2>
-            <div className="flex gap-1 p-1 rounded" style={{ background: '#0B1229', border: '1px solid #33312E' }}>
-              {['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'].map(range => (
-                <span key={range} style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '5px 10px', borderRadius: 3, background: range === '1M' ? '#F0C04A' : 'transparent', color: range === '1M' ? '#4A3600' : '#8E94AF', fontWeight: 600 }}>{range}</span>
+            <h2 className="text-base font-bold" style={{ color: WHITE }}>Performance History</h2>
+            <div className="flex gap-1 p-1 rounded" style={{ background: CHIP_BG, border: `1px solid ${PANEL_LINE}`, borderRadius: 3 }}>
+              {['1D', '1W', '1M', 'YTD', '1Y', 'ALL'].map(range => (
+                <span key={range} style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '5px 10px', borderRadius: 3, background: range === '1M' ? GOLD : 'transparent', color: range === '1M' ? ON_GOLD : WARM, fontWeight: 600 }}>{range}</span>
               ))}
             </div>
           </div>
-          <div className="h-64 flex items-center justify-center" style={{ border: '1px dashed rgba(45,52,76,.7)', borderRadius: 6 }}>
-            <p style={{ color: '#948D87', fontSize: 13 }}>Your equity curve appears here once you start trading.</p>
+          <div className="h-64 flex items-center justify-center" style={{ border: '1px dashed #39465F', borderRadius: 6 }}>
+            <p style={{ color: MUTED, fontSize: 13 }}>Your equity curve appears here once you start trading.</p>
           </div>
         </div>
 
-        <div className="rounded-md p-8 mb-8 text-center" style={{ background: '#181E36', border: '1px solid #33312E' }}>
-          <h2 className="text-base font-bold mb-2" style={{ color: '#DCE1FF' }}>Active Positions</h2>
-          <p style={{ color: '#948D87', fontSize: 13, marginBottom: 18 }}>
+        <div className="rounded-md p-8 mb-8 text-center" style={PANEL}>
+          <h2 className="text-base font-bold mb-2" style={{ color: WHITE }}>Active Positions</h2>
+          <p style={{ color: MUTED, fontSize: 13, marginBottom: 18 }}>
             Sign in to track your paper trading balance, performance history, and open positions — every new account starts with $100 in paper money.
           </p>
           <button
             onClick={() => openAuthModal('login')}
-            style={{ background: '#F0C04A', color: '#4A3600', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 13.5, border: 'none', borderRadius: 6, padding: '12px 28px', cursor: 'pointer' }}
+            style={{ background: GOLD, color: ON_GOLD, fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 11.5, letterSpacing: '0.12em', textTransform: 'uppercase', border: 'none', borderRadius: 3, padding: '12px 28px', cursor: 'pointer' }}
           >
             Sign In
           </button>
         </div>
+      </div>
       </div>
     );
   }
@@ -437,7 +472,7 @@ export default function DashboardPage() {
             {/* Time Range Selector */}
             <div className="flex items-center justify-between mb-8 border-b border-slate-800 pb-4 opacity-50">
               <div className="flex gap-1">
-                {['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'].map(range => (
+                {['1D', '1W', '1M', 'YTD', '1Y', 'ALL'].map(range => (
                   <button key={range} className="px-4 py-2 text-sm font-medium text-slate-500">
                     {range}
                   </button>
@@ -446,7 +481,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Paper Trading Balance Skeleton */}
-            <div className="rounded-md p-4 mb-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+            <div className="rounded-md p-4 mb-6" style={PANEL}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span style={{ color: 'rgb(212, 175, 55)' }}><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" /></svg></span>
@@ -458,7 +493,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Forecasting Stats Skeleton */}
-            <div className="rounded-md p-5 mb-8" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+            <div className="rounded-md p-5 mb-8" style={PANEL}>
               <div className="flex items-center gap-2 mb-4 opacity-50">
                 <span style={{ color: 'rgb(212, 175, 55)' }}><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg></span>
                 <span className="text-white font-bold">Your Forecasting Stats</span>
@@ -666,40 +701,44 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 lg:p-8">
+    <div style={{ background: PAGE_BG, minHeight: '100%' }}>
+      <MarketTicker markets={markets} />
+      <div className="max-w-7xl mx-auto p-6 lg:p-8">
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Main Content (Left Side) */}
         <div className="flex-1">
           {/* ── Top stats row (mockup): big portfolio card + stacked cash/win-rate ── */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-            <div className="lg:col-span-2 relative overflow-hidden rounded-md p-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
-              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#948D87', marginBottom: 10 }}>
+            <div className="lg:col-span-2 relative overflow-hidden p-6" style={PANEL}>
+              <span style={{ ...warmLabel, display: 'block', marginBottom: 14 }}>
                 Total Portfolio Value
               </span>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 34, fontWeight: 600, color: '#DCE1FF', lineHeight: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 'clamp(30px,3.4vw,42px)', fontWeight: 800, color: WHITE, lineHeight: 1, letterSpacing: '-0.01em' }}>
                   ${portfolioValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: todayChange >= 0 ? '#48D773' : '#FFB4AB' }}>
-                  {todayChange >= 0 ? '↗+$' : '↘-$'}{Math.abs(todayChange).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({todayChange >= 0 ? '' : '-'}{Math.abs(todayChangePercent).toFixed(1)}%)
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: todayChange >= 0 ? GREEN_TEXT : RED }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    {todayChange >= 0 ? <path d="M3 17l6-6 4 4 8-8M15 7h6v6" /> : <path d="M3 7l6 6 4-4 8 8M15 17h6v-6" />}
+                  </svg>
+                  {todayChange >= 0 ? '+$' : '-$'}{Math.abs(todayChange).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({todayChange >= 0 ? '' : '-'}{Math.abs(todayChangePercent).toFixed(1)}%)
                 </span>
               </div>
-              <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 46, background: 'linear-gradient(180deg, transparent, rgba(11,18,41,.65))', pointerEvents: 'none' }} />
             </div>
             <div className="flex flex-col gap-4">
-              <div className="rounded-md p-5 flex-1" style={{ background: '#181E36', border: '1px solid #33312E' }}>
-                <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#948D87', marginBottom: 8 }}>
+              <div className="p-5 flex-1" style={PANEL}>
+                <span style={{ ...warmLabel, display: 'block', marginBottom: 12 }}>
                   Available Cash
                 </span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 600, color: '#DCE1FF' }}>
+                <span style={{ fontSize: 23, fontWeight: 800, color: WHITE }}>
                   {walletLoading ? '…' : `$${availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 </span>
               </div>
-              <div className="rounded-md p-5 flex-1" style={{ background: '#181E36', border: '1px solid #33312E' }}>
-                <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#948D87', marginBottom: 8 }}>
+              <div className="p-5 flex-1" style={PANEL}>
+                <span style={{ ...warmLabel, display: 'block', marginBottom: 12 }}>
                   Win Rate
                 </span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 600, color: '#FFDF9B' }}>
+                <span style={{ fontSize: 23, fontWeight: 800, color: WHITE }}>
                   {accuracyPercent}%
                 </span>
               </div>
@@ -707,19 +746,19 @@ export default function DashboardPage() {
           </div>
 
           {/* ── Performance History (mockup) ── */}
-          <div className="rounded-md p-6 mb-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
-            <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
-              <h2 className="text-base font-bold" style={{ color: '#DCE1FF' }}>Performance History</h2>
-              <div className="flex gap-1 p-1 rounded" style={{ background: '#0B1229', border: '1px solid #33312E' }}>
-                {['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'].map(range => (
+          <div className="mb-6" style={PANEL}>
+            <div className="flex items-center justify-between flex-wrap gap-3" style={{ padding: '16px 20px' }}>
+              <h2 style={{ color: WHITE, fontWeight: 700, fontSize: 15, margin: 0 }}>Performance History</h2>
+              <div className="flex gap-1 p-1" style={{ background: CHIP_BG, border: `1px solid ${PANEL_LINE}`, borderRadius: 3 }}>
+                {['1D', '1W', '1M', 'YTD', '1Y', 'ALL'].map(range => (
                   <button
                     key={range}
                     onClick={() => setSelectedRange(range)}
                     style={{
-                      fontFamily: 'var(--mono)', fontSize: 11, padding: '5px 10px', borderRadius: 3,
-                      background: selectedRange === range ? '#F0C04A' : 'transparent',
-                      color: selectedRange === range ? '#4A3600' : '#8E94AF',
-                      border: 'none', cursor: 'pointer', fontWeight: 600,
+                      fontFamily: 'var(--mono)', fontSize: 9.5, padding: '4px 9px', borderRadius: 2,
+                      background: selectedRange === range ? GOLD : 'transparent',
+                      color: selectedRange === range ? ON_GOLD : WARM,
+                      border: 'none', cursor: 'pointer', fontWeight: 700, letterSpacing: '0.06em',
                     }}
                   >
                     {range}
@@ -727,23 +766,26 @@ export default function DashboardPage() {
                 ))}
               </div>
             </div>
-            <div className="h-64 relative">
-              <EquityChart
-                equityPoints={equityPoints}
-                startingBalance={startingBalance}
-                currentValue={portfolioValue}
-              />
+            <div style={{ padding: '0 20px 20px' }}>
+              <div className="h-64 relative" style={{ background: CHART_BG, border: '1px solid #14263F', borderRadius: 3, overflow: 'hidden' }}>
+                <EquityChart
+                  equityPoints={equityPoints}
+                  startingBalance={startingBalance}
+                  currentValue={portfolioValue}
+                />
+              </div>
             </div>
           </div>
 
           {/* ── Active Positions table (mockup) ── */}
-          <div className="rounded-md p-6 mb-8" style={{ background: '#181E36', border: '1px solid #33312E' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold" style={{ color: '#DCE1FF' }}>Active Positions</h2>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: '#D2C5AF' }}>
+          <div className="mb-8" style={PANEL}>
+            <div className="flex items-center justify-between" style={{ padding: '16px 20px 14px' }}>
+              <h2 style={{ color: WHITE, fontWeight: 700, fontSize: 15, margin: 0 }}>Active Positions</h2>
+              <span style={warmLabel}>
                 {Object.keys(groupedPredictions).length} active
               </span>
             </div>
+            <div style={{ padding: '0 20px 20px' }}>
             {(() => {
               const rows = [];
               Object.entries(groupedPredictions).forEach(([marketId, marketPredictions]) => {
@@ -774,7 +816,20 @@ export default function DashboardPage() {
               });
 
               if (rows.length === 0) {
-                return <p style={{ color: '#948D87', fontSize: 13 }}>No open positions — pick a market on the Explore page to get started.</p>;
+                return (
+                  <div style={{ background: CHIP_BG, border: '1px dashed #39465F', borderRadius: 3, padding: '34px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={GOLD_NUM} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 7h18v4H3zM5 11v8a1 1 0 001 1h12a1 1 0 001-1v-8M10 15h4" />
+                    </svg>
+                    <p style={{ color: '#C6D3E8', fontSize: 12.5, margin: 0 }}>No open positions — pick a market on the Explore page to get started.</p>
+                    <button
+                      onClick={() => navigate('/explore')}
+                      style={{ background: 'transparent', border: `1px solid ${GOLD_NUM}`, color: GOLD_NUM, fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.16em', borderRadius: 2, padding: '9px 20px', cursor: 'pointer' }}
+                    >
+                      EXPLORE MARKETS
+                    </button>
+                  </div>
+                );
               }
 
               const sidePill = (side) => {
@@ -785,8 +840,8 @@ export default function DashboardPage() {
                   <span style={{
                     fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
                     padding: '3px 8px', borderRadius: 3,
-                    background: isYes ? '#1D323D' : isNo ? '#2A1620' : '#2D344C',
-                    color: isYes ? '#48D773' : isNo ? '#FFB4AB' : '#D2C5AF',
+                    background: isYes ? 'rgba(107,254,143,.1)' : isNo ? 'rgba(255,158,142,.1)' : CHIP_BG,
+                    color: isYes ? GREEN : isNo ? RED : WARM,
                     whiteSpace: 'nowrap',
                   }}>
                     {isYes ? 'Yes' : isNo ? 'No' : side}
@@ -797,7 +852,7 @@ export default function DashboardPage() {
               return (
                 <div style={{ overflowX: 'auto' }}>
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 12, minWidth: 620 }}>
-                    <div style={{ display: 'flex', color: '#948D87', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', paddingBottom: 10, borderBottom: '1px solid rgba(45,52,76,.7)' }}>
+                    <div style={{ display: 'flex', color: WARM, fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', paddingBottom: 10, borderBottom: `1px solid ${PANEL_LINE}` }}>
                       <span style={{ flex: 3 }}>Market</span>
                       <span style={{ flex: 1 }}>Side</span>
                       <span style={{ flex: 1.2, textAlign: 'right' }}>Amount</span>
@@ -809,84 +864,78 @@ export default function DashboardPage() {
                       <div
                         key={`${r.marketId}-${i}`}
                         onClick={() => navigate(`/markets/${r.marketId}`)}
-                        style={{ display: 'flex', alignItems: 'center', padding: '12px 0', cursor: 'pointer', borderBottom: i < rows.length - 1 ? '1px solid rgba(45,52,76,.4)' : 'none' }}
+                        style={{ display: 'flex', alignItems: 'center', padding: '12px 0', cursor: 'pointer', borderBottom: i < rows.length - 1 ? '1px solid rgba(34,49,74,.6)' : 'none' }}
                       >
-                        <span style={{ flex: 3, color: '#DCE1FF', fontFamily: 'var(--wordmark)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, paddingRight: 10, overflow: 'hidden' }}>
-                          <span style={{ width: 5, height: 5, borderRadius: 999, background: '#FFDF9B', flexShrink: 0 }} />
+                        <span style={{ flex: 3, color: '#E6EDF9', fontFamily: 'var(--wordmark)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, paddingRight: 10, overflow: 'hidden' }}>
+                          <span style={{ width: 5, height: 5, borderRadius: 999, background: GOLD, flexShrink: 0 }} />
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
                         </span>
                         <span style={{ flex: 1 }}>{sidePill(r.side)}</span>
-                        <span style={{ flex: 1.2, textAlign: 'right', color: '#DCE1FF' }}>${r.amount.toFixed(2)}</span>
-                        <span style={{ flex: 1.2, textAlign: 'right', color: '#DCE1FF' }}>{r.avgEntry.toFixed(1)}¢</span>
-                        <span style={{ flex: 1.4, textAlign: 'right', color: '#DCE1FF' }}>${r.mtmValue.toFixed(2)}</span>
-                        <span style={{ flex: 1.2, textAlign: 'right', color: r.pnl >= 0 ? '#48D773' : '#FFB4AB' }}>
+                        <span style={{ flex: 1.2, textAlign: 'right', color: '#E6EDF9' }}>${r.amount.toFixed(2)}</span>
+                        <span style={{ flex: 1.2, textAlign: 'right', color: '#E6EDF9' }}>{r.avgEntry.toFixed(1)}¢</span>
+                        <span style={{ flex: 1.4, textAlign: 'right', color: '#E6EDF9' }}>${r.mtmValue.toFixed(2)}</span>
+                        <span style={{ flex: 1.2, textAlign: 'right', color: r.pnl >= 0 ? GREEN_TEXT : RED }}>
                           {r.pnl >= 0 ? '+' : '-'}${Math.abs(r.pnl).toFixed(2)}
                         </span>
                       </div>
                     ))}
-                    <p style={{ color: '#948D87', fontSize: 11, marginTop: 12, fontFamily: 'var(--wordmark)' }}>
+                    <p style={{ color: MUTED, fontSize: 11, marginTop: 12, fontFamily: 'var(--wordmark)' }}>
                       Click a position to open its market — you can sell from the trade panel there.
                     </p>
                   </div>
                 </div>
               );
             })()}
+            </div>
           </div>
 
           {/* Paper Trading Balance */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span style={{ color: 'rgb(212, 175, 55)' }}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round"
-                      d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" />
-                  </svg>
-                </span>
-                <span className="text-white font-medium">Paper Trading Balance</span>
-                <span className="text-slate-500 cursor-help text-sm" title="Virtual money for practice trading">ⓘ</span>
-              </div>
-              <span className="text-2xl font-bold text-yellow-400">
-                {walletLoading ? '...' : `$${availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          <div className="mb-8 flex items-center justify-between gap-4" style={{ ...PANEL, padding: '16px 20px' }}>
+            <div className="flex items-center gap-3 min-w-0">
+              <span style={{ width: 36, height: 36, borderRadius: 999, flexShrink: 0, background: 'rgba(255,223,155,.12)', border: '1px solid rgba(225,195,130,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GOLD_NUM} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 21h18M4 18h16M6 18v-7M10 18v-7M14 18v-7M18 18v-7M3 9l9-6 9 6z" />
+                </svg>
               </span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ color: GOLD_NUM, fontWeight: 700, fontSize: 13.5 }}>Paper Trading Balance</div>
+                <p style={{ color: MUTED, fontSize: 11, margin: '3px 0 0' }}>This buying power is virtual money for practice. No real funds are involved.</p>
+              </div>
             </div>
-            <p className="text-xs text-slate-500 mt-2">This buying power is virtual money for practice. No real funds are involved.</p>
+            <span style={{ color: GOLD_NUM, fontWeight: 800, fontSize: 23, flexShrink: 0 }}>
+              {walletLoading ? '…' : `$${availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            </span>
           </div>
 
           {/* Forecasting Statistics */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 mb-8">
+          <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
-              <span style={{ color: 'rgb(212, 175, 55)' }}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                    d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-                </svg>
-              </span>
-              <span className="text-white font-bold text-lg">Your Forecasting Stats</span>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={GOLD_NUM} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 20V10M10 20V4M16 20v-9M21 20H3" />
+              </svg>
+              <span style={{ color: WHITE, fontWeight: 700, fontSize: 15 }}>Your Forecasting Stats</span>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-sans font-medium text-yellow-400">{totalPredictionCount}</p>
-                <p className="text-slate-500 text-xs">Predictions</p>
-              </div>
-              <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-sans font-medium text-green-400">{accuracyPercent}%</p>
-                <p className="text-slate-500 text-xs">Accuracy</p>
-              </div>
-              <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-sans font-medium text-blue-400">0%</p>
-                <p className="text-slate-500 text-xs">Calibration</p>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { value: totalPredictionCount, label: 'Predictions' },
+                { value: `${accuracyPercent}%`, label: 'Accuracy' },
+                { value: '0%', label: 'Calibration' },
+              ].map(st => (
+                <div key={st.label} className="text-center" style={{ ...PANEL, padding: '22px 14px 18px' }}>
+                  <p style={{ color: GOLD_NUM, fontSize: 30, fontWeight: 800, margin: 0, lineHeight: 1 }}>{st.value}</p>
+                  <p style={{ ...warmLabel, fontSize: 8.5, margin: '11px 0 0' }}>{st.label}</p>
+                </div>
+              ))}
             </div>
-            <p className="text-slate-600 text-xs text-center mt-3">
-              Accuracy = correct predictions • Calibration = confidence matches outcomes
+            <p style={{ ...warmLabel, fontSize: 8.5, textAlign: 'center', margin: '18px 0 0' }}>
+              Accuracy = Correct Predictions · Calibration = Confidence Matches Outcomes
             </p>
           </div>
 
           {/* Recent Activity with Filters */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-white">Recent Activity</h2>
+              <h2 style={{ color: WHITE, fontWeight: 700, fontSize: 15, margin: 0 }}>Recent Activity</h2>
             </div>
             <div className="space-y-3">
               {recentActivities.length === 0 ? (
@@ -898,7 +947,7 @@ export default function DashboardPage() {
                 <button
                   key={activity.id}
                   onClick={() => navigate(`/markets/${activity.marketId}`)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900/40 p-3 text-left transition-colors hover:border-slate-700"
+                  className="w-full p-3 text-left transition-colors" style={{ ...PANEL, borderRadius: 4 }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
@@ -933,6 +982,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
+      </div>
       </div>
     </div>
   );
