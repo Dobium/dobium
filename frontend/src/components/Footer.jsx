@@ -1,14 +1,21 @@
 import { WaveMark } from './TopNav';
 
-// Sitewide footer — matched to the reference mock: near-black band, gold
-// waveform mark + white wordmark with the © tagline underneath on the left,
-// Terms / Privacy / Discord / API Documentation on the right.
+// Sitewide footer — matched to the market-terminal reference mock:
+// near-black navy band; left side is the wordmark + "future that matters"
+// tagline + © line; right side is three mono-labelled link columns
+// (PROTOCOL / COMMUNITY / LEGAL).
+const COLUMNS = [
+  { title: 'PROTOCOL', links: ['Market Integrity', 'Developer API'] },
+  { title: 'COMMUNITY', links: ['Community Discord', 'News & Insights'] },
+  { title: 'LEGAL', links: ['Terms of Service', 'Privacy Policy'] },
+];
+
 export default function Footer() {
   return (
     <footer
       style={{
-        borderTop: '1px solid #1B2240',
-        background: '#05060F',
+        borderTop: '1px solid #14223E',
+        background: '#000E24',
         marginTop: 48,
       }}
     >
@@ -16,14 +23,14 @@ export default function Footer() {
         className="dbm-footwrap"
         style={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: 14,
-          padding: '24px 28px',
+          gap: 36,
+          padding: '32px 28px 36px',
         }}
       >
-        <div>
+        <div style={{ maxWidth: 300 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <WaveMark height={15} />
             <span
@@ -37,25 +44,52 @@ export default function Footer() {
               Dobium
             </span>
           </div>
-          <div style={{ color: '#6E7694', fontSize: 11.5, marginTop: 9 }}>
-            © 2024 Dobium Markets. High-stakes culture prediction.
+          <p style={{ color: '#6E7E9C', fontSize: 12, lineHeight: 1.65, margin: '12px 0 0' }}>
+            High-fidelity prediction protocols for a future that matters.
+            Trade culture, entertainment, and tech with precision.
+          </p>
+          <div style={{ color: '#4E5E7C', fontSize: 11, marginTop: 16 }}>
+            © 2024 Dobium Markets. High-fidelity prediction protocols.
           </div>
         </div>
 
-        <nav style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
-          {['Terms', 'Privacy', 'Discord', 'API Documentation'].map((label) => (
-            <a
-              key={label}
-              href="#"
-              onClick={(e) => e.preventDefault()}
-              style={{ color: '#8E94AF', fontSize: 12, transition: 'color .15s ease' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#F3C74F')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#8E94AF')}
-            >
-              {label}
-            </a>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 56 }}>
+          {COLUMNS.map((col) => (
+            <div key={col.title}>
+              <div
+                style={{
+                  fontFamily: 'var(--mono)',
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  letterSpacing: '0.16em',
+                  color: '#5C7391',
+                }}
+              >
+                {col.title}
+              </div>
+              <nav style={{ marginTop: 13 }}>
+                {col.links.map((label) => (
+                  <a
+                    key={label}
+                    href="#"
+                    onClick={(e) => e.preventDefault()}
+                    style={{
+                      display: 'block',
+                      color: '#8E9AB0',
+                      fontSize: 11.5,
+                      marginBottom: 9,
+                      transition: 'color .15s ease',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#FFDF9B')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = '#8E9AB0')}
+                  >
+                    {label}
+                  </a>
+                ))}
+              </nav>
+            </div>
           ))}
-        </nav>
+        </div>
       </div>
     </footer>
   );

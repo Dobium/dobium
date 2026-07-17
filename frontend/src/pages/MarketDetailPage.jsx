@@ -9,12 +9,97 @@ import CommentsSection from '../components/CommentsSection';
 import { CATEGORY_COLORS, formatCurrency, formatDate } from '../store/storage';
 import { bucketLabel } from '../lib/categories';
 
+// ── Terminal-mock palette (sampled from the reference screenshots) ──────────
+const PAGE_BG = '#00132D';      // page field
+const PANEL_BG = '#001F43';     // card surfaces
+const PANEL_LINE = '#1C304F';   // card borders / dividers
+const INSET_BG = '#00132D';     // boxes inside cards (inputs, notices, tabs)
+const INSET_LINE = '#2A3F63';   // inset borders
+const INPUT_LINE = '#394666';   // input borders
+const BAND_BG = '#000E24';      // nav/ticker/footer band
+const WHITE = '#F2F6FF';
+const BODY_TEXT = '#A9BAD4';
+const LABEL = '#6B82A6';        // mono uppercase micro-labels
+const AXIS = '#46618A';         // chart axis text
+const GREEN = '#6BFE8F';
+const GREEN_DIM = '#59D882';
+const RED = '#FF9E8E';
+const GOLD = '#FFDF9B';
+const GOLD_TEXT = '#D9C089';
+const ON_GOLD = '#0A1A33';
+const NO_CHIP = '#CFC5B5';
+
+const PANEL = { background: PANEL_BG, border: `1px solid ${PANEL_LINE}`, borderRadius: 6 };
+const microLabel = { fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.14em', color: LABEL, textTransform: 'uppercase' };
+
+// Under-nav price tape — mock format: "LIVE VOL: $412,842,912" followed by
+// per-market "TITLE: 99¢ (+1.2%)" entries, looping as a marquee.
+function MarketTicker({ markets }) {
+  const items = useMemo(() => {
+    const list = Array.isArray(markets) ? markets.filter(m => m.status === 'active') : [];
+    const liveVol = list.reduce((s, m) => s + (m.total_volume || 0), 0);
+    const entries = list.slice(0, 8).map(m => {
+      const outs = m.outcomes || [];
+      const yes = outs.find(o => (o.title || '').toLowerCase() === 'yes');
+      const lead = yes || [...outs].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
+      const price = Math.round(lead?.probability || 0);
+      let delta = 0;
+      const hist = m.price_history || [];
+      if (lead && hist.length >= 2) {
+        const cur = hist[hist.length - 1]?.prices?.[lead.id];
+        const prev = hist[hist.length - 2]?.prices?.[lead.id];
+        if (typeof cur === 'number' && typeof prev === 'number') delta = cur - prev;
+      }
+      const name = (m.title || '')
+        .replace(/^will\s+/i, '')
+        .replace(/\?+\s*$/, '')
+        .toUpperCase();
+      return {
+        label: name.length > 26 ? `${name.slice(0, 26)}…` : name,
+        value: `${price}¢`,
+        delta,
+      };
+    });
+    return [{ label: 'LIVE VOL', value: `$${Math.round(liveVol).toLocaleString()}`, delta: null, dot: true }, ...entries];
+  }, [markets]);
+
+  if (items.length <= 1) return null;
+
+  const renderItem = (it, key) => (
+    <span key={key} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, marginRight: 38, fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
+      {it.dot && <span style={{ width: 5, height: 5, borderRadius: 999, background: GREEN, alignSelf: 'center' }} />}
+      <span style={{ color: LABEL, fontWeight: 700 }}>{it.label}:</span>
+      <span style={{ color: '#DCE6F5', fontWeight: 700 }}>{it.value}</span>
+      {it.delta !== null && it.delta !== 0 && (
+        <span style={{ color: it.delta > 0 ? GREEN : RED }}>
+          ({it.delta > 0 ? '+' : ''}{it.delta.toFixed(1)}%)
+        </span>
+      )}
+    </span>
+  );
+
+  return (
+    <div style={{ background: BAND_BG, borderBottom: '1px solid #14223E', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+      <div className="dbm-mkt-ticker" style={{ display: 'inline-flex', alignItems: 'center', padding: '9px 0' }}>
+        {items.map((it, i) => renderItem(it, `a-${i}`))}
+        {items.map((it, i) => renderItem(it, `b-${i}`))}
+      </div>
+      <style>{`
+        @keyframes dbm-mkt-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        .dbm-mkt-ticker { animation: dbm-mkt-marquee 52s linear infinite; }
+        .dbm-mkt-ticker:hover { animation-play-state: paused; }
+        @media (prefers-reduced-motion: reduce) { .dbm-mkt-ticker { animation: none; } }
+      `}</style>
+    </div>
+  );
+}
+
 export function getOutcomeColor(o, outcomes) {
   if (!outcomes || outcomes.length === 0) return '#3b82f6';
   if (outcomes.length === 2) {
     const t = o && o.title ? o.title.toLowerCase() : '';
-    if (t === 'yes') return '#4AE176';
-    if (t === 'no') return '#FFB4AB';
+    if (t === 'yes') return '#6BFE8F';
+    if (t === 'no') return '#FF9E8E';
   }
   const idx = outcomes.findIndex(function (x) { return x.id === o.id; });
   const colors = [
@@ -115,7 +200,7 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds, hideLege
         <defs>
           {histories.map((h, idx) => (
             <linearGradient key={h.id} id={`gradient-${idx}`} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" style={{ stopColor: h.color, stopOpacity: 0.10 }} />
+              <stop offset="0%" style={{ stopColor: h.color, stopOpacity: 0.14 }} />
               <stop offset="100%" style={{ stopColor: h.color, stopOpacity: 0 }} />
             </linearGradient>
           ))}
@@ -129,10 +214,9 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds, hideLege
             y1={padding + ratio * (height - 2 * padding)}
             x2={width - padding - rightGutter}
             y2={padding + ratio * (height - 2 * padding)}
-            stroke="#3A4160"
+            stroke="#0E2C55"
             strokeWidth="1"
-            strokeDasharray="1,5"
-            opacity="0.7"
+            opacity="0.65"
           />
         ))}
 
@@ -145,8 +229,8 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds, hideLege
               x={width - padding - rightGutter + 6}
               y={padding + ratio * (height - 2 * padding)}
               dominantBaseline="middle"
-              fontSize="10"
-              fill="#8E94AF"
+              fontSize="9.5"
+              fill="#46618A"
               fontFamily="var(--mono, monospace)"
             >
               {value}%
@@ -163,15 +247,17 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds, hideLege
             const snap = priceHistory[idx];
             if (!snap) return null;
             const x = getX(idx, dataLength);
-            const label = new Date(snap.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const label = new Date(snap.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
             return (
               <text
                 key={i}
                 x={x}
                 y={height - 4}
                 textAnchor={i === 0 ? 'start' : i === tickCount - 1 ? 'end' : 'middle'}
-                fontSize="10"
-                fill="#8E94AF"
+                fontSize="9.5"
+                fill="#46618A"
+                fontFamily="var(--mono, monospace)"
+                letterSpacing="0.08em"
               >
                 {label}
               </text>
@@ -193,7 +279,7 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds, hideLege
           return (
             <g key={h.id}>
               {isBinaryChart && <path d={areaPath} fill={`url(#gradient-${idx})`} />}
-              <path d={linePath} fill="none" stroke={h.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={linePath} fill="none" stroke={h.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="3.5" fill={h.color} />
               {hoverIdx !== null && (
                 <circle cx={points[hoverIdx].x} cy={points[hoverIdx].y} r="5" fill={h.color} stroke="#0f172a" strokeWidth="2" />
@@ -590,37 +676,38 @@ export default function MarketDetailPage() {
   const eventImage = sportsMeta?.event_image || (!sportsMeta && market?.image_url);
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-      {/* Header card (Kalshi-style): small icon tile + chips + title + resolution text */}
-      <div className="shrink-0 rounded-lg p-6 mb-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+    <div style={{ background: PAGE_BG, minHeight: '100%' }}>
+      {/* Under-nav price tape (mock: LIVE VOL + rolling market quotes) */}
+      <MarketTicker markets={markets} />
+
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+      {/* Header card (mock): small icon tile + TRENDING / • OPEN chips + title */}
+      <div className="shrink-0 p-5 mb-6" style={PANEL}>
+        <div style={{ display: 'flex', gap: 15, alignItems: 'center' }}>
         {eventImage && /^https?:/.test(eventImage) ? (
-          <img src={eventImage} alt="" style={{ width: 64, height: 64, borderRadius: 12, flexShrink: 0, objectFit: 'cover' }} />
+          <img src={eventImage} alt="" style={{ width: 46, height: 46, borderRadius: 8, flexShrink: 0, objectFit: 'cover', border: `1px solid ${INSET_LINE}` }} />
         ) : (
-          <MarketIcon market={market} size={64} radius={12} />
+          <MarketIcon market={market} size={46} radius={8} />
         )}
         <div style={{ minWidth: 0, flex: 1 }}>
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#D2C5AF', background: '#2D344C', borderRadius: 3, padding: '4px 9px', textTransform: 'capitalize' }}>
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <span style={{ ...microLabel, fontSize: 8.5, color: '#B9C6D9', background: '#12294A', border: `1px solid ${INSET_LINE}`, borderRadius: 3, padding: '4px 8px' }}>
             {bucketLabel(market.category)}
           </span>
           {sportsMeta && sportsMeta.match_state ? (
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#D2C5AF', background: '#2D344C', borderRadius: 3, padding: '4px 9px', textTransform: 'capitalize' }}>
+            <span style={{ ...microLabel, fontSize: 8.5, color: '#B9C6D9', background: '#12294A', border: `1px solid ${INSET_LINE}`, borderRadius: 3, padding: '4px 8px' }}>
               {sportsMeta.match_state.replace(/[_-]/g, ' ')}
             </span>
           ) : (
-            <span className={`flex items-center gap-1.5 text-xs font-medium ${market.status === 'resolved' ? 'text-yellow-400' : 'text-green-400'}`}>
-              <span className={`w-2 h-2 rounded-full ${market.status === 'resolved' ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
-              {market.status === 'resolved' ? 'Resolved' : 'Open'}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.14em', color: market.status === 'resolved' ? GOLD_TEXT : GREEN, background: market.status === 'resolved' ? 'rgba(255,223,155,.07)' : 'rgba(107,254,143,.07)', border: `1px solid ${market.status === 'resolved' ? 'rgba(255,223,155,.3)' : 'rgba(107,254,143,.3)'}`, borderRadius: 3, padding: '4px 8px' }}>
+              <span style={{ width: 5, height: 5, borderRadius: 999, background: market.status === 'resolved' ? GOLD_TEXT : GREEN }}></span>
+              {market.status === 'resolved' ? 'RESOLVED' : 'OPEN'}
             </span>
           )}
         </div>
-        <h1 style={{ color: '#DCE1FF', fontSize: 'clamp(19px,2.3vw,24px)', fontWeight: 700, lineHeight: 1.35, margin: 0 }}>
+        <h1 style={{ color: WHITE, fontSize: 'clamp(15px,1.9vw,18px)', fontWeight: 700, lineHeight: 1.35, margin: 0 }}>
           {market.title}
         </h1>
-        {displayDescription && (
-          <p style={{ color: '#B7A77E', fontSize: 13.5, lineHeight: 1.65, margin: '12px 0 0' }}>{displayDescription}</p>
-        )}
         </div>
         </div>
       </div>
@@ -680,113 +767,99 @@ export default function MarketDetailPage() {
               </div>
             </div>
           )}
-          {/* Price Chart */}
-          <div className="rounded-lg p-6 mb-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
-            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <div style={{ fontFamily: 'var(--mono)', display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+          {/* Price Chart (mock: header row with price + DOBIUM INDEX + timeframes,
+              chart body, then a vol / YES-NO chip footer bar) */}
+          <div className="mb-6" style={PANEL}>
+            <div className="flex items-center justify-between flex-wrap gap-2" style={{ padding: '12px 16px', borderBottom: `1px solid ${PANEL_LINE}` }}>
+              <div style={{ fontFamily: 'var(--mono)', display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
                 {isBinaryMkt ? (() => {
                   const leader = [...chartOutcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
+                  const leaderYes = leader && (leader.title || '').toLowerCase().startsWith('yes');
                   return leader ? (
-                    <span style={{ color: '#48D773', fontSize: 17, fontWeight: 700 }}>
+                    <span style={{ color: leaderYes ? GREEN : RED, fontSize: 15, fontWeight: 700 }}>
                       {Math.round(leader.probability || 0)}% {leader.title.replace(/\s*\((Yes|No)\)\s*$/i, '')}
                     </span>
                   ) : null;
                 })() : (
-                  /* Kalshi-style legend row above the chart: dot + name + % for the top outcomes */
+                  /* Legend row above the chart: dot + name + % for the top outcomes */
                   [...chartOutcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0)).slice(0, 3).map((o) => (
                     <span key={o.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: 999, background: getOutcomeColor(o, chartOutcomes), display: 'inline-block' }} />
-                      <span style={{ color: '#DCE1FF', fontSize: 12.5, fontWeight: 600 }}>{o.title.replace(/\s*\((Yes|No)\)\s*$/i, '')}</span>
-                      <span style={{ color: getOutcomeColor(o, chartOutcomes), fontSize: 12.5, fontWeight: 700 }}>{Math.round(o.probability || 0)}%</span>
+                      <span style={{ width: 7, height: 7, borderRadius: 999, background: getOutcomeColor(o, chartOutcomes), display: 'inline-block' }} />
+                      <span style={{ color: '#DCE6F5', fontSize: 11.5, fontWeight: 600 }}>{o.title.replace(/\s*\((Yes|No)\)\s*$/i, '')}</span>
+                      <span style={{ color: getOutcomeColor(o, chartOutcomes), fontSize: 11.5, fontWeight: 700 }}>{Math.round(o.probability || 0)}%</span>
                     </span>
                   ))
                 )}
+                <span style={{ ...microLabel, fontSize: 8.5, letterSpacing: '0.16em' }}>Dobium Index</span>
               </div>
-              {/* Brand watermark, like Kalshi's chart corner */}
-              <span style={{ fontFamily: 'var(--wordmark, inherit)', fontWeight: 800, fontSize: 14, color: '#3A4160', letterSpacing: '0.02em', userSelect: 'none' }}>
-                Dobium
-              </span>
-            </div>
-            <PriceChart selectedIds={selectedIds}
-              outcomes={chartOutcomes}
-              priceHistory={market.price_history}
-              totalVolume={market.total_volume}
-              hideLegend={true}
-            />
-            {/* Kalshi-style chart footer: volume bottom-left, timeframes bottom-right */}
-            <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
-              <span style={{ fontFamily: 'var(--mono)', color: '#9D968D', fontSize: 12 }}>
-                ${(market.total_volume || 0).toLocaleString()} vol
-              </span>
-              <div className="flex gap-1 p-1 rounded" style={{ background: '#0B1229', border: '1px solid #33312E' }}>
+              <div className="flex gap-1 p-1 rounded" style={{ background: INSET_BG, border: `1px solid ${INSET_LINE}` }}>
                 {['1D', '1W', '1M', 'ALL'].map(range => (
-                  <button key={range} style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '5px 11px', borderRadius: 3, background: range === 'ALL' ? '#F0C04A' : 'transparent', color: range === 'ALL' ? '#4A3600' : '#8E94AF', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                  <button key={range} style={{ fontFamily: 'var(--mono)', fontSize: 9.5, padding: '4px 9px', borderRadius: 3, background: range === 'ALL' ? GOLD : 'transparent', color: range === 'ALL' ? ON_GOLD : LABEL, border: 'none', cursor: 'pointer', fontWeight: 700, letterSpacing: '0.06em' }}>
                     {range}
                   </button>
                 ))}
               </div>
             </div>
+            <div style={{ padding: '12px 10px 6px' }}>
+              <PriceChart selectedIds={selectedIds}
+                outcomes={chartOutcomes}
+                priceHistory={market.price_history}
+                totalVolume={market.total_volume}
+                hideLegend={true}
+              />
+            </div>
+            <div className="flex items-center justify-between flex-wrap gap-2" style={{ padding: '10px 16px', borderTop: `1px solid ${PANEL_LINE}` }}>
+              <span style={{ fontFamily: 'var(--mono)', color: '#7E92B0', fontSize: 11, letterSpacing: '0.05em' }}>
+                ${(market.total_volume || 0).toLocaleString()} vol
+              </span>
+              {isBinaryMkt && (() => {
+                const yesO = outcomes.find(o => (o.title || '').toLowerCase().startsWith('yes')) || outcomes[0];
+                const noO = outcomes.find(o => o.id !== yesO.id);
+                const yesP = Math.round(yesO?.probability || 0);
+                const noP = noO ? Math.round(noO.probability || 0) : 100 - yesP;
+                return (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--mono)' }}>
+                    <span style={{ ...microLabel, fontSize: 8.5 }}>Yes</span>
+                    <span style={{ background: GREEN, color: ON_GOLD, fontSize: 10, fontWeight: 800, borderRadius: 3, padding: '2px 7px' }}>{yesP}¢</span>
+                    <span style={{ ...microLabel, fontSize: 8.5, marginLeft: 6 }}>No</span>
+                    <span style={{ background: NO_CHIP, color: ON_GOLD, fontSize: 10, fontWeight: 800, borderRadius: 3, padding: '2px 7px' }}>{noP}¢</span>
+                  </span>
+                );
+              })()}
+            </div>
           </div>
-          {/* Yes/No summary bar (mockup, binary markets) */}
-          {isBinaryMkt && (() => {
-            const yesO = outcomes.find(o => (o.title || '').toLowerCase().startsWith('yes')) || outcomes[0];
-            const noO = outcomes.find(o => o.id !== yesO.id);
-            const yesP = Math.round(yesO.probability || 0);
-            const noP = noO ? Math.round(noO.probability || 0) : 100 - yesP;
-            const hist = market.price_history || [];
-            let delta = 0;
-            if (hist.length >= 2) {
-              const cur = hist[hist.length - 1]?.prices?.[yesO.id];
-              const prev = hist[hist.length - 2]?.prices?.[yesO.id];
-              if (typeof cur === 'number' && typeof prev === 'number') delta = Math.round(cur - prev);
-            }
-            const closed = market.status !== 'active';
-            const pick = (o) => { if (!closed && o) setSelectedOutcome(o); };
-            return (
-              <div className="rounded-lg px-6 py-4 mb-6 flex items-center justify-between flex-wrap gap-4" style={{ background: '#181E36', border: '1px solid #33312E' }}>
-                <span style={{ fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ color: '#48D773', fontSize: 16, fontWeight: 700 }}>{yesP}%</span>
-                  <span style={{ color: delta >= 0 ? '#48D773' : '#FFB4AB', fontSize: 11 }}>{delta >= 0 ? '▲' : '▼'}{Math.abs(delta)}</span>
-                </span>
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <button onClick={() => pick(yesO)} disabled={closed}
-                    style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 13, background: '#48D773', color: '#0B1229', border: 'none', borderRadius: 8, padding: '10px 26px', cursor: closed ? 'not-allowed' : 'pointer', opacity: closed ? 0.5 : 1 }}>
-                    Yes {yesP}¢
-                  </button>
-                  <button onClick={() => pick(noO)} disabled={closed}
-                    style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 13, background: '#2D344C', color: '#DCE1FF', border: 'none', borderRadius: 8, padding: '10px 26px', cursor: closed ? 'not-allowed' : 'pointer', opacity: closed ? 0.5 : 1 }}>
-                    No {noP}¢
-                  </button>
-                </div>
-                <span style={{ fontFamily: 'var(--mono)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ color: '#FFB4AB', fontSize: 16, fontWeight: 700 }}>{noP}%</span>
-                  <span style={{ color: delta >= 0 ? '#FFB4AB' : '#48D773', fontSize: 11 }}>{delta >= 0 ? '▼' : '▲'}{Math.abs(delta)}</span>
-                </span>
-              </div>
-            );
-          })()}
-
-          {/* Recent Activity (mockup) */}
+          {/* Recent Activity (mock: bordered panel, mono uppercase columns, trend icons) */}
           {recentActivity.length > 0 && (
-            <div className="rounded-lg p-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
-              <h2 className="text-base font-bold mb-4" style={{ color: '#DCE1FF' }}>Recent Activity</h2>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>
-                <div style={{ display: 'flex', color: '#948D87', fontSize: 11, paddingBottom: 9, borderBottom: '1px solid rgba(45,52,76,.7)' }}>
-                  <span style={{ flex: 2 }}>Action</span>
-                  <span style={{ flex: 1.4 }}>Amount</span>
-                  <span style={{ flex: 1 }}>Price</span>
-                  <span style={{ flex: 1, textAlign: 'right' }}>Time</span>
+            <div className="mb-6" style={PANEL}>
+              <div style={{ padding: '14px 18px', borderBottom: `1px solid ${PANEL_LINE}` }}>
+                <h2 style={{ color: WHITE, fontWeight: 700, fontSize: 14, margin: 0 }}>Recent Activity</h2>
+              </div>
+              <div style={{ fontFamily: 'var(--mono)', padding: '2px 18px 8px' }}>
+                <div style={{ display: 'flex', padding: '11px 0 9px', borderBottom: `1px solid ${PANEL_LINE}` }}>
+                  <span style={{ ...microLabel, flex: 2 }}>Action</span>
+                  <span style={{ ...microLabel, flex: 1.4 }}>Amount</span>
+                  <span style={{ ...microLabel, flex: 1 }}>Price</span>
+                  <span style={{ ...microLabel, flex: 1, textAlign: 'right' }}>Time</span>
                 </div>
                 {recentActivity.map((tr, i) => {
                   const o = outcomes.find(x => x.id === tr.outcome_id);
                   const t = (o?.title || '').toLowerCase();
-                  const actionColor = t.startsWith('yes') ? '#48D773' : t.startsWith('no') ? '#FFB4AB' : '#DCE1FF';
+                  const isYesSide = t.startsWith('yes') || t.endsWith('(yes)');
+                  const isNoSide = t.startsWith('no') || t.endsWith('(no)');
+                  const actionColor = isYesSide ? GREEN_DIM : isNoSide ? RED : '#DCE6F5';
                   return (
-                    <div key={tr.id || i} style={{ display: 'flex', padding: '10px 0', borderBottom: i < recentActivity.length - 1 ? '1px solid rgba(45,52,76,.4)' : 'none' }}>
-                      <span style={{ flex: 2, color: actionColor, fontWeight: 600 }}>Buy {o?.title || '—'}</span>
-                      <span style={{ flex: 1.4, color: '#DCE1FF' }}>${(tr.stake_amount || 0).toFixed(2)}</span>
-                      <span style={{ flex: 1, color: '#DCE1FF' }}>{Math.round(tr.odds_at_prediction || 0)}¢</span>
-                      <span style={{ flex: 1, textAlign: 'right', color: '#B7A77E' }}>{timeAgo(tr.created_at)}</span>
+                    <div key={tr.id || i} style={{ display: 'flex', alignItems: 'center', padding: '11px 0', borderBottom: i < recentActivity.length - 1 ? '1px solid rgba(28,48,79,.55)' : 'none', fontSize: 11.5 }}>
+                      <span style={{ flex: 2, color: actionColor, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={isNoSide ? RED : GREEN_DIM} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                          {isNoSide
+                            ? <path d="M3 7l6 6 4-4 8 8M15 17h6v-6" />
+                            : <path d="M3 17l6-6 4 4 8-8M15 7h6v6" />}
+                        </svg>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Buy {o?.title || '—'}</span>
+                      </span>
+                      <span style={{ flex: 1.4, color: '#DCE6F5' }}>${(tr.stake_amount || 0).toFixed(2)}</span>
+                      <span style={{ flex: 1, color: '#B9C7DC' }}>{Math.round(tr.odds_at_prediction || 0)}¢</span>
+                      <span style={{ flex: 1, textAlign: 'right', color: LABEL }}>{timeAgo(tr.created_at)}</span>
                     </div>
                   );
                 })}
@@ -917,29 +990,35 @@ export default function MarketDetailPage() {
             const selPos = sel ? (userPositions[sel.id] || 0) : 0;
             const priceOf = (o) => Math.round(o?.probability || 0);
             return (
-              <div className="mb-5 rounded-lg p-4" style={{ background: '#181E36', border: '1px solid #33312E' }}>
-                {/* Buy / Sell segmented tabs (mockup) */}
-                <div className="flex gap-1 p-1 rounded mb-4" style={{ background: '#0B1229', border: '1px solid #33312E' }}>
-                  {['buy', 'sell'].map(t => (
+              <div className="mb-5" style={{ ...PANEL, overflow: 'hidden' }}>
+                {/* Buy / Sell tabs (mock: flush top tabs, inactive side darker) */}
+                <div style={{ display: 'flex', borderBottom: `1px solid ${PANEL_LINE}` }}>
+                  {['buy', 'sell'].map((t, i) => (
                     <button key={t} onClick={() => setPanelTab(t)}
-                      className="flex-1 py-2 text-sm font-semibold capitalize transition-all rounded"
                       style={{
-                        background: panelTab === t ? '#DCE1FF' : 'transparent',
-                        color: panelTab === t ? '#0B1229' : '#8E94AF',
+                        flex: 1, padding: '12px 0',
+                        background: panelTab === t ? 'transparent' : '#001737',
+                        color: panelTab === t ? WHITE : LABEL,
+                        fontSize: 13, fontWeight: panelTab === t ? 700 : 500,
+                        textTransform: 'capitalize',
                         border: 'none', cursor: 'pointer',
+                        borderLeft: i > 0 ? `1px solid ${PANEL_LINE}` : 'none',
+                        transition: 'color .15s ease, background .15s ease',
                       }}>
                       {t}
                     </button>
                   ))}
                 </div>
 
+                <div style={{ padding: 16 }}>
                 {marketClosed && (
-                  <div className="mb-3 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-xs text-slate-300">
-                    ⏱ This market has closed and is awaiting resolution — trading is disabled.
+                  <div className="mb-3" style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: INSET_BG, border: `1px solid ${INSET_LINE}`, borderRadius: 4, padding: '9px 11px', fontSize: 11, lineHeight: 1.5, color: '#9FB1C9' }}>
+                    <span style={{ color: LABEL, fontSize: 12, lineHeight: 1.3 }}>ⓘ</span>
+                    <span>This market has closed and is awaiting resolution — trading is disabled.</span>
                   </div>
                 )}
 
-                {/* Pick side (mockup stacked boxes) */}
+                {/* Pick side (mock: side-by-side Yes / No boxes) */}
                 {panelBinary ? (
                   <div className="flex gap-2 mb-4">
                     {outcomes.map((o) => {
@@ -948,74 +1027,75 @@ export default function MarketDetailPage() {
                       return (
                         <button key={o.id} disabled={marketClosed}
                           onClick={() => setSelectedOutcome(active ? null : o)}
-                          className="flex-1 transition-all disabled:opacity-40"
+                          className="flex-1 transition-all disabled:opacity-50"
                           style={{
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                            padding: '13px 8px', borderRadius: 6, cursor: 'pointer',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                            padding: '12px 8px', borderRadius: 4, cursor: 'pointer',
                             fontFamily: 'var(--mono)',
-                            background: active ? (yes ? '#12271F' : '#2A1620') : '#0B1229',
-                            border: `1.5px solid ${active ? (yes ? '#48D773' : '#FFB4AB') : '#33312E'}`,
-                            color: yes ? '#48D773' : '#CF9290',
+                            background: active ? (yes ? '#052A47' : '#2C1420') : INSET_BG,
+                            border: `1px solid ${active ? (yes ? 'rgba(107,254,143,.55)' : 'rgba(255,158,142,.55)') : INSET_LINE}`,
+                            color: active ? (yes ? GREEN : RED) : (yes ? GREEN_DIM : '#B9C0CC'),
                           }}>
-                          <span style={{ fontSize: 13.5, fontWeight: 700 }}>{o.title}</span>
-                          <span style={{ fontSize: 12.5, opacity: .9 }}>{priceOf(o)}¢</span>
+                          <span style={{ fontSize: 13, fontWeight: 700 }}>{o.title}</span>
+                          <span style={{ fontSize: 11.5, opacity: .85 }}>{priceOf(o)}¢</span>
                         </button>
                       );
                     })}
                   </div>
                 ) : sel ? (
-                  <div className="mb-4 flex items-center justify-between rounded-xl border border-yellow-500/40 bg-yellow-500/5 px-3 py-2.5">
-                    <span className="flex items-center gap-2 text-sm text-white font-semibold truncate pr-2">
-                      <span style={{ width: 9, height: 9, borderRadius: 999, background: getOutcomeColor(sel, market.outcomes || []), display: 'inline-block', flexShrink: 0 }} />
+                  <div className="mb-4 flex items-center justify-between" style={{ background: INSET_BG, border: '1px solid rgba(255,223,155,.4)', borderRadius: 4, padding: '10px 12px' }}>
+                    <span className="flex items-center gap-2 truncate pr-2" style={{ color: WHITE, fontSize: 12.5, fontWeight: 600 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 999, background: getOutcomeColor(sel, market.outcomes || []), display: 'inline-block', flexShrink: 0 }} />
                       {sel.title}
                     </span>
-                    <span className="text-sm font-bold shrink-0" style={{ color: 'var(--gold)' }}>{priceOf(sel)}¢</span>
+                    <span className="shrink-0" style={{ fontFamily: 'var(--mono)', color: GOLD, fontSize: 12.5, fontWeight: 700 }}>{priceOf(sel)}¢</span>
                   </div>
                 ) : (
-                  <div className="mb-4 rounded-xl border border-slate-700/60 bg-slate-800/40 px-3 py-2.5 text-xs text-slate-400">
+                  <div className="mb-4" style={{ background: INSET_BG, border: `1px solid ${INSET_LINE}`, borderRadius: 4, padding: '10px 12px', fontSize: 11.5, color: LABEL }}>
                     Tap an outcome below to pick a side.
                   </div>
                 )}
 
                 {panelTab === 'buy' ? (
                   <form onSubmit={handleTrade} className="space-y-3">
-                    <div style={{ fontFamily: 'var(--mono)', display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#948D87' }}>
-                      <span>Investment Amount</span>
-                      <span>Balance: ${(safeBuyingPower !== null ? safeBuyingPower : 100).toFixed(2)}</span>
+                    <div style={{ fontFamily: 'var(--mono)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <span style={microLabel}>Investment Amount</span>
+                      <span style={{ fontSize: 10, color: LABEL }}>Balance: <span style={{ color: '#C6D3E8' }}>${(safeBuyingPower !== null ? safeBuyingPower : 100).toFixed(2)}</span></span>
                     </div>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
-                        <input type="number" min="0.01" step="0.01" value={stake} disabled={marketClosed}
-                          onChange={e => setStake(e.target.value)} placeholder="0.00" required
-                          className="w-full pl-7 pr-14 py-2.5 text-sm placeholder:text-slate-600 focus:outline-none disabled:opacity-40"
-                          style={{ background: '#0B1229', border: '1px solid #33312E', borderRadius: 6, color: '#DCE1FF', fontFamily: 'var(--mono)' }} />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-bold">USD</span>
-                      </div>
-                      {safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && (
-                        <button type="button" onClick={() => setStake(safeBuyingPower.toFixed(2))}
-                          className="px-3 rounded-xl text-xs bg-slate-800 border border-slate-600 text-slate-300 hover:text-white transition-colors">Max</button>
-                      )}
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: LABEL, fontSize: 13, fontFamily: 'var(--mono)' }}>$</span>
+                      <input type="number" min="0.01" step="0.01" value={stake} disabled={marketClosed}
+                        onChange={e => setStake(e.target.value)} placeholder="0.00" required
+                        className="w-full pl-7 pr-24 py-2.5 text-sm focus:outline-none disabled:opacity-40"
+                        style={{ background: INSET_BG, border: `1px solid ${INPUT_LINE}`, borderRadius: 4, color: WHITE, fontFamily: 'var(--mono)' }} />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                        <span style={{ color: LABEL, fontSize: 9.5, fontWeight: 700, fontFamily: 'var(--mono)', letterSpacing: '0.08em' }}>USD</span>
+                        <button type="button" disabled={marketClosed}
+                          onClick={() => setStake((safeBuyingPower !== null ? safeBuyingPower : 100).toFixed(2))}
+                          style={{ background: GOLD, color: ON_GOLD, fontSize: 8.5, fontWeight: 800, fontFamily: 'var(--mono)', letterSpacing: '0.1em', border: 'none', borderRadius: 2, padding: '3px 7px', cursor: 'pointer' }}>
+                          MAX
+                        </button>
+                      </span>
                     </div>
                     {sel && parseFloat(stake) > 0 && (() => {
                       const b = calculatePayoutBounds(parseFloat(stake), sel.probability || 50);
                       return (
-                        <div className="p-3 space-y-2" style={{ background: '#0B1229', border: '1px solid #33312E', borderRadius: 6, fontFamily: 'var(--mono)', fontSize: 11.5 }}>
-                          <div className="flex justify-between"><span style={{ color: '#948D87' }}>Avg. Price</span><span style={{ color: '#DCE1FF' }}>{priceOf(sel)}¢</span></div>
-                          <div className="flex justify-between items-baseline"><span style={{ color: '#948D87' }}>Potential Payout</span><span style={{ color: '#48D773', fontSize: 17, fontWeight: 800, fontFamily: 'var(--mono)' }}>+${b.winReturn.toFixed(2)}</span></div>
-                          <div className="flex justify-between"><span style={{ color: '#948D87' }}>Max Profit</span><span style={{ color: '#48D773' }}>+${b.winProfit.toFixed(2)} ({parseFloat(stake) > 0 ? ((b.winProfit / parseFloat(stake)) * 100).toFixed(1) : '0.0'}%)</span></div>
-                          <div className="flex justify-between" style={{ borderTop: '1px solid rgba(45,52,76,.7)', paddingTop: 8 }}><span style={{ color: '#948D87' }}>Total Cost</span><span style={{ color: '#DCE1FF' }}>${parseFloat(stake).toFixed(2)}</span></div>
+                        <div className="p-3 space-y-2" style={{ background: INSET_BG, border: `1px solid ${INSET_LINE}`, borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 11 }}>
+                          <div className="flex justify-between"><span style={{ color: LABEL }}>Avg. Price</span><span style={{ color: '#DCE6F5' }}>{priceOf(sel)}¢</span></div>
+                          <div className="flex justify-between items-baseline"><span style={{ color: LABEL }}>Potential Payout</span><span style={{ color: GREEN, fontSize: 15, fontWeight: 800, fontFamily: 'var(--mono)' }}>+${b.winReturn.toFixed(2)}</span></div>
+                          <div className="flex justify-between"><span style={{ color: LABEL }}>Max Profit</span><span style={{ color: GREEN }}>+${b.winProfit.toFixed(2)} ({parseFloat(stake) > 0 ? ((b.winProfit / parseFloat(stake)) * 100).toFixed(1) : '0.0'}%)</span></div>
+                          <div className="flex justify-between" style={{ borderTop: '1px solid rgba(42,63,99,.7)', paddingTop: 8 }}><span style={{ color: LABEL }}>Total Cost</span><span style={{ color: '#DCE6F5' }}>${parseFloat(stake).toFixed(2)}</span></div>
                         </div>
                       );
                     })()}
                     {tradeMsg && <p className={`text-xs ${tradeMsg.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>{tradeMsg}</p>}
                     <button type="submit" disabled={marketClosed || tradeLoading || !sel || !parseFloat(stake)}
-                      className="w-full py-3 text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                      style={{ background: '#F0C04A', color: '#4A3600', borderRadius: 6, fontFamily: 'var(--mono)', fontWeight: 700, border: 'none' }}>
-                      {tradeLoading ? 'Placing...' : 'Place Trade'}
+                      className="w-full transition-all disabled:cursor-not-allowed"
+                      style={{ background: GOLD, color: ON_GOLD, borderRadius: 4, padding: '13px 0', fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', border: 'none', opacity: (marketClosed || tradeLoading || !sel || !parseFloat(stake)) ? 0.55 : 1 }}>
+                      {tradeLoading ? 'Placing…' : 'Place Trade'}
                     </button>
-                    <p style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: '#B7A77E', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
-                      By trading, you agree to the Terms of Service.
+                    <p style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: LABEL, textAlign: 'center', margin: 0, lineHeight: 1.6 }}>
+                      By trading, you agree to the <span style={{ textDecoration: 'underline', textUnderlineOffset: 2, color: '#8AA0C2' }}>Terms of Service</span>.
                     </p>
                   </form>
                 ) : (
@@ -1026,39 +1106,54 @@ export default function MarketDetailPage() {
                       <p className="text-xs text-slate-400">You have no position on {sel.title} to sell.</p>
                     ) : (
                       <>
-                        <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
-                            <input type="number" min="0.01" max={selPos} step="0.01" value={sellAmount}
-                              onChange={e => setSellAmount(e.target.value)} placeholder={`Max $${selPos.toFixed(2)}`}
-                              className="w-full bg-slate-950/70 border border-slate-600 rounded-xl pl-7 pr-14 py-2.5 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-red-500/40 focus:border-red-500" />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-bold">USD</span>
-                          </div>
-                          <button type="button" onClick={() => setSellAmount(selPos.toFixed(2))}
-                            className="px-3 rounded-xl text-xs bg-slate-800 border border-slate-600 text-slate-300 hover:text-white transition-colors">Max</button>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: LABEL, fontSize: 13, fontFamily: 'var(--mono)' }}>$</span>
+                          <input type="number" min="0.01" max={selPos} step="0.01" value={sellAmount}
+                            onChange={e => setSellAmount(e.target.value)} placeholder={`Max $${selPos.toFixed(2)}`}
+                            className="w-full pl-7 pr-24 py-2.5 text-sm focus:outline-none"
+                            style={{ background: INSET_BG, border: `1px solid ${INPUT_LINE}`, borderRadius: 4, color: WHITE, fontFamily: 'var(--mono)' }} />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                            <span style={{ color: LABEL, fontSize: 9.5, fontWeight: 700, fontFamily: 'var(--mono)', letterSpacing: '0.08em' }}>USD</span>
+                            <button type="button" onClick={() => setSellAmount(selPos.toFixed(2))}
+                              style={{ background: GOLD, color: ON_GOLD, fontSize: 8.5, fontWeight: 800, fontFamily: 'var(--mono)', letterSpacing: '0.1em', border: 'none', borderRadius: 2, padding: '3px 7px', cursor: 'pointer' }}>
+                              MAX
+                            </button>
+                          </span>
                         </div>
                         {parseFloat(sellAmount) > 0 && (
-                          <div className="rounded-xl bg-slate-800/50 border border-slate-700/50 p-3 space-y-1.5 text-xs">
-                            <div className="flex justify-between"><span className="text-slate-400">You receive</span><span className="text-white font-semibold">${calcPositionValue(parseFloat(sellAmount), userAvgEntry[sel.id] || 50, sel.probability || 50).toFixed(2)}</span></div>
+                          <div className="p-3" style={{ background: INSET_BG, border: `1px solid ${INSET_LINE}`, borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 11 }}>
+                            <div className="flex justify-between"><span style={{ color: LABEL }}>You receive</span><span style={{ color: '#DCE6F5', fontWeight: 700 }}>${calcPositionValue(parseFloat(sellAmount), userAvgEntry[sel.id] || 50, sel.probability || 50).toFixed(2)}</span></div>
                           </div>
                         )}
                         {sellMsg && <p className={`text-xs ${sellMsg.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>{sellMsg}</p>}
                         <button onClick={(e) => handleSell(e, sel.id)} disabled={sellLoading || !parseFloat(sellAmount) || parseFloat(sellAmount) > selPos}
-                          className="w-full py-3 rounded-xl text-sm font-extrabold bg-red-500/20 border border-red-500/50 text-red-400 hover:bg-red-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-                          {sellLoading ? 'Selling...' : 'Confirm Sell'}
+                          className="w-full transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                          style={{ background: 'rgba(255,158,142,.12)', border: '1px solid rgba(255,158,142,.5)', color: RED, borderRadius: 4, padding: '12px 0', fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                          {sellLoading ? 'Selling…' : 'Confirm Sell'}
                         </button>
                       </>
                     )}
                   </div>
                 )}
+                </div>
               </div>
             );
           })()}
+
+          {/* Resolution criteria (mock: mono label + market description) */}
+          {displayDescription && (
+            <div className="mb-5" style={{ ...PANEL, padding: '14px 16px' }}>
+              <div style={{ ...microLabel, letterSpacing: '0.16em' }}>Resolution Criteria</div>
+              <p style={{ color: BODY_TEXT, fontSize: 11.5, lineHeight: 1.7, margin: '10px 0 0' }}>
+                {displayDescription}
+              </p>
+            </div>
+          )}
         </div>
       </div>
         {/* Full-width Outcomes list (Kalshi-style) — lives below both columns, not squeezed into the sidebar */}
         {!isBinaryMkt && market && (
-          <div className="rounded-lg p-6 mt-6" style={{ background: '#181E36', border: '1px solid #33312E' }}>
+          <div className="p-6 mt-6" style={PANEL}>
           {!isBinaryMkt && (<div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-white">Outcomes</h2>
             {outcomes.length >= 10 && (
@@ -1160,7 +1255,7 @@ export default function MarketDetailPage() {
                         const d = Math.round(last - prev);
                         if (d === 0) return null;
                         return (
-                          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: d > 0 ? '#4AE176' : '#FFB4AB' }}>
+                          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: d > 0 ? GREEN : RED }}>
                             {d > 0 ? '\u25B2' : '\u25BC'}{Math.abs(d)}
                           </span>
                         );
@@ -1481,6 +1576,7 @@ export default function MarketDetailPage() {
           })()}
           </div>
         )}
-    </div >
+      </div>
+    </div>
   );
 }
