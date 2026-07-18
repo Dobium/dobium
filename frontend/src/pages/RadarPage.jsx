@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useMarkets } from '../hooks/useMarkets';
 import TrendingRadar from '../components/TrendingRadar';
 import ResolveQueue from '../components/ResolveQueue';
 import WaitlistAdmin from '../components/WaitlistAdmin';
@@ -39,40 +40,7 @@ export default function RadarPage() {
   };
 
   if (!unlocked) {
-    return (
-      <div className="max-w-sm mx-auto p-6" style={{ paddingTop: '18vh' }}>
-        <h1 style={{ fontFamily: 'var(--wordmark)', fontSize: 22, color: 'var(--text)', marginBottom: 8, textAlign: 'center' }}>
-          Trending <span style={{ color: 'var(--gold)' }}>Radar</span>
-        </h1>
-        <p style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', marginBottom: 20 }}>
-          Enter the passphrase to review pending markets.
-        </p>
-        <input
-          type="password"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && tryUnlock()}
-          placeholder="Passphrase"
-          autoFocus
-          style={{
-            width: '100%', background: 'rgba(10,17,40,.65)', border: '1px solid var(--line)',
-            borderRadius: 10, padding: '12px 14px', color: 'var(--text)', fontSize: 14,
-            outline: 'none', marginBottom: 10, textAlign: 'center',
-          }}
-        />
-        <button
-          onClick={tryUnlock}
-          style={{
-            width: '100%', background: 'linear-gradient(180deg,#FFDF9B,var(--gold-2))',
-            color: '#1a1405', fontWeight: 700, fontSize: 14, border: 'none',
-            borderRadius: 10, padding: '12px 14px', cursor: 'pointer',
-          }}
-        >
-          Unlock
-        </button>
-        {error && <p style={{ color: 'var(--no)', fontSize: 13, textAlign: 'center', marginTop: 10 }}>{error}</p>}
-      </div>
-    );
+    return <RadarGate input={input} setInput={setInput} tryUnlock={tryUnlock} error={error} />;
   }
 
   return (
@@ -195,6 +163,149 @@ export default function RadarPage() {
           </>
         }
       />
+      </div>
+    </div>
+  );
+}
+
+
+// ── Passphrase gate, matched to the terminal reference mock ────────────────
+// Near-black stat band up top (GLOBAL VOL real, BTC/USD demo per mock,
+// TRENDING MARKET = top-volume live title), dimmed TRAFFIC FLOW / ACTIVE
+// NODES decor on the left, centered card with the radar glyph, gold title,
+// AES-256 input chip, flat gold "Unlock →", and the ENCRYPTED / NODE row.
+const RADAR_WARM = '#CFC5B5';
+const BARS = [7, 12, 9, 16, 11, 19, 14, 22, 12, 17];
+
+function radarLabel(extra = {}) {
+  return { fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.16em', color: RADAR_WARM, ...extra };
+}
+
+function RadarStatBand({ markets }) {
+  const liveVol = markets.reduce((sum, m) => sum + (m.total_volume || 0), 0);
+  const volLabel = liveVol >= 1e9 ? `$${(liveVol / 1e9).toFixed(2)}B` : liveVol >= 1e6 ? `$${(liveVol / 1e6).toFixed(1)}M` : `$${Math.round(liveVol).toLocaleString('en-US')}`;
+  const top = [...markets].filter((m) => m.status === 'active').sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))[0];
+  const trendingTitle = (top?.title || 'GTA VI Release Date Prediction').replace(/\?+\s*$/, '');
+  return (
+    <div style={{ background: '#000E24', borderBottom: '1px solid #10203A', padding: '9px 26px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 40, whiteSpace: 'nowrap', maxWidth: 1440, margin: '0 auto' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ width: 6, height: 6, borderRadius: 999, background: '#4BE176', flexShrink: 0 }} />
+          <span style={radarLabel()}>GLOBAL VOL:</span>
+          <span style={radarLabel({ fontSize: 9.5, color: '#FFFFFF' })}>{volLabel}</span>
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 7 }}>
+          <span style={radarLabel()}>BTC/USD:</span>
+          <span style={radarLabel({ fontSize: 9.5, color: '#E1C382' })}>$67,241.12</span>
+          <span style={radarLabel({ fontSize: 9.5, color: '#4BE176' })}>(+1.2%)</span>
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 7, minWidth: 0 }}>
+          <span style={radarLabel()}>TRENDING MARKET:</span>
+          <span style={radarLabel({ fontSize: 9.5, color: '#C6D3E8', letterSpacing: '0.1em' })}>{trendingTitle}</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function RadarDecor() {
+  return (
+    <div className="dbm-radar-decor" style={{ position: 'absolute', left: 'max(18px, 4vw)', top: 46, width: 196, opacity: 0.6, pointerEvents: 'none', userSelect: 'none' }}>
+      <div style={{ background: '#031731', border: '1px solid #14263F', borderRadius: 6, padding: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <span style={radarLabel({ fontSize: 8 })}>TRAFFIC FLOW</span>
+          <span style={radarLabel({ fontSize: 8 })}>LIVE</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 26 }}>
+          {BARS.map((h, i) => (
+            <span key={i} style={{ width: 5, height: h, background: '#8C7A4A', borderRadius: 1, display: 'inline-block' }} />
+          ))}
+        </div>
+      </div>
+      <div style={{ background: '#031731', border: '1px solid #14263F', borderRadius: 6, padding: 14, marginTop: 18 }}>
+        <div style={{ ...radarLabel({ fontSize: 8 }), marginBottom: 12 }}>ACTIVE NODES</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <span key={i} style={{ aspectRatio: '1', borderRadius: 4, background: i === 3 ? '#18243A' : '#0B2938', border: '1px solid #14323E', display: 'block' }} />
+          ))}
+        </div>
+      </div>
+      <style>{`@media (max-width: 1023px) { .dbm-radar-decor { display: none; } }`}</style>
+    </div>
+  );
+}
+
+function RadarGate({ input, setInput, tryUnlock, error }) {
+  const { markets } = useMarkets();
+  return (
+    <div style={{ background: '#00132D', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+      <RadarStatBand markets={markets} />
+
+      <div style={{ position: 'relative', flex: 1, padding: '64px 20px 96px' }}>
+        <RadarDecor />
+
+        <div style={{ maxWidth: 400, margin: '0 auto', background: '#001F43', border: '1px solid #2F3A4A', borderRadius: 10, padding: '34px 30px 20px', textAlign: 'center' }}>
+          <span style={{ width: 54, height: 54, margin: '0 auto', borderRadius: 12, background: '#182A45', border: '1px solid #39465F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={RADAR_WARM} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="8" />
+              <circle cx="12" cy="12" r="2.6" fill={RADAR_WARM} stroke="none" />
+              <path d="M12 4a8 8 0 018 8" opacity=".45" />
+            </svg>
+          </span>
+
+          <h1 style={{ fontFamily: 'var(--wordmark)', fontSize: 24, fontWeight: 800, color: '#FFDF9B', margin: '18px 0 0' }}>
+            Trending Radar
+          </h1>
+          <p style={{ color: '#C6D3E8', fontSize: 12.5, lineHeight: 1.6, margin: '10px auto 22px', maxWidth: 260 }}>
+            Enter the passphrase to review pending markets.
+          </p>
+
+          <div style={{ position: 'relative' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E9AB0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }}>
+              <rect x="4" y="11" width="16" height="10" rx="2" />
+              <path d="M8 11V7a4 4 0 018 0v4" />
+            </svg>
+            <input
+              type="password"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && tryUnlock()}
+              placeholder="Passphrase"
+              autoFocus
+              style={{
+                width: '100%', background: '#00132D', border: '1px solid #2A3F63',
+                borderRadius: 6, padding: '14px 84px 14px 38px', color: '#E6EDF9', fontSize: 13,
+                fontFamily: 'var(--mono)', outline: 'none',
+              }}
+            />
+            <span style={{ ...radarLabel({ fontSize: 7.5 }), position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: '#182A45', border: '1px solid #2A3F63', borderRadius: 2, padding: '3px 7px' }}>
+              AES-256
+            </span>
+          </div>
+
+          <button
+            onClick={tryUnlock}
+            style={{
+              width: '100%', marginTop: 14, background: '#FFDF9B', border: 'none', borderRadius: 6,
+              padding: '15px 10px', cursor: 'pointer',
+              fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 12, letterSpacing: '0.1em', color: '#79612A',
+            }}
+          >
+            Unlock →
+          </button>
+          {error && <p style={{ color: '#FF9E8E', fontSize: 12, marginTop: 12, marginBottom: 0, fontFamily: 'var(--mono)' }}>{error}</p>}
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderTop: '1px solid rgba(28,48,79,.7)', marginTop: 24, padding: '14px 2px 2px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={RADAR_WARM} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3l8 3v6c0 4.5-3.2 7.6-8 9-4.8-1.4-8-4.5-8-9V6z" />
+              </svg>
+              <span style={radarLabel()}>ENCRYPTED</span>
+            </span>
+            <span style={radarLabel()}>NODE: US-EAST-1</span>
+          </div>
+        </div>
       </div>
     </div>
   );

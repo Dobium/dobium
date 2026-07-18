@@ -34,6 +34,40 @@ const EXPLORE_COLUMNS = [
 export default function Footer() {
   const { pathname } = useLocation();
 
+  if (pathname === '/radar') {
+    return (
+      <footer style={{ borderTop: '1px solid #10203A', background: '#000E24' }}>
+        <div
+          className="dbm-footwrap"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexWrap: 'wrap', gap: 18, padding: '20px 28px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 14.5, color: '#F2F5FF' }}>
+              Dobium
+            </span>
+            <span style={{ color: '#8E9AB0', fontSize: 11.5 }}>
+              © 2024 Dobium Terminal. All market data is real-time.
+            </span>
+          </div>
+          <nav style={{ display: 'flex', flexWrap: 'wrap', gap: 22 }}>
+            {['Terms', 'Privacy', 'Discord', 'Docs'].map((label) => (
+              <FooterLink key={label} label={label} style={{ color: '#8E9AB0', fontSize: 12 }} />
+            ))}
+          </nav>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ width: 6, height: 6, borderRadius: 999, background: '#4BE176' }} />
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em', color: '#CFC5B5' }}>
+              System Operational
+            </span>
+          </span>
+        </div>
+      </footer>
+    );
+  }
+
   if (pathname === '/explore') {
     return (
       <footer style={{ borderTop: '1px solid #14223E', background: '#000E24', marginTop: 48 }}>

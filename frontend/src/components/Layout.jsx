@@ -32,7 +32,7 @@ export default function Layout() {
       <div className="main-content" style={{ background: 'var(--bg)', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         {pathname === '/' && <HomeTicker />}
         {pathname === '/explore' && <ExploreStatBand />}
-        <TopNav />
+        {pathname !== '/radar' && <TopNav />}
         <div style={{ flex: 1 }}>
           <Outlet />
         </div>
