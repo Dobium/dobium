@@ -42,51 +42,56 @@ export default function WaitlistAdmin({ radarKey }) {
   };
 
   return (
-    <div className="rounded-md p-5" style={{ background: '#181E36', border: '1px solid #33312E' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
-        <h2 style={{ color: '#DCE1FF', fontWeight: 700, fontSize: 17, margin: 0 }}>
-          Waitlist <span style={{ fontFamily: 'var(--mono)', color: '#FFDF9B', fontSize: 15 }}>({count.toLocaleString('en-US')})</span>
-        </h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={load} style={{ fontFamily: 'var(--mono)', fontSize: 12, background: '#2D344C', color: '#D2C5AF', border: 'none', borderRadius: 4, padding: '7px 13px', cursor: 'pointer' }}>
+    <div style={{ background: '#001F43', border: '1px solid #2F3A4A', borderRadius: 6, padding: '14px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#CFC5B5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5" /><circle cx="17.5" cy="9" r="2.6" /><path d="M16 15.2c2.7.2 4.8 1.6 5.5 4.3" />
+          </svg>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 800, letterSpacing: '0.16em', color: '#CFC5B5' }}>
+            WAITLIST <span style={{ color: '#FFDF9B' }}>({count.toLocaleString('en-US')})</span>
+          </span>
+        </span>
+        <div style={{ display: 'flex', gap: 7 }}>
+          <button onClick={load} style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, background: '#243550', color: '#D5E3FF', border: 'none', borderRadius: 3, padding: '6px 11px', cursor: 'pointer' }}>
             Refresh
           </button>
           <button onClick={exportCsv} disabled={entries.length === 0}
-            style={{ fontFamily: 'var(--mono)', fontSize: 12, background: '#F0C04A', color: '#4A3600', fontWeight: 700, border: 'none', borderRadius: 4, padding: '7px 13px', cursor: 'pointer', opacity: entries.length === 0 ? 0.5 : 1 }}>
+            style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 800, background: '#FFDF9B', color: '#00132D', border: 'none', borderRadius: 3, padding: '6px 11px', cursor: 'pointer', opacity: entries.length === 0 ? 0.5 : 1 }}>
             Export CSV
           </button>
         </div>
       </div>
 
-      {error && <p style={{ color: '#FFB4AB', fontSize: 12.5 }}>{error}</p>}
+      {error && <p style={{ color: '#FFB4AB', fontSize: 12 }}>{error}</p>}
       {loading ? (
-        <p style={{ color: '#948D87', fontSize: 13 }}>Loading…</p>
+        <p style={{ color: '#8E9AB0', fontSize: 12, fontFamily: 'var(--mono)' }}>Loading…</p>
       ) : entries.length === 0 ? (
-        <p style={{ color: '#948D87', fontSize: 13 }}>No signups yet.</p>
+        <p style={{ color: '#8E9AB0', fontSize: 12, fontFamily: 'var(--mono)' }}>No signups yet.</p>
       ) : (
-        <div style={{ maxHeight: 340, overflowY: 'auto', fontFamily: 'var(--mono)', fontSize: 12 }}>
-          <div style={{ display: 'flex', color: '#948D87', fontSize: 10.5, textTransform: 'uppercase', paddingBottom: 8, borderBottom: '1px solid rgba(45,52,76,.7)', position: 'sticky', top: 0, background: '#181E36' }}>
-            <span style={{ width: 44 }}>#</span>
+        <div style={{ maxHeight: 340, overflowY: 'auto', fontFamily: 'var(--mono)', fontSize: 10.5 }}>
+          <div style={{ display: 'flex', color: '#8E9AB0', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', paddingBottom: 9, borderBottom: '1px solid #1C304F', position: 'sticky', top: 0, background: '#001F43' }}>
+            <span style={{ width: 26 }}>#</span>
             <span style={{ flex: 2 }}>Email</span>
             <span style={{ flex: 1 }}>Joined</span>
-            <span style={{ width: 60, textAlign: 'right' }}>Action</span>
+            <span style={{ width: 58, textAlign: 'right' }}>Action</span>
           </div>
           {entries.map((e) => (
-            <div key={e.id} style={{ display: 'flex', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid rgba(45,52,76,.35)' }}>
-              <span style={{ width: 44, color: '#FFDF9B' }}>{e.position}</span>
-              <span style={{ flex: 2, color: '#DCE1FF', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.email}</span>
-              <span style={{ flex: 1, color: '#948D87' }}>{new Date(e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-              <span style={{ width: 60, textAlign: 'right' }}>
+            <div key={e.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(28,48,79,.5)' }}>
+              <span style={{ width: 26, color: '#FFDF9B', fontWeight: 700 }}>{e.position}</span>
+              <span style={{ flex: 2, color: '#E6EDF9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 6 }}>{e.email}</span>
+              <span style={{ flex: 1, color: '#CFC5B5' }}>{new Date(e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              <span style={{ width: 58, textAlign: 'right' }}>
                 <button onClick={() => remove(e.id, e.email)}
-                  style={{ background: 'none', border: 'none', color: '#CF9290', cursor: 'pointer', fontSize: 11, fontFamily: 'var(--mono)' }}>
-                  remove
+                  style={{ background: 'none', border: 'none', color: '#FFB4AB', cursor: 'pointer', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', fontFamily: 'var(--mono)' }}>
+                  REMOVE
                 </button>
               </span>
             </div>
           ))}
         </div>
       )}
-      <p style={{ color: '#948D87', fontSize: 11, marginTop: 12, marginBottom: 0 }}>
+      <p style={{ color: '#8E9AB0', fontSize: 10.5, fontStyle: 'italic', marginTop: 12, marginBottom: 0 }}>
         Stored in Postgres — entries persist until removed here.
       </p>
     </div>
