@@ -4,7 +4,7 @@ import { api } from '../api/client';
 // Waitlist admin panel (Radar page) — see everyone who's registered, in order,
 // export the whole list as CSV for the real-money launch, and remove entries.
 // The database is Postgres: entries persist indefinitely until deleted here.
-export default function WaitlistAdmin({ radarKey }) {
+export default function WaitlistAdmin({ radarKey, compact = false }) {
   const [entries, setEntries] = useState([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -40,6 +40,40 @@ export default function WaitlistAdmin({ radarKey }) {
     a.click();
     URL.revokeObjectURL(a.href);
   };
+
+  if (compact) {
+    return (
+      <div style={{ background: '#001F43', border: '1px solid #2F3A4A', borderRadius: 6, padding: '13px 15px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#CFC5B5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5" /><circle cx="17.5" cy="9" r="2.6" /><path d="M16 15.2c2.7.2 4.8 1.6 5.5 4.3" />
+            </svg>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.16em', color: '#CFC5B5' }}>WAITLIST</span>
+          </span>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#CFC5B5' }}>Total: {count.toLocaleString('en-US')}</span>
+        </div>
+        {error && <p style={{ color: '#FFB4AB', fontSize: 11, fontFamily: 'var(--mono)', margin: 0 }}>{error}</p>}
+        {loading ? (
+          <p style={{ color: '#8E9AB0', fontSize: 10.5, fontFamily: 'var(--mono)', margin: 0 }}>Loading…</p>
+        ) : entries.length === 0 ? (
+          <p style={{ color: '#8E9AB0', fontSize: 10.5, fontFamily: 'var(--mono)', margin: 0 }}>No signups yet.</p>
+        ) : (
+          <div style={{ maxHeight: 220, overflowY: 'auto', fontFamily: 'var(--mono)', fontSize: 10 }}>
+            {entries.map((e, i) => (
+              <div key={e.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '9px 0', borderTop: i === 0 ? '1px solid #1C304F' : '1px solid rgba(28,48,79,.5)' }}>
+                <span style={{ color: '#E6EDF9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.email}</span>
+                <button onClick={() => remove(e.id, e.email)}
+                  style={{ background: 'none', border: 'none', color: '#FFB4AB', cursor: 'pointer', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.14em', fontFamily: 'var(--mono)', flexShrink: 0 }}>
+                  DEL
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: '#001F43', border: '1px solid #2F3A4A', borderRadius: 6, padding: '14px 16px' }}>

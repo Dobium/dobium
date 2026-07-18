@@ -25,7 +25,7 @@ export default function RadarPage() {
   const [badgeBusy, setBadgeBusy] = useState(false);
   const [badgeMsg, setBadgeMsg] = useState('');
   const [seedMsg, setSeedMsg] = useState('');
-  const [tab, setTab] = useState('radar'); // radar | live | waitlist
+  const [tab, setTab] = useState('trending'); // trending|hiphop|popculture|festivals|grammys | live
 
   useEffect(() => {
     if (sessionStorage.getItem(STORAGE_KEY) === RADAR_KEY) setUnlocked(true);
@@ -50,12 +50,12 @@ export default function RadarPage() {
       <RadarTopBar tab={tab} setTab={setTab} onBrand={() => navigate('/')} />
       <RadarVolTicker markets={markets} />
 
-      {tab === 'radar' && (
-        <div className="max-w-7xl mx-auto" style={{ padding: '18px 20px 40px' }}>
+      {tab !== 'live' && (
+        <div className="max-w-7xl mx-auto" style={{ padding: '18px 20px 34px' }}>
           <div className="dbm-radar-grid">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <IntelFeed />
-              <WaitlistAdmin radarKey={RADAR_KEY} />
+              <WaitlistAdmin radarKey={RADAR_KEY} compact />
             </div>
 
             <RadarHero markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} />
@@ -65,12 +65,27 @@ export default function RadarPage() {
               <HotMediaMarkets markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} />
             </div>
           </div>
+
+          <LiveMarketGrid markets={markets} genre={tab} onCreate={() => setTab('live')} onOpen={(id) => navigate(`/markets/${id}`)} />
+
           <style>{`
             .dbm-radar-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 18px; }
             @media (min-width: 1024px) {
               .dbm-radar-grid { grid-template-columns: 290px minmax(0,1fr) 300px; align-items: start; }
             }
           `}</style>
+        </div>
+      )}
+
+      {tab !== 'live' && (
+        <div style={{ background: '#000E24', borderTop: '1px solid #10203A', padding: '12px 26px' }}>
+          <div className="max-w-7xl mx-auto">
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ width: 6, height: 6, borderRadius: 999, background: RADAR_GOLD_DIM }} />
+              <span style={radarMono({ fontSize: 8.5, color: '#CFC5B5' })}>DOBIUM RADAR INTELLIGENCE NODE</span>
+            </span>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.12em', color: RADAR_GOLD_DIM, marginTop: 5 }}>Data ingested</div>
+          </div>
         </div>
       )}
 
@@ -83,6 +98,8 @@ export default function RadarPage() {
             radarKey={RADAR_KEY}
             sidebar={
               <>
+                <WaitlistAdmin radarKey={RADAR_KEY} />
+
                 <div style={{ padding: 16, borderRadius: 6, border: '1px solid #2F3A4A', background: '#001F43' }}>
                   <div style={{ color: '#F2F6FF', fontWeight: 700, fontSize: 14 }}>Curated starter batch</div>
                   <div style={{ color: '#8E9AB0', fontSize: 12.5, marginTop: 4, lineHeight: 1.55 }}>
@@ -148,11 +165,6 @@ export default function RadarPage() {
         </div>
       )}
 
-      {tab === 'waitlist' && (
-        <div style={{ maxWidth: 680, margin: '0 auto', padding: '26px 20px 48px' }}>
-          <WaitlistAdmin radarKey={RADAR_KEY} />
-        </div>
-      )}
     </div>
   );
 }
@@ -308,7 +320,7 @@ const RADAR_SALMON = '#FFB4AB';
 
 // Demo copy pinned to the reference mock
 const INTEL_FEED = [
-  { time: '14:02 UTC', chip: 'Rumor Score: 87%', body: 'Kendrick Lamar studio session leak confirmed by top-tier audio engineers in LA.', prob: 'YES prob: 78%', up: true },
+  { time: '14:02 UTC', chip: 'Score: 87%', body: 'Kendrick Lamar studio session leak confirmed by top-tier audio engineers in LA.', prob: 'YES prob: 78%', up: true },
   { time: '13:45 UTC', chip: 'Verified', body: 'Ticketmaster updates backend API routes for SZA stadium tour locations.', prob: 'YES prob: 92%', up: true },
   { time: '12:38 UTC', chip: 'Contested', body: 'Rumors of Frank Ocean Coachella headliner officially denied by Goldenvoice.', prob: 'YES prob: 12%', up: false },
 ];
@@ -351,9 +363,12 @@ function binaryTop(markets, n) {
 
 export function RadarTopBar({ tab, setTab, onBrand }) {
   const TABS = [
-    { id: 'radar', label: 'Music and Media Radar' },
+    { id: 'trending', label: 'Trending' },
+    { id: 'hiphop', label: 'Hip Hop' },
+    { id: 'popculture', label: 'Pop Culture' },
+    { id: 'festivals', label: 'Festivals' },
+    { id: 'grammys', label: 'Grammys' },
     { id: 'live', label: 'Live Markets' },
-    { id: 'waitlist', label: 'Waitlist Signups' },
   ];
   return (
     <div style={{ background: '#00132D', borderBottom: '1px solid #14223E' }}>
@@ -365,7 +380,7 @@ export function RadarTopBar({ tab, setTab, onBrand }) {
           </svg>
           <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15, color: '#F2F6FF' }}>Dobium Radar</span>
         </span>
-        <nav style={{ display: 'flex', alignItems: 'stretch', gap: 4, flexWrap: 'wrap' }}>
+        <nav style={{ display: 'flex', alignItems: 'stretch', gap: 2, flexWrap: 'wrap', flex: 1 }}>
           {TABS.map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)}
               style={{
@@ -379,6 +394,10 @@ export function RadarTopBar({ tab, setTab, onBrand }) {
             </button>
           ))}
         </nav>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+          <span style={{ width: 5, height: 5, borderRadius: 999, background: RADAR_GREEN }} />
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.14em', color: RADAR_GREEN }}>LIVE_FEED OK</span>
+        </span>
       </div>
     </div>
   );
@@ -444,20 +463,17 @@ export function IntelFeed() {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={RADAR_GOLD_DIM} strokeWidth="2" strokeLinecap="round">
             <circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
           </svg>
-          <span style={radarMono({ fontSize: 9.5, color: RADAR_GOLD_DIM })}>GLOBAL INTELLIGENCE FEED</span>
+          <span style={radarMono({ fontSize: 9.5, color: RADAR_GOLD_DIM })}>INTELLIGENCE FEED</span>
         </span>
         <span style={{ width: 6, height: 6, borderRadius: 999, background: RADAR_GREEN }} />
       </div>
-      {INTEL_FEED.map((e, i) => (
-        <div key={e.time} style={{ paddingTop: i === 0 ? 0 : 14, paddingBottom: 14, borderBottom: i < INTEL_FEED.length - 1 ? '1px solid rgba(28,48,79,.6)' : 'none' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 7 }}>
+      {INTEL_FEED.slice(0, 2).map((e, i) => (
+        <div key={e.time} style={{ paddingTop: i === 0 ? 0 : 13, paddingBottom: 13, borderBottom: i === 0 ? '1px solid rgba(28,48,79,.6)' : 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
             <span style={radarMono({ fontSize: 9 })}>{e.time}</span>
-            <span style={radarMono({ fontSize: 8, letterSpacing: '0.08em', background: 'rgba(36,53,80,.7)', border: '1px solid #39465F', borderRadius: 2, padding: '3px 7px' })}>{e.chip}</span>
+            <span style={radarMono({ fontSize: 8.5, letterSpacing: '0.08em', color: '#8E9AB0' })}>{e.chip}</span>
           </div>
-          <p style={{ color: '#E6EDF9', fontSize: 12, lineHeight: 1.55, margin: '0 0 7px' }}>{e.body}</p>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', color: e.up ? RADAR_GREEN : RADAR_SALMON }}>
-            {e.up ? '↑' : '↓'} {e.prob}
-          </span>
+          <p style={{ color: '#E6EDF9', fontSize: 11.5, lineHeight: 1.55, margin: 0 }}>{e.body}</p>
         </div>
       ))}
     </div>
@@ -491,22 +507,33 @@ function NodeCard({ node, onOpen, style }) {
 }
 
 export function RadarHero({ markets, onOpen }) {
-  const real = binaryTop(markets, 2);
-  const nodes = real.length >= 2
-    ? [{ ...real[0], kind: 'ACTIVE NODE' }, { ...real[1], kind: 'TRENDING NODE' }]
-    : DEMO_NODES;
+  const real = binaryTop(markets, 1);
+  const node = real[0] || DEMO_NODES[1];
   return (
-    <div style={{ position: 'relative', minHeight: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '30px 10px' }}>
+    <div style={{ position: 'relative', minHeight: 380, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '30px 10px', background: '#02152F', border: '1px solid #14263F', borderRadius: 6 }}>
       <div style={{ textAlign: 'center' }}>
-        <h1 style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 'clamp(24px,2.8vw,32px)', color: RADAR_GOLD_DIM, margin: 0 }}>
-          Music &amp; Media Radar
+        <h1 style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 'clamp(20px,2.4vw,27px)', letterSpacing: '0.22em', color: RADAR_GOLD, margin: 0 }}>
+          RADAR CORE
         </h1>
-        <p style={{ ...radarMono({ fontSize: 10.5, letterSpacing: '0.18em', color: '#CFC5B5' }), margin: '12px 0 0' }}>
-          Global Entertainment Prediction Markets
+        <p style={{ ...radarMono({ fontSize: 9.5, letterSpacing: '0.18em', color: '#CFC5B5' }), margin: '13px 0 0' }}>
+          System Status: Active
         </p>
       </div>
-      <NodeCard node={nodes[0]} onOpen={onOpen} style={{ position: 'absolute', right: '4%', top: 56 }} />
-      <NodeCard node={nodes[1]} onOpen={onOpen} style={{ position: 'absolute', left: '3%', bottom: 46 }} />
+      <div
+        className="dbm-radar-node"
+        onClick={() => node.id && onOpen && onOpen(node.id)}
+        style={{ position: 'absolute', left: '6%', top: 34, background: '#001E41', border: '1px solid #2A3F63', borderRadius: 6, padding: '10px 13px', minWidth: 155, maxWidth: 210, cursor: node.id ? 'pointer' : 'default', boxShadow: '0 8px 22px rgba(0,5,15,.35)' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 7 }}>
+          <span style={radarMono({ fontSize: 8, color: '#8E9AB0' })}>TRENDING</span>
+          <span style={{ width: 6, height: 6, borderRadius: 999, background: RADAR_GREEN, boxShadow: '0 0 0 3px rgba(75,225,118,.18)' }} />
+        </div>
+        <div style={{ color: '#F2F6FF', fontWeight: 700, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{node.name}</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginTop: 8, fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}>
+          <span style={{ color: RADAR_GREEN }}>{node.yes}%</span>
+          <span style={{ color: '#CFC5B5' }}>{node.no}%</span>
+        </div>
+      </div>
       <style>{`
         @media (max-width: 1023px) {
           .dbm-radar-node { position: static !important; margin: 14px auto 0; }
@@ -523,14 +550,11 @@ export function TurbulenceIndex() {
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={RADAR_GOLD_DIM} strokeWidth="2" strokeLinecap="round">
           <circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 019 9h-9z" fill={RADAR_GOLD_DIM} stroke="none" opacity=".5" />
         </svg>
-        <span style={radarMono({ fontSize: 9.5, color: RADAR_GOLD_DIM })}>CULTURAL TURBULENCE INDEX</span>
+        <span style={radarMono({ fontSize: 9.5, color: RADAR_GOLD_DIM })}>CULTURE TURBULENCE</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
         <span style={{ color: '#FFFFFF', fontWeight: 800, fontSize: 38, lineHeight: 1 }}>84.2</span>
-        <span style={{ paddingTop: 3 }}>
-          <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 800, color: RADAR_GOLD }}>↗+4.5 today</span>
-          <span style={{ display: 'block', ...radarMono({ fontSize: 8.5, color: RADAR_GREEN }), marginTop: 4 }}>HIGH VOLATILITY</span>
-        </span>
+        <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 800, color: RADAR_GOLD }}>↗+4.5</span>
       </div>
       <svg viewBox="0 0 160 30" style={{ width: '100%', height: 34, display: 'block', marginTop: 12 }}>
         <polyline points={SPARK} fill="none" stroke={RADAR_GOLD_DIM} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -540,33 +564,163 @@ export function TurbulenceIndex() {
 }
 
 export function HotMediaMarkets({ markets, onOpen }) {
-  const real = binaryTop(markets, 4);
-  const rows = real.length > 0 ? real : DEMO_HOT;
+  const real = binaryTop(markets, 1);
+  const rows = real.length > 0 ? real : [{ id: null, title: 'Drake x Cole Tour?', yes: 64, no: 36 }];
   return (
-    <div style={{ background: '#001F43', border: '1px solid #2F3A4A', borderRadius: 6, padding: '14px 16px' }}>
+    <div style={{ background: '#182A45', border: '1px solid #2F3A4A', borderRadius: 6, padding: '14px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 13 }}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={RADAR_GOLD_DIM} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 20V10M10 20V4M16 20v-7M21 20H3" />
         </svg>
-        <span style={radarMono({ fontSize: 9.5, color: RADAR_GOLD_DIM })}>HOT MEDIA MARKETS</span>
+        <span style={radarMono({ fontSize: 9.5, color: RADAR_GOLD_DIM })}>HOT ALERTS</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {rows.map((m, i) => (
           <div key={m.id || i}
             onClick={() => m.id && onOpen && onOpen(m.id)}
-            style={{ background: 'rgba(36,53,80,.4)', border: '1px solid #2A3F63', borderRadius: 4, padding: '11px 12px', cursor: m.id ? 'pointer' : 'default' }}>
+            style={{ borderTop: '1px solid rgba(47,58,74,.7)', paddingTop: 11, cursor: m.id ? 'pointer' : 'default' }}>
             <div style={{ color: '#F2F6FF', fontSize: 12, fontWeight: 600, lineHeight: 1.4 }}>{m.title}</div>
             <div style={{ display: 'flex', gap: 8, marginTop: 9 }}>
-              <span style={{ flex: 1, textAlign: 'center', background: '#284754', border: '1px solid rgba(75,225,118,.55)', borderRadius: 3, padding: '7px 4px', fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', color: RADAR_GREEN }}>
+              <span style={{ flex: 1, textAlign: 'center', background: '#224F4F', border: '1px solid rgba(75,225,118,.5)', borderRadius: 3, padding: '7px 4px', fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', color: RADAR_GREEN }}>
                 YES {m.yes}¢
               </span>
-              <span style={{ flex: 1, textAlign: 'center', background: '#3A4259', border: '1px solid rgba(255,180,171,.45)', borderRadius: 3, padding: '7px 4px', fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', color: RADAR_SALMON }}>
+              <span style={{ flex: 1, textAlign: 'center', background: '#464659', border: '1px solid rgba(255,180,171,.4)', borderRadius: 3, padding: '7px 4px', fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', color: RADAR_SALMON }}>
                 NO {m.no}¢
               </span>
             </div>
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+
+// ── LIVE MARKET GRID (mock): five genre columns of real markets ────────────
+const GENRES = [
+  { id: 'trending', label: 'TRENDING' },
+  { id: 'hiphop', label: 'HIP HOP' },
+  { id: 'popculture', label: 'POP CULTURE' },
+  { id: 'festivals', label: 'FESTIVALS' },
+  { id: 'grammys', label: 'GRAMMYS' },
+];
+const GRID_DEMO = {
+  trending: [{ id: null, title: 'Will Kendrick Lamar headline Coachella 2025?', yes: 78, no: 22, vol: '$6.2M', dir: 1 }],
+  hiphop: [{ id: null, title: 'Drake to release "The Heart Part 6" response?', yes: 45, no: 55, vol: '$8.1M', dir: -1 }],
+  popculture: [{ id: null, title: "Taylor Swift to announce 'Reputation TV' in Q3?", yes: 61, no: 39, vol: '$12.5M', dir: 0 }],
+  festivals: [{ id: null, title: 'SZA 2026 Global Stadium Tour official dates in May?', yes: 92, no: 8, vol: '$1.8M', dir: 1 }],
+  grammys: [{ id: null, title: 'Will Kendrick Lamar win Best Rap Album?', yes: 66, no: 34, vol: '$3.4M', dir: 1 }],
+};
+const HIPHOP_RE = /kendrick|drake|carti|travis scott|kanye|\bye\b|21 savage|future|metro boomin|cardi b|nicki|ice spice|lil (uzi|baby|wayne)|gunna|yeat|megan thee|glorilla|latto|central cee|j\.? ?cole|young thug|a\$?ap|tyler|rap/i;
+const POP_RE = /taylor|viral|tiktok|netflix|hbo|show|\btv\b|movie|film|stream|billboard|hot 100|meme|instagram|youtube/i;
+const FEST_RE = /coachella|tour|festival|stadium|glastonbury|lollapalooza|rolling loud|bonnaroo|headlin|concert/i;
+const GRAMMY_RE = /grammy|award|aoty|album of the year|best new artist|song of the year|record of the year|best .{0,20}album/i;
+
+function genreOf(title) {
+  const t = title || '';
+  if (GRAMMY_RE.test(t)) return 'grammys';
+  if (FEST_RE.test(t)) return 'festivals';
+  if (HIPHOP_RE.test(t)) return 'hiphop';
+  if (POP_RE.test(t)) return 'popculture';
+  return null;
+}
+
+function gridVol(v) {
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+  if (v >= 1e3) return `$${(v / 1e3).toFixed(1).replace(/\.0$/, '')}K`;
+  return `$${Math.round(v || 0)}`;
+}
+
+export function LiveMarketGrid({ markets, genre, onCreate, onOpen }) {
+  const binaries = [...(markets || [])]
+    .filter((m) => m.status === 'active' && (m.outcomes || []).length === 2 && m.outcomes.some((o) => (o.title || '').toLowerCase().startsWith('yes')))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
+    .map((m) => {
+      const yes = m.outcomes.find((o) => (o.title || '').toLowerCase().startsWith('yes'));
+      const yp = Math.round(yes?.probability ?? 50);
+      const hist = m.price_history || [];
+      let dir = 0;
+      if (yes && hist.length >= 2) {
+        const cur = hist[hist.length - 1]?.prices?.[yes.id];
+        const prev = hist[hist.length - 2]?.prices?.[yes.id];
+        if (typeof cur === 'number' && typeof prev === 'number') dir = Math.sign(cur - prev);
+      }
+      return { id: m.id, title: m.title, yes: yp, no: 100 - yp, vol: gridVol(m.total_volume || 0), dir, g: genreOf(m.title) };
+    });
+
+  const colMarkets = (gid) => {
+    const pool = gid === 'trending' ? binaries : binaries.filter((m) => m.g === gid);
+    const rows = pool.slice(0, 2);
+    return rows.length > 0 ? rows : GRID_DEMO[gid];
+  };
+
+  const sync = new Date().toISOString().slice(11, 19);
+  const trendBits = (dir) => dir > 0
+    ? { text: 'Trend ↗', color: RADAR_GREEN }
+    : dir < 0 ? { text: 'Trend ↘', color: RADAR_SALMON } : { text: 'STABLE', color: '#CFC5B5' };
+
+  return (
+    <div style={{ marginTop: 26 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F2F6FF" strokeWidth="2" strokeLinecap="round">
+            <rect x="3" y="3" width="8" height="8" rx="1" /><rect x="13" y="3" width="8" height="8" rx="1" />
+            <rect x="3" y="13" width="8" height="8" rx="1" /><rect x="13" y="13" width="8" height="8" rx="1" />
+          </svg>
+          <span style={{ color: '#F2F6FF', fontWeight: 800, fontSize: 13 }}>LIVE MARKET GRID</span>
+        </span>
+        <span style={radarMono({ fontSize: 7.5, letterSpacing: '0.12em', background: '#243550', borderRadius: 2, padding: '4px 8px' })}>ALL SYSTEMS GO</span>
+        <span style={radarMono({ fontSize: 7.5, letterSpacing: '0.12em', background: '#243550', borderRadius: 2, padding: '4px 8px' })}>SYNC: {sync} UTC</span>
+        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+          <span style={radarMono({ fontSize: 8.5 })}>SORT BY VOL</span>
+          <button onClick={onCreate}
+            style={{ background: RADAR_GOLD, color: '#00132D', fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 800, letterSpacing: '0.12em', border: 'none', borderRadius: 2, padding: '7px 12px', cursor: 'pointer' }}>
+            CREATE MARKET
+          </button>
+        </span>
+      </div>
+
+      <div className="dbm-radar-marketgrid">
+        {GENRES.map((g) => (
+          <div key={g.id}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 9 }}>
+              <span style={{ width: 3, height: 9, background: genre === g.id ? RADAR_GOLD : '#39465F', display: 'inline-block' }} />
+              <span style={radarMono({ fontSize: 8, color: genre === g.id ? RADAR_GOLD : '#CFC5B5' })}>
+                {g.label}{genre === g.id ? ' ▾' : ''}
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {colMarkets(g.id).map((m, i) => {
+                const t = trendBits(m.dir);
+                return (
+                  <div key={m.id || i}
+                    onClick={() => m.id && onOpen && onOpen(m.id)}
+                    style={{ background: '#081C36', border: '1px solid #22314A', borderRadius: 4, padding: '11px 11px 9px', cursor: m.id ? 'pointer' : 'default' }}>
+                    <div style={{ color: '#F2F6FF', fontSize: 10.5, fontWeight: 600, lineHeight: 1.45, minHeight: 30 }}>{m.title}</div>
+                    <div style={{ display: 'flex', gap: 6, marginTop: 9 }}>
+                      <span style={{ flex: 1, textAlign: 'center', background: '#224F4F', border: '1px solid rgba(75,225,118,.5)', borderRadius: 3, padding: '6px 2px', fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 800, letterSpacing: '0.08em', color: RADAR_GREEN }}>
+                        YES {m.yes}¢
+                      </span>
+                      <span style={{ flex: 1, textAlign: 'center', background: '#464659', border: '1px solid rgba(255,180,171,.4)', borderRadius: 3, padding: '6px 2px', fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 800, letterSpacing: '0.08em', color: RADAR_SALMON }}>
+                        NO {String(m.no).padStart(2, '0')}¢
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6, marginTop: 9 }}>
+                      <span style={radarMono({ fontSize: 7.5, letterSpacing: '0.08em' })}>▲ {m.vol} Vol</span>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 7.5, fontWeight: 700, letterSpacing: '0.08em', color: t.color }}>{t.text}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+      <style>{`
+        .dbm-radar-marketgrid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        @media (min-width: 640px) { .dbm-radar-marketgrid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .dbm-radar-marketgrid { grid-template-columns: repeat(5, 1fr); } }
+      `}</style>
     </div>
   );
 }
