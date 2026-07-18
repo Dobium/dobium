@@ -34,7 +34,7 @@ const EXPLORE_COLUMNS = [
 export default function Footer() {
   const { pathname } = useLocation();
 
-  if (pathname === '/radar') {
+  if (pathname === '/radar' || pathname === '/terminal') {
     return (
       <footer style={{ borderTop: '1px solid #10203A', background: '#000E24' }}>
         <div
