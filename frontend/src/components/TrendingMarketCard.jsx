@@ -31,8 +31,8 @@ export default function TrendingMarketCard({ market }) {
     <div
       onClick={() => navigate(`/markets/${market.id}`)}
       style={{
-        background: '#181E36',
-        border: '1px solid #33312E',
+        background: '#001F43',
+        border: '1px solid #1C304F',
         borderRadius: 6,
         padding: '16px 16px 14px',
         display: 'flex',
@@ -42,7 +42,7 @@ export default function TrendingMarketCard({ market }) {
         transition: 'border-color .15s ease',
       }}
       onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#FFDF9B')}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#33312E')}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#1C304F')}
     >
       {/* Top row: category chip left, thumbnail right */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
@@ -51,7 +51,7 @@ export default function TrendingMarketCard({ market }) {
             fontFamily: 'var(--mono)',
             fontSize: 11,
             color: '#D2C5AF',
-            background: '#2D344C',
+            background: '#12294A',
             borderRadius: 3,
             padding: '4px 8px',
             lineHeight: 1,

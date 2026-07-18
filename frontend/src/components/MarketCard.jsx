@@ -133,9 +133,9 @@ export default function MarketCard({ market }) {
   return (
     <div
       className="market-card group transition-all duration-300 cursor-pointer p-4 flex flex-col gap-2.5"
-      style={{ background: '#181E36', border: '1px solid #33312E', borderRadius: 6 }}
+      style={{ background: '#001F43', border: '1px solid #1C304F', borderRadius: 6 }}
       onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#FFDF9B')}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#33312E')}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#1C304F')}
       onClick={() => navigate(`/markets/${market.id}`)}
     >
       {/* Top row: category label on left, volume on right */}

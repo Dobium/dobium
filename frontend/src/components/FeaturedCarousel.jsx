@@ -68,7 +68,7 @@ function MiniChart({ market, outcomes }) {
         {[0, 0.25, 0.5, 0.75, 1].map((r) => (
           <g key={r}>
             <line x1={PAD} x2={PAD + plotW} y1={PAD + r * (H - PAD * 2)} y2={PAD + r * (H - PAD * 2)}
-              stroke="#2D344C" strokeWidth="0.6" strokeDasharray="3,4" opacity="0.45" />
+              stroke="#12294A" strokeWidth="0.6" strokeDasharray="3,4" opacity="0.45" />
             <text x={PAD + plotW + 8} y={PAD + r * (H - PAD * 2)} dominantBaseline="middle"
               fontSize="9.5" fill="#8E94AF" fontFamily="JetBrains Mono, monospace">
               {Math.round((1 - r) * 100)}%
@@ -148,14 +148,14 @@ export default function FeaturedCarousel({ markets }) {
       onClick={() => navigate(`/markets/${market.id}`)}
       style={{
         margin: '0 auto', textAlign: 'left', cursor: 'pointer',
-        background: '#181E36', border: '1px solid #33312E', borderRadius: 8,
+        background: '#001F43', border: '1px solid #1C304F', borderRadius: 8,
         padding: '26px 30px 24px', minHeight: 330,
       }}
     >
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 34 }}>
         {/* Left: tag, title, outcomes table, volume */}
         <div style={{ flex: '1.05 1 340px', minWidth: 300, display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#D2C5AF', background: '#2D344C', borderRadius: 3, padding: '4px 9px' }}>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#D2C5AF', background: '#12294A', borderRadius: 3, padding: '4px 9px' }}>
             {bucketLabel(market.category)}
           </span>
           <h3 style={{ color: '#DCE1FF', fontSize: 19, fontWeight: 600, margin: '14px 0 18px', lineHeight: 1.4 }}>
@@ -214,11 +214,11 @@ export default function FeaturedCarousel({ markets }) {
             {count > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                 <button onClick={() => go(-1)} aria-label="Previous market"
-                  style={{ width: 24, height: 24, borderRadius: 4, background: '#0B1229', border: '1px solid #33312E', color: '#D2C5AF', cursor: 'pointer', fontSize: 11, lineHeight: 1 }}>
+                  style={{ width: 24, height: 24, borderRadius: 4, background: '#00132D', border: '1px solid #1C304F', color: '#D2C5AF', cursor: 'pointer', fontSize: 11, lineHeight: 1 }}>
                   ◀
                 </button>
                 <button onClick={() => go(1)} aria-label="Next market"
-                  style={{ width: 24, height: 24, borderRadius: 4, background: '#0B1229', border: '1px solid #33312E', color: '#D2C5AF', cursor: 'pointer', fontSize: 11, lineHeight: 1 }}>
+                  style={{ width: 24, height: 24, borderRadius: 4, background: '#00132D', border: '1px solid #1C304F', color: '#D2C5AF', cursor: 'pointer', fontSize: 11, lineHeight: 1 }}>
                   ▶
                 </button>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#8E94AF' }}>{Math.min(idx, count - 1) + 1} of {count}</span>

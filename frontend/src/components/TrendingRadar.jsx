@@ -10,7 +10,7 @@ function plusDays(n) {
 }
 
 const chipStyle = {
-  fontFamily: 'var(--mono)', fontSize: 10.5, background: '#2D344C', color: '#D2C5AF',
+  fontFamily: 'var(--mono)', fontSize: 10.5, background: '#12294A', color: '#D2C5AF',
   borderRadius: 5, padding: '3px 9px', border: 'none', letterSpacing: '0.02em',
 };
 
@@ -115,7 +115,7 @@ export default function TrendingRadar({ radarKey, sidebar }) {
   return (
     <div>
       {/* Banner: title + stat chips + Scan now */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', padding: '18px 20px', borderRadius: 14, border: '1px solid #33312E', background: '#181E36', marginBottom: 22 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', padding: '18px 20px', borderRadius: 14, border: '1px solid #1C304F', background: '#001F43', marginBottom: 22 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 20 }} aria-hidden="true">📡</span>
           <h2 style={{ color: '#DCE1FF', fontWeight: 800, fontSize: 18, margin: 0 }}>Trending Radar</h2>
@@ -156,7 +156,7 @@ export default function TrendingRadar({ radarKey, sidebar }) {
                 let outs = null;
                 try { outs = s.outcomes_json ? JSON.parse(s.outcomes_json) : null; } catch { outs = null; }
                 return (
-                  <div key={s.id} style={{ borderRadius: 12, border: '1px solid #33312E', background: '#181E36', padding: '14px 16px' }}>
+                  <div key={s.id} style={{ borderRadius: 12, border: '1px solid #1C304F', background: '#001F43', padding: '14px 16px' }}>
                     {/* Meta row */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9 }}>
                       <span style={chipStyle}>{s.source}</span>
@@ -177,7 +177,7 @@ export default function TrendingRadar({ radarKey, sidebar }) {
                     {Array.isArray(outs) && outs.length >= 2 && (
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
                         {outs.map((o, i) => (
-                          <span key={i} style={{ ...chipStyle, background: '#0B1229', border: '1px solid #33312E', color: '#8FC6FF' }}>{o}</span>
+                          <span key={i} style={{ ...chipStyle, background: '#00132D', border: '1px solid #1C304F', color: '#8FC6FF' }}>{o}</span>
                         ))}
                       </div>
                     )}
@@ -191,7 +191,7 @@ export default function TrendingRadar({ radarKey, sidebar }) {
                         style={{ ...chipStyle, padding: '3px 8px', colorScheme: 'dark' }} />
                       <span style={{ flex: 1 }} />
                       <button onClick={() => dismiss(s)} disabled={busy[s.id]}
-                        style={{ background: '#2D344C', color: '#D2C5AF', border: 'none', borderRadius: 7, padding: '8px 16px', fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--mono)' }}>
+                        style={{ background: '#12294A', color: '#D2C5AF', border: 'none', borderRadius: 7, padding: '8px 16px', fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--mono)' }}>
                         Dismiss
                       </button>
                       <button onClick={() => publish(s)} disabled={busy[s.id]}

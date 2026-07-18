@@ -85,15 +85,15 @@ function PortfolioBlock({ balance, buttonAction, menuItems }) {
         <div
           style={{
             position: 'absolute', top: 'calc(100% + 10px)', right: 0, minWidth: 210,
-            background: '#161D3A', border: '1px solid #2A3352', borderRadius: 6,
+            background: '#0C203A', border: '1px solid #22314A', borderRadius: 6,
             boxShadow: '0 12px 30px rgba(0,0,0,.45)', overflow: 'hidden', zIndex: 60,
           }}
         >
           {menuItems.map((it, i) => (
             it.divider ? (
-              <div key={`d-${i}`} style={{ borderTop: '1px solid #0A1128' }} />
+              <div key={`d-${i}`} style={{ borderTop: '1px solid #00132D' }} />
             ) : it.header ? (
-              <div key={`h-${i}`} style={{ padding: '10px 18px 11px', borderBottom: '1px solid #0A1128' }}>
+              <div key={`h-${i}`} style={{ padding: '10px 18px 11px', borderBottom: '1px solid #00132D' }}>
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: '#DCE1FF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {it.header}
                 </div>
@@ -216,7 +216,7 @@ export default function TopNav() {
           type="text"
           placeholder="Trade on Music and Entertainment"
           style={{
-            width: '100%', background: '#0D1329', border: '1px solid #2A3352', borderRadius: 8,
+            width: '100%', background: '#00132D', border: '1px solid #22314A', borderRadius: 8,
             padding: '8px 12px 8px 34px', color: '#DCE1FF', fontSize: 13, outline: 'none',
           }}
         />

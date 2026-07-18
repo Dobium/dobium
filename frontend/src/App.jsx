@@ -8,7 +8,6 @@ import PulsePage from './pages/PulsePage';
 import RadarPage from './pages/RadarPage';
 import TerminalPage from './pages/TerminalPage';
 import MarketDetailPage from './pages/MarketDetailPage';
-import NewsPage from './pages/NewsPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import LeaguesPage from './pages/LeaguesPage';
@@ -50,7 +49,6 @@ function AppRoutes() {
           <Route path="/leagues/:id" element={<LeagueDetailPage />} />
           <Route path="/profile/:id" element={<UserProfilePage />} />
           <Route path="/waitlist" element={<WaitlistPage />} />
-          <Route path="/news" element={<NewsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

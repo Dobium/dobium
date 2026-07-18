@@ -35,7 +35,7 @@ export default function WaitlistCard() {
   return (
     <div
       style={{
-        background: '#181E36',
+        background: '#001F43',
         borderRadius: 6,
         padding: '26px 30px',
       }}
@@ -83,7 +83,7 @@ export default function WaitlistCard() {
                 placeholder="Enter your email"
                 style={{
                   flex: '1 1 220px',
-                  background: '#0B1229', border: '1px solid #464034',
+                  background: '#00132D', border: '1px solid #464034',
                   borderRadius: 6, padding: '13px 15px',
                   color: '#DCE1FF', fontSize: 14, outline: 'none',
                 }}

@@ -194,7 +194,7 @@ export default function ExplorePage() {
               style={{ background: '#FFDF9B', border: 'none', borderRadius: 4, padding: '11px 22px', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#00132D', fontFamily: 'var(--wordmark)' }}>
               Trade Now
             </button>
-            <button onClick={() => navigate('/news')}
+            <button onClick={() => navigate('/terminal')}
               style={{ background: '#00132D', border: '1px solid #2C3E54', borderRadius: 4, padding: '11px 22px', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#FFFFFF', fontFamily: 'var(--wordmark)' }}>
               Market Intel
             </button>

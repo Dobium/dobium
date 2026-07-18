@@ -106,7 +106,7 @@ function TerminalNav({ navigate }) {
   const TABS = [
     { label: 'Markets', to: null },
     { label: 'Radar', to: '/radar' },
-    { label: 'Intelligence', to: '/news' },
+    { label: 'Intelligence', to: '/radar' },
     { label: 'Portfolio', to: '/portfolio' },
   ];
   return (
@@ -377,7 +377,7 @@ export default function TerminalPage() {
                 style={{ background: ON_GOLD, border: 'none', borderRadius: 3, padding: '10px 16px', cursor: 'pointer', ...mono({ fontSize: 8.5, letterSpacing: '0.1em', color: GOLD }) }}>
                 Upgrade to Terminal
               </button>
-              <button onClick={() => navigate('/news')}
+              <button onClick={() => navigate('/explore')}
                 style={{ background: 'transparent', border: `1px solid ${ON_GOLD}`, borderRadius: 3, padding: '10px 16px', cursor: 'pointer', ...mono({ fontSize: 8.5, letterSpacing: '0.1em', color: ON_GOLD }) }}>
                 Read Whitepaper
               </button>

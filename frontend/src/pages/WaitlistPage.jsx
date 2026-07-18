@@ -86,12 +86,12 @@ export default function WaitlistPage() {
   const navLinks = [
     { label: 'Markets', to: '/' },
     { label: 'Signals', to: '/explore' },
-    { label: 'Intelligence', to: '/news' },
+    { label: 'Intelligence', to: '/radar' },
     { label: 'Portfolio', to: '/portfolio' },
   ];
 
   return (
-    <div style={{ background: '#0A1226', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ background: '#00132D', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <style>{`
         .wl-container { max-width: 1160px; margin: 0 auto; width: 100%; }
         .wl-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 22px; }
@@ -273,7 +273,7 @@ export default function WaitlistPage() {
                   </div>
                 ))}
               </div>
-              <button onClick={() => navigate('/news')}
+              <button onClick={() => navigate('/terminal')}
                 style={{ display: 'block', width: '100%', background: '#1A2440', border: 'none', padding: '11px 0', cursor: 'pointer', fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: GOLD }}>
                 VIEW ALL ALERTS
               </button>

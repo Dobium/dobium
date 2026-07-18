@@ -9,12 +9,12 @@
    DOBIUM DESIGN TOKENS
    ======================================== */
 :root {
-  --bg: #0B1229;
-  --panel: #141A32;
-  --card: #181E36;
-  --card-hover: #222941;
-  --line: #2D344C;
-  --text: #DCE1FF;
+  --bg: #00132D;
+  --panel: #001F43;
+  --card: #001F43;
+  --card-hover: #0A2A52;
+  --line: #1C304F;
+  --text: #E6EDF9;
   --muted: #9A8F7C;
   --gold: #F0C04A;
   --gold-2: #D89B2B;
@@ -35,6 +35,10 @@
 /* ========================================
    SAMSA PREDICTION MARKETS - STYLES
    ======================================== */
+
+html, body {
+  background: #00132D;
+}
 
 body {
   margin: 0;
