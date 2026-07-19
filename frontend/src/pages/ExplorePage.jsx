@@ -74,7 +74,6 @@ const CHIPS = [
   { id: 'trending', label: 'Trending' },
   { id: 'music', label: 'Music' },
   { id: 'media', label: 'Media' },
-  { id: 'politics', label: 'Politics' },
 ];
 
 function normalizeFilter(f) {
