@@ -158,32 +158,39 @@ function DuneArt() {
     <svg viewBox="0 0 600 320" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       <defs>
         <linearGradient id="dune-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#0A1730" />
-          <stop offset="55%" stopColor="#3A2E3E" />
-          <stop offset="78%" stopColor="#6B4A3F" />
-          <stop offset="100%" stopColor="#8A5A3E" />
+          <stop offset="0%" stopColor="#060D16" />
+          <stop offset="45%" stopColor="#0F2435" />
+          <stop offset="72%" stopColor="#274456" />
+          <stop offset="100%" stopColor="#3C5B67" />
         </linearGradient>
-        <radialGradient id="dune-moon" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#FFF3D6" />
-          <stop offset="70%" stopColor="#F3D9A0" />
-          <stop offset="100%" stopColor="#D8B679" stopOpacity="0" />
+        <radialGradient id="dune-halo" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#F8D098" stopOpacity="0.9" />
+          <stop offset="35%" stopColor="#C8A47E" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="#8A6B54" stopOpacity="0" />
         </radialGradient>
-        <linearGradient id="dune-far" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#7A5642" />
-          <stop offset="100%" stopColor="#4A3428" />
+        <linearGradient id="dune-ridge-far" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#5C4A3C" />
+          <stop offset="100%" stopColor="#2E241D" />
         </linearGradient>
-        <linearGradient id="dune-near" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#3A2A22" />
-          <stop offset="100%" stopColor="#1A120E" />
+        <linearGradient id="dune-ridge-near" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#1D1712" />
+          <stop offset="100%" stopColor="#07090C" />
+        </linearGradient>
+        <linearGradient id="dune-rim" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#3E2A1C" stopOpacity="0" />
+          <stop offset="50%" stopColor="#8A5A32" stopOpacity="0.85" />
+          <stop offset="100%" stopColor="#3E2A1C" stopOpacity="0" />
         </linearGradient>
       </defs>
       <rect width="600" height="320" fill="url(#dune-sky)" />
-      <circle cx="430" cy="95" r="90" fill="url(#dune-moon)" />
-      <circle cx="430" cy="95" r="46" fill="#F6E4BC" />
-      <path d="M0,190 Q150,150 300,185 T600,170 V320 H0 Z" fill="url(#dune-far)" opacity="0.9" />
-      <path d="M0,235 Q180,195 320,230 T600,210 V320 H0 Z" fill="url(#dune-near)" />
-      <path d="M300,320 L280,235 Q300,225 320,235 L300,320 Z" fill="#120C09" opacity="0.85" />
-      <path d="M292,320 L282,240 L318,240 L308,320 Z" fill="#0C0806" opacity="0.6" />
+      <circle cx="360" cy="100" r="130" fill="url(#dune-halo)" />
+      <circle cx="360" cy="100" r="30" fill="#FBE3B8" />
+      <circle cx="360" cy="100" r="30" fill="#F8D098" opacity="0.6" />
+      <path d="M0,175 Q140,140 280,168 Q420,196 600,150 V320 H0 Z" fill="url(#dune-ridge-far)" />
+      <path d="M0,178 Q140,146 280,172 Q420,198 600,155 V182 Q420,214 280,190 Q140,164 0,196 Z" fill="url(#dune-rim)" opacity="0.55" />
+      <path d="M0,225 Q160,195 300,222 Q440,248 600,205 V320 H0 Z" fill="url(#dune-ridge-near)" />
+      <path d="M270,320 Q290,250 300,222 Q312,250 332,320 Z" fill="#050708" opacity="0.9" />
+      <path d="M282,320 Q294,268 300,240 Q307,268 320,320 Z" fill="#0B0E12" opacity="0.7" />
     </svg>
   );
 }
@@ -256,11 +263,11 @@ function MoviesSection({ markets, onOpen, onViewAll, forwardRef }) {
             <p style={{ color: '#B9C7DC', fontSize: 11.5, lineHeight: 1.6, margin: '9px 0 0', maxWidth: 460 }}>{featured.desc}</p>
             <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
               <span style={{ flex: 1, maxWidth: 150, textAlign: 'center', background: 'rgba(0,19,45,.75)', border: `1px solid ${CARD_LINE}`, borderRadius: 4, padding: '9px 4px' }}>
-                <div style={{ ...mono({ fontSize: 8, color: WARM }) }}>BET YES</div>
+                <div style={{ ...mono({ fontSize: 8, color: WARM }) }}>TRADE YES</div>
                 <div style={{ color: GREEN, fontWeight: 800, fontSize: 14, marginTop: 3 }}>{featured.yes}¢</div>
               </span>
               <span style={{ flex: 1, maxWidth: 150, textAlign: 'center', background: 'rgba(0,19,45,.75)', border: `1px solid ${CARD_LINE}`, borderRadius: 4, padding: '9px 4px' }}>
-                <div style={{ ...mono({ fontSize: 8, color: WARM }) }}>BET NO</div>
+                <div style={{ ...mono({ fontSize: 8, color: WARM }) }}>TRADE NO</div>
                 <div style={{ color: SALMON, fontWeight: 800, fontSize: 14, marginTop: 3 }}>{featured.no}¢</div>
               </span>
             </div>
