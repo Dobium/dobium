@@ -26,6 +26,7 @@ export default function RadarPage() {
   const [badgeMsg, setBadgeMsg] = useState('');
   const [seedMsg, setSeedMsg] = useState('');
   const [tab, setTab] = useState('trending'); // trending|hiphop|popculture|festivals|grammys | live
+  const [adminOpen, setAdminOpen] = useState(false);
 
   useEffect(() => {
     if (sessionStorage.getItem(STORAGE_KEY) === RADAR_KEY) setUnlocked(true);
@@ -89,8 +90,16 @@ export default function RadarPage() {
         </div>
       )}
 
-      {tab === 'live' && (
-        <div className="max-w-7xl mx-auto p-6 lg:p-8">
+{tab === 'live' && (
+        <LiveMarketsBrowser
+          markets={markets}
+          onOpen={(id) => navigate(`/markets/${id}`)}
+          onOpenAdmin={() => setAdminOpen(true)}
+        />
+      )}
+
+      {adminOpen && (
+        <AdminToolsDrawer onClose={() => setAdminOpen(false)}>
           {/* Only appears when a market actually needs a human resolution */}
           <ResolveQueue radarKey={RADAR_KEY} />
 
@@ -162,7 +171,7 @@ export default function RadarPage() {
               </>
             }
           />
-        </div>
+        </AdminToolsDrawer>
       )}
 
     </div>
@@ -721,6 +730,352 @@ export function LiveMarketGrid({ markets, genre, onCreate, onOpen }) {
         @media (min-width: 640px) { .dbm-radar-marketgrid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .dbm-radar-marketgrid { grid-template-columns: repeat(5, 1fr); } }
       `}</style>
+    </div>
+  );
+}
+
+
+// ── Live Markets browser (sector dashboard), matched to the reference mocks.
+// Sits inside the Radar shell (below RadarTopBar/RadarVolTicker). Admin
+// functions (resolve, scan/scout, waitlist, seeding, image regen) still all
+// live — they're one tap away behind Settings / Deploy Market / the "+"
+// button rather than being inlined here, so nothing that used to work here
+// stopped working; it just moved behind the drawer.
+const SECTORS = [
+  { id: 'trending', label: 'Trending', icon: 'trend' },
+  { id: 'music', label: 'Music', icon: 'note',
+    re: /kendrick|drake|sza|beyonc|taylor swift|billboard|album|tour(?!nament)|stream(ing)?|spotify|chart|single|mixtape|rapper|grammy nom/i },
+  { id: 'movies', label: 'Movies & TV', icon: 'film',
+    re: /movie|film|box office|netflix|hbo|disney|marvel|oscar|premiere|sequel|series|renewal|episode|season \d|trailer/i },
+  { id: 'gaming', label: 'Gaming', icon: 'gamepad',
+    re: /game|gta|esports|twitch|streamer|valorant|fortnite|minecraft|playstation|xbox|nintendo|steam|worlds \d|league of legends|call of duty|overwatch/i },
+  { id: 'festivals', label: 'Festivals', icon: 'stage',
+    re: /coachella|festival|tour dates|stadium|concert|headlin|glastonbury|lollapalooza|rolling loud|bonnaroo/i },
+  { id: 'awards', label: 'Awards', icon: 'trophy',
+    re: /grammy|oscar|award|aoty|emmy|vma|bet awards|album of the year|best new artist|song of the year|record of the year/i },
+  { id: 'social', label: 'Social Trends', icon: 'hash',
+    re: /tiktok|viral|meme|trending on|twitter|x\.com|instagram|influencer|challenge/i },
+  { id: 'news', label: 'News', icon: 'news', re: null },
+];
+
+const SECTOR_DEMO = {
+  music: [
+    { title: 'Kendrick Lamar New Album Drops Before Q4?', vol: '$4.2M', yes: 78, no: 22, status: 'PEAK' },
+    { title: "SZA 'Lana' to Debut at #1 Billboard?", vol: '$1.8M', yes: 64, no: 36, status: 'RISING' },
+    { title: 'Spotify Peak Stream Milestones for Mid-Year?', vol: '$850K', yes: 51, no: 49, status: 'STABLE' },
+  ],
+  movies: [
+    { title: 'Box Office: Joker 2 Opening Weekend > $120M?', vol: '$12.4M', yes: 42, no: 58, status: 'FALLING' },
+    { title: "Netflix Series: 'Beef' Season 2 Renewal?", vol: '$3.1M', yes: 88, no: 12, status: 'PEAK' },
+  ],
+  gaming: [
+    { title: 'GTA VI to be delayed to 2026?', vol: '$4.2M', yes: 22, no: 78, status: 'HOT' },
+    { title: 'Twitch: Kai Cenat to break peak viewership record?', vol: '$890K', yes: 64, no: 36, status: 'RISING' },
+    { title: 'E-sports: T1 to win Worlds 2024?', vol: '$1.5M', yes: 41, no: 59, status: 'STABLE' },
+  ],
+  festivals: [
+    { title: 'Coachella 2025 headliner announced by March?', vol: '$920K', yes: 71, no: 29, status: 'RISING' },
+    { title: 'Glastonbury 2025 sells out in under a day?', vol: '$410K', yes: 55, no: 45, status: 'STABLE' },
+  ],
+  awards: [
+    { title: 'Album of the Year goes to a female artist?', vol: '$2.1M', yes: 58, no: 42, status: 'RISING' },
+    { title: 'Best New Artist upset at the Grammys?', vol: '$630K', yes: 33, no: 67, status: 'FALLING' },
+  ],
+  social: [
+    { title: "New Drake track goes viral on TikTok this week?", vol: '$540K', yes: 62, no: 38, status: 'RISING' },
+    { title: 'A Coachella meme becomes a top-10 trend?', vol: '$210K', yes: 47, no: 53, status: 'STABLE' },
+  ],
+  news: [
+    { title: 'Major label M&A announced this quarter?', vol: '$380K', yes: 29, no: 71, status: 'STABLE' },
+    { title: 'Streaming payout rates change industry-wide?', vol: '$260K', yes: 44, no: 56, status: 'FALLING' },
+  ],
+};
+
+function SectorIcon({ kind, color }) {
+  const c = { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { flexShrink: 0 } };
+  switch (kind) {
+    case 'trend': return <svg {...c}><path d="M3 17l6-6 4 4 8-8M15 7h6v6" /></svg>;
+    case 'note': return <svg {...c}><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>;
+    case 'film': return <svg {...c}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 15h18M8 4v16M16 4v16" /></svg>;
+    case 'gamepad': return <svg {...c}><rect x="2" y="8" width="20" height="9" rx="4" /><path d="M7 11v3M5.5 12.5h3M15.5 12.5h.01M18.5 11h.01" /></svg>;
+    case 'stage': return <svg {...c}><path d="M3 21h18M4 18h16M6 18v-7M10 18v-7M14 18v-7M18 18v-7M3 9l9-6 9 6z" /></svg>;
+    case 'trophy': return <svg {...c}><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0zM7 6H4a2 2 0 002 4h1M17 6h3a2 2 0 01-2 4h-1" /></svg>;
+    case 'hash': return <svg {...c}><path d="M5 9h14M5 15h14M10 3L8 21M16 3l-2 18" /></svg>;
+    case 'news': return <svg {...c}><path d="M4 4h13a3 3 0 013 3v13H7a3 3 0 01-3-3z" /><path d="M4 4v13a3 3 0 003 3M9 9h7M9 13h7M9 17h4" /></svg>;
+    case 'gear': return <svg {...c}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3h0a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9v0a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z" /></svg>;
+    case 'life': return <svg {...c}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3.5" /><path d="M5.5 5.5l3.2 3.2M18.5 5.5l-3.2 3.2M5.5 18.5l3.2-3.2M18.5 18.5l-3.2-3.2" /></svg>;
+    default: return null;
+  }
+}
+
+function statusColor(status) {
+  if (status === 'FALLING') return RADAR_SALMON;
+  if (status === 'STABLE') return RADAR_GOLD_DIM;
+  return RADAR_GREEN; // PEAK / RISING / HOT
+}
+
+function MiniSpark({ status }) {
+  const shapes = {
+    PEAK: '0,20 10,15 20,17 30,9 40,11 50,4',
+    RISING: '0,22 10,18 20,19 30,12 40,9 50,5',
+    HOT: '0,18 10,20 20,10 30,14 40,6 50,3',
+    STABLE: '0,12 10,11 20,13 30,11 40,12 50,11',
+    FALLING: '0,4 10,9 20,7 30,14 40,13 50,20',
+  };
+  const color = statusColor(status);
+  return (
+    <svg viewBox="0 0 50 24" style={{ width: 46, height: 20, display: 'block' }}>
+      <polyline points={shapes[status] || shapes.STABLE} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function deltaFor(m, outcome) {
+  const h = m?.price_history || [];
+  if (h.length >= 2 && outcome) {
+    const last = h[h.length - 1]?.prices?.[outcome.id];
+    const prev = h[h.length - 2]?.prices?.[outcome.id];
+    if (typeof last === 'number' && typeof prev === 'number') return Math.round(last - prev);
+  }
+  return 0;
+}
+
+function classifySector(title) {
+  for (const s of SECTORS) {
+    if (s.re && s.re.test(title || '')) return s.id;
+  }
+  return null;
+}
+
+function sectorRows(markets, sectorId) {
+  const real = [...(markets || [])]
+    .filter((m) => m.status === 'active' && classifySector(m.title) === sectorId)
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
+    .map((m, i) => {
+      const yes = (m.outcomes || []).find((o) => (o.title || '').toLowerCase().startsWith('yes'));
+      const lead = yes || [...(m.outcomes || [])].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
+      const yesP = yes ? Math.round(yes.probability || 0) : Math.round(lead?.probability || 50);
+      const noP = yes ? 100 - yesP : 100 - yesP;
+      const vol = m.total_volume || 0;
+      const volLabel = vol >= 1e6 ? `$${(vol / 1e6).toFixed(1)}M` : vol >= 1e3 ? `$${(vol / 1e3).toFixed(1).replace(/\.0$/, '')}K` : `$${Math.round(vol)}`;
+      const delta = deltaFor(m, lead);
+      const status = i === 0 ? 'PEAK' : delta > 0 ? 'RISING' : delta < 0 ? 'FALLING' : (vol > 2e6 ? 'HOT' : 'STABLE');
+      return { id: m.id, title: m.title, vol: volLabel, yes: yesP, no: noP, status, image: m.image || m.event_image, _vol: vol };
+    });
+  const demo = SECTOR_DEMO[sectorId] || [];
+  const need = Math.max(0, Math.min(3, demo.length) - real.length);
+  return [...real.slice(0, 3), ...demo.slice(0, need)];
+}
+
+function DeployTile({ sectorLabel, onClick }) {
+  return (
+    <div onClick={onClick} style={{ background: '#0C203A', border: '1px dashed #2F3A4A', borderRadius: 8, padding: '16px 14px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: 130 }}>
+      <span style={{ width: 34, height: 34, borderRadius: 8, background: '#182A45', border: '1px solid #39465F', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={RADAR_GOLD_DIM} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 20V10M10 20V4M16 20v-7M21 20H3" />
+        </svg>
+      </span>
+      <div style={{ color: '#F2F6FF', fontWeight: 700, fontSize: 12 }}>New {sectorLabel} Context</div>
+      <div style={{ color: '#8E9AB0', fontSize: 10.5, marginTop: 5 }}>Deploy custom sector liquidity</div>
+    </div>
+  );
+}
+
+function LiveMarketCard({ m, onOpen }) {
+  return (
+    <div
+      onClick={() => m.id && onOpen && onOpen(m.id)}
+      style={{ background: '#0C203A', border: '1px solid #2F3A4A', borderRadius: 8, overflow: 'hidden', cursor: m.id ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', transition: 'border-color .15s ease' }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = RADAR_GOLD)}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#2F3A4A')}
+    >
+      <div style={{ position: 'relative', height: 78, background: 'linear-gradient(135deg,#122040 0%,#050A18 75%)' }}>
+        {m.image && /^https?:/.test(m.image) && (
+          <img src={m.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+        )}
+        <span style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,10,26,.85)', border: '1px solid #2A3F63', borderRadius: 2, padding: '3px 7px', fontFamily: 'var(--mono)', fontSize: 7.5, fontWeight: 800, letterSpacing: '0.12em', color: statusColor(m.status) }}>
+          {m.status}
+        </span>
+      </div>
+      <div style={{ padding: '11px 12px 12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ color: '#F2F6FF', fontWeight: 700, fontSize: 11.5, lineHeight: 1.4, minHeight: 32 }}>{m.title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8 }}>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, color: '#8E9AB0' }}>{m.vol} Vol</span>
+          <MiniSpark status={m.status} />
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+          <span style={{ flex: 1, textAlign: 'center', background: '#224F4F', border: '1px solid rgba(75,225,118,.5)', borderRadius: 3, padding: '6px 2px', fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', color: RADAR_GREEN }}>
+            YES {m.yes}¢
+          </span>
+          <span style={{ flex: 1, textAlign: 'center', background: '#464659', border: '1px solid rgba(255,180,171,.4)', borderRadius: 3, padding: '6px 2px', fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', color: RADAR_SALMON }}>
+            NO {m.no}¢
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectorSection({ sector, markets, onOpen, onDeploy, forwardRef }) {
+  const rows = sectorRows(markets, sector.id);
+  const descriptions = {
+    music: 'Tracking drops, charts, and tour performance.',
+    movies: 'Predicting box office, critics, and series renewals.',
+    gaming: 'Predicting releases, viewership, and tournament outcomes.',
+    festivals: 'Lineups, sellouts, and on-site surprises.',
+    awards: 'Ballots, upsets, and show-night predictions.',
+    social: 'What breaks out next, before it breaks out.',
+    news: 'Industry moves worth having a position on.',
+  };
+  return (
+    <div ref={forwardRef} style={{ marginBottom: 30, scrollMarginTop: 90 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
+        <div>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <SectorIcon kind={sector.icon} color={RADAR_GOLD_DIM} />
+            <span style={{ color: '#FFFFFF', fontWeight: 800, fontSize: 16 }}>{sector.label} Markets</span>
+          </span>
+          <p style={{ color: '#8E9AB0', fontSize: 11.5, margin: '5px 0 0 22px' }}>{descriptions[sector.id]}</p>
+        </div>
+        <button onClick={onDeploy} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.1em', color: RADAR_GOLD_DIM }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={RADAR_GOLD_DIM} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></svg>
+          DEPLOY MARKET
+        </button>
+      </div>
+      <div className="dbm-live-cards" style={{ marginTop: 14 }}>
+        {rows.map((m, i) => <LiveMarketCard key={m.id || `${sector.id}-${i}`} m={m} onOpen={onOpen} />)}
+        <DeployTile sectorLabel={sector.label} onClick={onDeploy} />
+      </div>
+    </div>
+  );
+}
+
+export function LiveMarketsBrowser({ markets, onOpen, onOpenAdmin }) {
+  const [activeSector, setActiveSector] = useState('trending');
+  const refs = {};
+  const goTo = (id) => {
+    setActiveSector(id);
+    if (id !== 'trending' && refs[id]?.current) {
+      refs[id].current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (id === 'trending') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const active = markets.filter((m) => m.status === 'active');
+  const globalVol = active.reduce((sum, m) => sum + (m.total_volume || 0), 0);
+  const globalVolLabel = globalVol >= 1e6 ? `$${(globalVol / 1e6).toFixed(1)}M` : `$${Math.round(globalVol).toLocaleString('en-US')}`;
+
+  const sectorVols = {};
+  for (const m of active) {
+    const sid = classifySector(m.title);
+    if (sid) sectorVols[sid] = (sectorVols[sid] || 0) + (m.total_volume || 0);
+  }
+  const topSectorId = Object.keys(sectorVols).sort((a, b) => sectorVols[b] - sectorVols[a])[0] || 'music';
+  const topSectorLabel = (SECTORS.find((s) => s.id === topSectorId) || SECTORS[1]).label.toUpperCase();
+
+  const contentSectors = SECTORS.filter((s) => s.id !== 'trending' && s.id !== 'news').concat(SECTORS.filter((s) => s.id === 'news'));
+  contentSectors.forEach((s) => { refs[s.id] = refs[s.id] || { current: null }; });
+
+  return (
+    <div className="dbm-live-shell">
+      <aside style={{ borderRight: '1px solid #14223E', padding: '18px 14px', flexShrink: 0 }}>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', color: '#8E9AB0', marginBottom: 8 }}>LIVE MARKETS</div>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.16em', color: '#CFC5B5', margin: '18px 0 10px' }}>SECTORS</div>
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {SECTORS.map((s) => {
+            const isActive = activeSector === s.id;
+            return (
+              <button key={s.id} onClick={() => goTo(s.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 9, background: isActive ? '#182A45' : 'transparent',
+                  border: 'none', borderRadius: 5, padding: '9px 10px', cursor: 'pointer', textAlign: 'left',
+                  color: isActive ? '#FFFFFF' : '#8E9AB0', fontSize: 12.5, fontWeight: isActive ? 700 : 500,
+                }}>
+                <SectorIcon kind={s.icon} color={isActive ? RADAR_GOLD_DIM : '#8E9AB0'} />
+                {s.label}
+              </button>
+            );
+          })}
+        </nav>
+        <div style={{ borderTop: '1px solid #1C304F', marginTop: 20, paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <button style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', borderRadius: 5, padding: '9px 10px', cursor: 'default', textAlign: 'left', color: '#5C7391', fontSize: 12 }}>
+            <SectorIcon kind="life" color="#5C7391" /> Support
+          </button>
+          <button onClick={onOpenAdmin} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', borderRadius: 5, padding: '9px 10px', cursor: 'pointer', textAlign: 'left', color: '#8E9AB0', fontSize: 12 }}>
+            <SectorIcon kind="gear" color="#8E9AB0" /> Settings
+          </button>
+        </div>
+        <button onClick={onOpenAdmin}
+          style={{ width: '100%', marginTop: 16, background: RADAR_GOLD, color: '#00132D', fontWeight: 800, fontSize: 12.5, border: 'none', borderRadius: 5, padding: '11px 0', cursor: 'pointer' }}>
+          Quick Trade
+        </button>
+      </aside>
+
+      <main style={{ flex: 1, minWidth: 0, padding: '16px 22px 44px' }}>
+        <div className="dbm-live-statbar" style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap', marginBottom: 22, paddingBottom: 14, borderBottom: '1px solid #14223E' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: 999, background: RADAR_GREEN }} />
+            <span style={radarMono({ fontSize: 8.5 })}>ALL SYSTEMS GO</span>
+          </span>
+          <span style={radarMono({ fontSize: 8.5 })}>SYNC: <span style={{ color: '#FFFFFF' }}>LIVE 24/7</span></span>
+          <span style={radarMono({ fontSize: 8.5 })}>LATENCY: <span style={{ color: '#FFFFFF' }}>12ms</span></span>
+          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
+            <span style={radarMono({ fontSize: 8.5 })}>GLOBAL VOL: <span style={{ color: '#FFFFFF' }}>{globalVolLabel}</span></span>
+            <span style={radarMono({ fontSize: 8.5 })}>TOP SECTOR: <span style={{ color: RADAR_GREEN }}>{topSectorLabel} (+12.4%)</span></span>
+          </span>
+        </div>
+
+        {contentSectors.map((s) => (
+          <SectorSection key={s.id} sector={s} markets={markets} onOpen={onOpen} onDeploy={onOpenAdmin} forwardRef={refs[s.id]} />
+        ))}
+      </main>
+
+      <button onClick={onOpenAdmin}
+        style={{
+          position: 'fixed', right: 26, bottom: 26, width: 52, height: 52, borderRadius: 999,
+          background: RADAR_GOLD, border: 'none', cursor: 'pointer', zIndex: 40,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 26px rgba(0,5,15,.5)',
+        }}
+        title="Radar admin tools"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00132D" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+      </button>
+
+      <style>{`
+        .dbm-live-shell { display: flex; align-items: flex-start; }
+        .dbm-live-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        @media (min-width: 640px) { .dbm-live-cards { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 1024px) { .dbm-live-cards { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 767px) {
+          .dbm-live-shell { flex-direction: column; }
+          .dbm-live-shell > aside { width: 100% !important; border-right: none !important; border-bottom: 1px solid #14223E; }
+        }
+        @media (min-width: 768px) { .dbm-live-shell > aside { width: 210px; } }
+      `}</style>
+    </div>
+  );
+}
+
+// ── Admin tools drawer: everything that used to live inline under the old
+// "Live Markets" tab (resolve queue, scan/scout, waitlist, curated seeding,
+// image regeneration) — now one tap away instead of taking over the tab.
+export function AdminToolsDrawer({ onClose, children }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', justifyContent: 'flex-end' }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,6,16,.65)' }} />
+      <div style={{ position: 'relative', width: 'min(920px, 96vw)', height: '100%', background: '#00132D', borderLeft: '1px solid #14223E', overflowY: 'auto' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 1, background: '#000E24', borderBottom: '1px solid #14223E', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <SectorIcon kind="gear" color={RADAR_GOLD_DIM} />
+            <span style={{ color: '#F2F6FF', fontWeight: 700, fontSize: 14 }}>Radar Admin Tools</span>
+          </span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8E9AB0', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 4 }}>×</button>
+        </div>
+        <div style={{ padding: '20px 20px 40px' }}>
+          {children}
+        </div>
+      </div>
     </div>
   );
 }
