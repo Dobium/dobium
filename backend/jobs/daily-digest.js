@@ -23,7 +23,7 @@ const ADMIN_EMAIL = process.env.EMAIL_USER || 'donotreply.dobium@gmail.com';
 const PLATFORM_URL = process.env.PLATFORM_URL || 'https://dobium.com';
 
 // Paper trading starting balance — must match server.js
-const PAPER_STARTING_BALANCE = Number(process.env.PAPER_TRADING_STARTING_BALANCE || 10000);
+const PAPER_STARTING_BALANCE = Number(process.env.PAPER_TRADING_STARTING_BALANCE || 100000);
 
 // Emails that should never receive digests
 const SKIP_EMAILS = new Set([

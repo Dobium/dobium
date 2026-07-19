@@ -391,7 +391,7 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 relative overflow-hidden rounded-md p-6" style={PANEL}>
             <span style={guestLabel}>Total Portfolio Value</span>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 34, fontWeight: 800, color: WHITE, lineHeight: 1 }}>$100.00</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 34, fontWeight: 800, color: WHITE, lineHeight: 1 }}>$100,000.00</span>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: MUTED }}>starting paper balance</span>
             </div>
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 46, background: 'linear-gradient(180deg, transparent, rgba(11,18,41,.65))', pointerEvents: 'none' }} />
@@ -399,7 +399,7 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-4">
             <div className="rounded-md p-5 flex-1" style={PANEL}>
               <span style={guestLabel}>Available Cash</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 800, color: WHITE }}>$100.00</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 800, color: WHITE }}>$100,000.00</span>
             </div>
             <div className="rounded-md p-5 flex-1" style={PANEL}>
               <span style={guestLabel}>Win Rate</span>
@@ -425,7 +425,7 @@ export default function DashboardPage() {
         <div className="rounded-md p-8 mb-8 text-center" style={PANEL}>
           <h2 className="text-base font-bold mb-2" style={{ color: WHITE }}>Active Positions</h2>
           <p style={{ color: MUTED, fontSize: 13, marginBottom: 18 }}>
-            Sign in to track your paper trading balance, performance history, and open positions — every new account starts with $100 in paper money.
+            Sign in to track your paper trading balance, performance history, and open positions — every new account starts with $100,000 in paper money.
           </p>
           <button
             onClick={() => openAuthModal('login')}
@@ -537,7 +537,7 @@ export default function DashboardPage() {
   }
 
   // Calculate portfolio metrics
-  const startingBalance = wallet.paperStartingBalance || 10000;
+  const startingBalance = wallet.paperStartingBalance || 100000;
   const totalStaked = predictions.reduce((sum, p) => sum + (p.stake_amount || 0), 0);
   const settledPredictions = allPredictions.filter(p => p.status === 'won' || p.status === 'lost');
   const availableBalance = buyingPower;

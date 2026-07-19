@@ -999,7 +999,7 @@ export default function MarketDetailPage() {
                   <form onSubmit={handleTrade} className="space-y-3">
                     <div style={{ fontFamily: 'var(--mono)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                       <span style={microLabel}>Investment Amount</span>
-                      <span style={{ fontSize: 10, color: LABEL }}>Balance: <span style={{ color: '#C6D3E8' }}>${(safeBuyingPower !== null ? safeBuyingPower : 100).toFixed(2)}</span></span>
+                      <span style={{ fontSize: 10, color: LABEL }}>Balance: <span style={{ color: '#C6D3E8' }}>${(safeBuyingPower !== null ? safeBuyingPower : 100000).toFixed(2)}</span></span>
                     </div>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: LABEL, fontSize: 13, fontFamily: 'var(--mono)' }}>$</span>
@@ -1010,7 +1010,7 @@ export default function MarketDetailPage() {
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                         <span style={{ color: LABEL, fontSize: 9.5, fontWeight: 700, fontFamily: 'var(--mono)', letterSpacing: '0.08em' }}>USD</span>
                         <button type="button" disabled={marketClosed}
-                          onClick={() => setStake((safeBuyingPower !== null ? safeBuyingPower : 100).toFixed(2))}
+                          onClick={() => setStake((safeBuyingPower !== null ? safeBuyingPower : 100000).toFixed(2))}
                           style={{ background: GOLD, color: ON_GOLD, fontSize: 8.5, fontWeight: 800, fontFamily: 'var(--mono)', letterSpacing: '0.1em', border: 'none', borderRadius: 2, padding: '3px 7px', cursor: 'pointer' }}>
                           MAX
                         </button>

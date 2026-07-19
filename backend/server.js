@@ -102,7 +102,7 @@ function requireRadarKey(req, res, next) {
 }
 
 // Hard-coded: every user starts with $100 paper money (env override intentionally disabled)
-const PAPER_TRADING_STARTING_BALANCE = 100;
+const PAPER_TRADING_STARTING_BALANCE = 100000;
 
 // CORS — allow dobium.com (Vercel frontend), Render preview URLs, and local dev
 const ALLOWED_ORIGINS = [

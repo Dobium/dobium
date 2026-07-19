@@ -231,7 +231,7 @@ export default function TopNav() {
         />
       ) : (
         <PortfolioBlock
-          balance={balance || 100}
+          balance={balance || 100000}
           buttonAction={() => navigate('/waitlist')}
           menuItems={guestMenu}
         />
