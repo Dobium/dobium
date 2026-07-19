@@ -88,8 +88,22 @@ const MOVIES_DEMO_SIDE = [
   { title: '"Gladiator II" Critics Score above 85%?', vol: '$412K', yes: 64, no: 36, tag: 'ROTTEN TOMATOES' },
   { title: '"The Bear" Season 4 release date set for 2024?', vol: '$288K', yes: 12, no: 88, tag: 'STREAMING WARS' },
 ];
-const GAMING_DEMO = { title: 'GTA VI to be delayed to 2026?', desc: 'Institutional prediction pool based on Rockstar developer sentiment analysis.', prob: 24 };
-const FESTIVALS_DEMO = { title: 'Coachella 2025 Headliners include Rihanna?', desc: 'Rumors intensified after Fenty sponsorship discussions surfaced.', prob: 52 };
+const CELEBRITIES_DEMO = [
+  { title: "Will Taylor Swift announce a new album at her next Era's Tour stop?", vol: '$1.2M', yes: 72, no: 28, tag: "ERA'S TOUR" },
+  { title: 'Zendaya and Tom Holland to announce engagement by EOY 2024?', vol: '$840K', yes: 45, no: 55, tag: 'HOLLYWOOD RUMORS' },
+];
+const FESTIVALS_DEMO = [
+  { title: 'Coachella 2025 Headliners include Rihanna?', vol: '$512K', yes: 52, no: 48, tag: 'COACHELLA' },
+  { title: 'Glastonbury 2025: Will Radiohead headline the Pyramid Stage?', vol: '$320K', yes: 18, no: 82, tag: 'GLASTONBURY' },
+];
+const GAMING_DEMO = [
+  { title: 'GTA VI to be delayed to 2026?', vol: '$2.1M', yes: 24, no: 76, tag: 'ROCKSTAR GAMES' },
+  { title: 'Nintendo Switch 2 Official Announcement before March 2025?', vol: '$1.5M', yes: 88, no: 12, tag: 'NINTENDO' },
+];
+const STREAMING_DEMO = [
+  { title: "Netflix Series: 'Beef' Season 2 Renewal?", vol: '$180K', yes: 92, no: 8, tag: 'NETFLIX' },
+  { title: 'The Bear Season 4 release date set for 2024?', vol: '$288K', yes: 12, no: 88, tag: 'HULU / FX' },
+];
 
 function SectorIcon({ kind, color, size = 15 }) {
   const c = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { flexShrink: 0 } };
@@ -275,64 +289,43 @@ function MoviesSection({ markets, onOpen, onViewAll, forwardRef }) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {side.map((m, i) => (
-            <div key={m.id || `side-${i}`} onClick={() => m.id && onOpen(m.id)}
-              style={{ flex: 1, background: CARD_BG, border: `1px solid ${CARD_LINE}`, borderRadius: 8, padding: '14px 15px', cursor: m.id ? 'pointer' : 'default' }}>
-              <span style={{ ...mono({ fontSize: 8, color: WARM }) }}>{m.tag}</span>
-              <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 13, lineHeight: 1.4, margin: '8px 0 10px' }}>{m.title}</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ ...mono({ fontSize: 9.5, color: WARM }) }}>Vol: {m.vol}</span>
-                <span style={{ display: 'flex', gap: 6 }}>
-                  <span style={{ background: '#0C2745', color: GREEN, ...mono({ fontSize: 9.5, letterSpacing: '0.02em' }), borderRadius: 3, padding: '4px 8px' }}>{m.yes}¢</span>
-                  <span style={{ background: '#0C2745', color: SALMON, ...mono({ fontSize: 9.5, letterSpacing: '0.02em' }), borderRadius: 3, padding: '4px 8px' }}>{m.no}¢</span>
-                </span>
-              </div>
-            </div>
-          ))}
+          {side.map((m, i) => <SectorGridCard key={m.id || `side-${i}`} m={m} onOpen={onOpen} />)}
         </div>
       </div>
     </div>
   );
 }
 
-function ProbabilityCard({ sector, m, onOpen }) {
-  const barColor = m.prob >= 50 ? GREEN : SALMON;
+function SectorGridCard({ m, onOpen }) {
   return (
-    <div onClick={() => m.id && onOpen(m.id)}
-      style={{ flex: 1, background: CARD_BG, border: `1px solid ${CARD_LINE}`, borderRadius: 8, padding: '16px 18px', cursor: m.id ? 'pointer' : 'default', minWidth: 0 }}>
-      <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 14.5 }}>{m.title}</div>
-      <p style={{ color: '#8E9AB0', fontSize: 11.5, lineHeight: 1.6, margin: '7px 0 0' }}>{m.desc}</p>
-      <div style={{ marginTop: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <span style={{ ...mono({ fontSize: 8.5, color: WARM }) }}>PROBABILITY</span>
-          <span style={{ color: barColor, fontWeight: 800, fontSize: 13 }}>{m.prob}%</span>
-        </div>
-        <div style={{ height: 4, background: '#0C2745', borderRadius: 2, marginTop: 7 }}>
-          <div style={{ width: `${m.prob}%`, height: '100%', background: barColor, borderRadius: 2 }} />
-        </div>
+    <div key={m.id || m.title} onClick={() => m.id && onOpen(m.id)}
+      style={{ background: CARD_BG, border: `1px solid ${CARD_LINE}`, borderRadius: 8, padding: '14px 15px', cursor: m.id ? 'pointer' : 'default', transition: 'border-color .15s ease' }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = GOLD)}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = CARD_LINE)}
+    >
+      <span style={{ ...mono({ fontSize: 8, color: WARM }) }}>{m.tag}</span>
+      <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 15, lineHeight: 1.4, margin: '9px 0 12px' }}>{m.title}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ ...mono({ fontSize: 10, color: WARM }) }}>Vol: {m.vol}</span>
+        <span style={{ display: 'flex', gap: 6 }}>
+          <span style={{ background: '#0C2745', border: '1px solid rgba(75,225,118,.4)', color: GREEN, ...mono({ fontSize: 10, letterSpacing: '0.02em' }), borderRadius: 3, padding: '5px 9px' }}>{m.yes}¢</span>
+          <span style={{ background: '#0C2745', border: '1px solid rgba(255,180,171,.35)', color: SALMON, ...mono({ fontSize: 10, letterSpacing: '0.02em' }), borderRadius: 3, padding: '5px 9px' }}>{m.no}¢</span>
+        </span>
       </div>
-      <button style={{ width: '100%', marginTop: 16, background: '#182A45', border: `1px solid ${CARD_LINE}`, borderRadius: 4, padding: '10px 0', cursor: 'pointer', color: '#D5E3FF', fontWeight: 700, fontSize: 12 }}>
-        Trade Pool
-      </button>
     </div>
   );
 }
 
-function GamingFestivalsRow({ markets, onOpen, gamingRef, festivalsRef }) {
-  const gm = sectorMarkets(markets, 'gaming')[0];
-  const fm = sectorMarkets(markets, 'festivals')[0];
-  const gaming = gm ? { id: gm.id, title: gm.title, desc: gm.description || GAMING_DEMO.desc, prob: Math.round((leaderOf(gm)?.probability) || GAMING_DEMO.prob) } : GAMING_DEMO;
-  const fest = fm ? { id: fm.id, title: fm.title, desc: fm.description || FESTIVALS_DEMO.desc, prob: Math.round((leaderOf(fm)?.probability) || FESTIVALS_DEMO.prob) } : FESTIVALS_DEMO;
+function TwoCardSection({ sector, markets, demo, onOpen, onViewAll, forwardRef }) {
+  const real = sectorMarkets(markets, sector.id).slice(0, 2).map((m, i) => toCardShape(m, demo[i]?.tag || sector.label.toUpperCase(), i));
+  const rows = real.length >= 2 ? real : demo.map((d, i) => ({ ...d, id: null, _seed: i }));
   return (
-    <>
-      <div ref={gamingRef} style={{ scrollMarginTop: 90 }}>
-        <SectionHeader icon="gamepad" label="Gaming Sector" onViewAll={() => {}} />
+    <div ref={forwardRef} style={{ marginBottom: 34, scrollMarginTop: 90 }}>
+      <SectionHeader icon={sector.icon} label={sector.label} onViewAll={onViewAll} />
+      <div className="dbm-home-two-grid">
+        {rows.map((m, i) => <SectorGridCard key={m.id || `${sector.id}-${i}`} m={m} onOpen={onOpen} />)}
       </div>
-      <div ref={festivalsRef} style={{ scrollMarginTop: 90 }} className="dbm-home-probability-row">
-        <ProbabilityCard sector="gaming" m={gaming} onOpen={onOpen} />
-        <ProbabilityCard sector="festivals" m={fest} onOpen={onOpen} />
-      </div>
-    </>
+    </div>
   );
 }
 
@@ -467,10 +460,10 @@ export default function LandingPage() {
           <MusicSection markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.music} />
           <MoviesSection markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.movies} />
 
-          <div ref={refs.celebrities} style={{ scrollMarginTop: 90 }} />
-          <div ref={refs.streaming} style={{ scrollMarginTop: 90 }} />
-
-          <GamingFestivalsRow markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} gamingRef={refs.gaming} festivalsRef={refs.festivals} />
+          <TwoCardSection sector={SECTORS.find((s) => s.id === 'celebrities')} demo={CELEBRITIES_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.celebrities} />
+          <TwoCardSection sector={SECTORS.find((s) => s.id === 'festivals')} demo={FESTIVALS_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.festivals} />
+          <TwoCardSection sector={SECTORS.find((s) => s.id === 'gaming')} demo={GAMING_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.gaming} />
+          <TwoCardSection sector={SECTORS.find((s) => s.id === 'streaming')} demo={STREAMING_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.streaming} />
         </main>
       </div>
       </div>
@@ -491,12 +484,11 @@ export default function LandingPage() {
         .dbm-home-shell { display: flex; align-items: flex-start; min-height: 100%; }
         .dbm-home-music-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
         .dbm-home-movies-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-        .dbm-home-probability-row { display: grid; grid-template-columns: 1fr; gap: 16px; }
-        @media (min-width: 640px) { .dbm-home-music-grid { grid-template-columns: repeat(3, 1fr); } }
+        .dbm-home-two-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 640px) { .dbm-home-music-grid { grid-template-columns: repeat(3, 1fr); } .dbm-home-two-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) {
           .dbm-home-music-grid { grid-template-columns: repeat(4, 1fr); }
           .dbm-home-movies-grid { grid-template-columns: 1.6fr 1fr; }
-          .dbm-home-probability-row { grid-template-columns: repeat(2, 1fr); }
         }
         @media (min-width: 768px) { .dbm-home-shell > aside { width: 220px; } }
         @media (max-width: 767px) {
