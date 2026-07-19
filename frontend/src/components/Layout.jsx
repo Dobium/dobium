@@ -1,6 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import TopNav from './TopNav';
-import { HomeTicker } from '../pages/LandingPage';
 import { ExploreStatBand } from '../pages/ExplorePage';
 import Footer from './Footer';
 import PaperTradingDisclaimer from './PaperTradingDisclaimer';
@@ -30,7 +29,6 @@ export default function Layout() {
     <>
       <PaperTradingDisclaimer />
       <div className="main-content" style={{ background: 'var(--bg)', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        {pathname === '/' && <HomeTicker />}
         {pathname === '/explore' && <ExploreStatBand />}
         {pathname !== '/radar' && pathname !== '/terminal' && <TopNav />}
         <div style={{ flex: 1 }}>
