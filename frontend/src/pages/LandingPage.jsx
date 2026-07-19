@@ -153,6 +153,41 @@ function MusicCard({ m, onOpen }) {
   );
 }
 
+function DuneArt() {
+  return (
+    <svg viewBox="0 0 600 320" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      <defs>
+        <linearGradient id="dune-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#0A1730" />
+          <stop offset="55%" stopColor="#3A2E3E" />
+          <stop offset="78%" stopColor="#6B4A3F" />
+          <stop offset="100%" stopColor="#8A5A3E" />
+        </linearGradient>
+        <radialGradient id="dune-moon" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#FFF3D6" />
+          <stop offset="70%" stopColor="#F3D9A0" />
+          <stop offset="100%" stopColor="#D8B679" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="dune-far" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#7A5642" />
+          <stop offset="100%" stopColor="#4A3428" />
+        </linearGradient>
+        <linearGradient id="dune-near" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#3A2A22" />
+          <stop offset="100%" stopColor="#1A120E" />
+        </linearGradient>
+      </defs>
+      <rect width="600" height="320" fill="url(#dune-sky)" />
+      <circle cx="430" cy="95" r="90" fill="url(#dune-moon)" />
+      <circle cx="430" cy="95" r="46" fill="#F6E4BC" />
+      <path d="M0,190 Q150,150 300,185 T600,170 V320 H0 Z" fill="url(#dune-far)" opacity="0.9" />
+      <path d="M0,235 Q180,195 320,230 T600,210 V320 H0 Z" fill="url(#dune-near)" />
+      <path d="M300,320 L280,235 Q300,225 320,235 L300,320 Z" fill="#120C09" opacity="0.85" />
+      <path d="M292,320 L282,240 L318,240 L308,320 Z" fill="#0C0806" opacity="0.6" />
+    </svg>
+  );
+}
+
 function toCardShape(m, tag, seed) {
   const yes = yesOf(m);
   const lead = yes || leaderOf(m);
@@ -206,8 +241,9 @@ function MoviesSection({ markets, onOpen, onViewAll, forwardRef }) {
       <div className="dbm-home-movies-grid">
         <div
           onClick={() => featured.id && onOpen(featured.id)}
-          style={{ position: 'relative', minHeight: 260, borderRadius: 8, overflow: 'hidden', cursor: featured.id ? 'pointer' : 'default', border: `1px solid ${CARD_LINE}`, background: featured.image && /^https?:/.test(featured.image) ? `center/cover no-repeat url(${featured.image})` : 'linear-gradient(160deg,#182A45 0%,#0A1730 60%,#050A18 100%)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 20 }}
+          style={{ position: 'relative', minHeight: 260, borderRadius: 8, overflow: 'hidden', cursor: featured.id ? 'pointer' : 'default', border: `1px solid ${CARD_LINE}`, background: featured.image && /^https?:/.test(featured.image) ? `center/cover no-repeat url(${featured.image})` : '#0A1730', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 20 }}
         >
+          {!(featured.image && /^https?:/.test(featured.image)) && <DuneArt />}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,10,26,.05) 0%, rgba(0,10,26,.85) 78%)' }} />
           <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ ...mono({ fontSize: 8.5, color: WARM, background: 'rgba(0,19,45,.85)', border: `1px solid ${CARD_LINE}`, borderRadius: 2, padding: '4px 9px' }) }}>FEATURED BOX OFFICE</span>
@@ -358,6 +394,7 @@ export default function LandingPage() {
 
   return (
     <div style={{ background: PAGE_BG, minHeight: '100%' }}>
+      <div className="dbm-home-shell-wrap">
       <div className="dbm-home-shell">
         <aside style={{ background: SIDEBAR_BG, flexShrink: 0, padding: '20px 16px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
@@ -429,6 +466,7 @@ export default function LandingPage() {
           <GamingFestivalsRow markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} gamingRef={refs.gaming} festivalsRef={refs.festivals} />
         </main>
       </div>
+      </div>
 
       <button onClick={() => navigate('/explore')}
         style={{
@@ -442,6 +480,7 @@ export default function LandingPage() {
       </button>
 
       <style>{`
+        .dbm-home-shell-wrap { max-width: 1400px; margin: 0 auto; }
         .dbm-home-shell { display: flex; align-items: flex-start; min-height: 100%; }
         .dbm-home-music-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
         .dbm-home-movies-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
