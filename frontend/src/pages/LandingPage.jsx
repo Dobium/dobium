@@ -58,6 +58,8 @@ const SECTORS = [
     re: /\bgame\b|\bgta\b|esports|twitch|streamer|valorant|fortnite|minecraft|playstation|xbox|nintendo|steam|worlds \d|league of legends|call of duty|overwatch/i },
   { id: 'streaming', label: 'Streaming', icon: 'play',
     re: /netflix|hulu|hbo max|disney\+|paramount\+|peacock|apple tv|prime video|renewal|viewership|weekly views/i },
+  { id: 'trends', label: 'Internet Trends', icon: 'trend',
+    re: /tiktok|viral|meme|trending on|twitter|\bx\.com\b|instagram|influencer|challenge/i },
 ];
 
 function classify(title) {
@@ -92,17 +94,15 @@ const CELEBRITIES_DEMO = [
   { title: "Will Taylor Swift announce a new album at her next Era's Tour stop?", vol: '$1.2M', yes: 72, no: 28, tag: "ERA'S TOUR" },
   { title: 'Zendaya and Tom Holland to announce engagement by EOY 2024?', vol: '$840K', yes: 45, no: 55, tag: 'HOLLYWOOD RUMORS' },
 ];
-const FESTIVALS_DEMO = [
-  { title: 'Coachella 2025 Headliners include Rihanna?', vol: '$512K', yes: 52, no: 48, tag: 'COACHELLA' },
-  { title: 'Glastonbury 2025: Will Radiohead headline the Pyramid Stage?', vol: '$320K', yes: 18, no: 82, tag: 'GLASTONBURY' },
-];
-const GAMING_DEMO = [
-  { title: 'GTA VI to be delayed to 2026?', vol: '$2.1M', yes: 24, no: 76, tag: 'ROCKSTAR GAMES' },
-  { title: 'Nintendo Switch 2 Official Announcement before March 2025?', vol: '$1.5M', yes: 88, no: 12, tag: 'NINTENDO' },
-];
+const FESTIVALS_PROB_DEMO = { title: 'Coachella 2025 Headliners include Rihanna?', desc: 'Rumors intensified after Fenty sponsorship discussions surfaced.', prob: 52 };
+const GAMING_PROB_DEMO = { title: 'GTA VI to be delayed to 2026?', desc: 'Institutional prediction pool based on Rockstar developer sentiment analysis.', prob: 24 };
 const STREAMING_DEMO = [
   { title: "Netflix Series: 'Beef' Season 2 Renewal?", vol: '$180K', yes: 92, no: 8, tag: 'NETFLIX' },
   { title: 'The Bear Season 4 release date set for 2024?', vol: '$288K', yes: 12, no: 88, tag: 'HULU / FX' },
+];
+const TRENDS_DEMO = [
+  { title: 'Will #KendrickChallenge trend #1 on TikTok this week?', vol: '$96K', yes: 58, no: 42, tag: 'TIKTOK' },
+  { title: 'A Grammys moment goes viral before the broadcast ends?', vol: '$140K', yes: 67, no: 33, tag: 'X / TWITTER' },
 ];
 
 function SectorIcon({ kind, color, size = 15 }) {
@@ -118,6 +118,7 @@ function SectorIcon({ kind, color, size = 15 }) {
     case 'life': return <svg {...c}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3.5" /><path d="M5.5 5.5l3.2 3.2M18.5 5.5l-3.2 3.2M5.5 18.5l3.2-3.2M18.5 18.5l-3.2-3.2" /></svg>;
     case 'api': return <svg {...c}><path d="M4 4l16 16M20 4L4 20" /></svg>;
     case 'bars': return <svg {...c} strokeWidth="2.4"><path d="M5 20V12M12 20V6M19 20v-9" /></svg>;
+    case 'trend': return <svg {...c}><path d="M3 17l6-6 4 4 8-8M15 7h6v6" /></svg>;
     default: return null;
   }
 }
@@ -296,6 +297,48 @@ function MoviesSection({ markets, onOpen, onViewAll, forwardRef }) {
   );
 }
 
+function ProbabilityCard({ m, onOpen }) {
+  const barColor = m.prob >= 50 ? GREEN : SALMON;
+  return (
+    <div onClick={() => m.id && onOpen(m.id)}
+      style={{ background: CARD_BG, border: `1px solid ${CARD_LINE}`, borderRadius: 8, padding: '16px 18px', cursor: m.id ? 'pointer' : 'default', minWidth: 0 }}>
+      <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 14.5 }}>{m.title}</div>
+      <p style={{ color: '#8E9AB0', fontSize: 11.5, lineHeight: 1.6, margin: '7px 0 0' }}>{m.desc}</p>
+      <div style={{ marginTop: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+          <span style={{ ...mono({ fontSize: 8.5, color: WARM }) }}>PROBABILITY</span>
+          <span style={{ color: barColor, fontWeight: 800, fontSize: 13 }}>{m.prob}%</span>
+        </div>
+        <div style={{ height: 4, background: '#0C2745', borderRadius: 2, marginTop: 7 }}>
+          <div style={{ width: `${m.prob}%`, height: '100%', background: barColor, borderRadius: 2 }} />
+        </div>
+      </div>
+      <button style={{ width: '100%', marginTop: 16, background: '#182A45', border: `1px solid ${CARD_LINE}`, borderRadius: 4, padding: '10px 0', cursor: 'pointer', color: '#D5E3FF', fontWeight: 700, fontSize: 12 }}>
+        Trade Pool
+      </button>
+    </div>
+  );
+}
+
+function GamingFestivalsRow({ markets, onOpen, onViewAll, gamingRef, festivalsRef }) {
+  const gm = sectorMarkets(markets, 'gaming')[0];
+  const fm = sectorMarkets(markets, 'festivals')[0];
+  const gaming = gm ? { id: gm.id, title: gm.title, desc: gm.description || GAMING_PROB_DEMO.desc, prob: Math.round((leaderOf(gm)?.probability) || GAMING_PROB_DEMO.prob) } : GAMING_PROB_DEMO;
+  const fest = fm ? { id: fm.id, title: fm.title, desc: fm.description || FESTIVALS_PROB_DEMO.desc, prob: Math.round((leaderOf(fm)?.probability) || FESTIVALS_PROB_DEMO.prob) } : FESTIVALS_PROB_DEMO;
+  return (
+    <div className="dbm-home-probability-row" style={{ marginBottom: 34 }}>
+      <div ref={gamingRef} style={{ scrollMarginTop: 90 }}>
+        <SectionHeader icon="gamepad" label="Gaming Sector" onViewAll={onViewAll} />
+        <ProbabilityCard m={gaming} onOpen={onOpen} />
+      </div>
+      <div ref={festivalsRef} style={{ scrollMarginTop: 90 }}>
+        <SectionHeader icon="stage" label="Festivals & Events" onViewAll={onViewAll} />
+        <ProbabilityCard m={fest} onOpen={onOpen} />
+      </div>
+    </div>
+  );
+}
+
 function SectorGridCard({ m, onOpen }) {
   return (
     <div key={m.id || m.title} onClick={() => m.id && onOpen(m.id)}
@@ -381,6 +424,7 @@ export default function LandingPage() {
   const refs = {
     music: useRef(null), movies: useRef(null), celebrities: useRef(null),
     festivals: useRef(null), gaming: useRef(null), streaming: useRef(null),
+    trends: useRef(null),
   };
 
   const goTo = (id) => {
@@ -461,9 +505,9 @@ export default function LandingPage() {
           <MoviesSection markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.movies} />
 
           <TwoCardSection sector={SECTORS.find((s) => s.id === 'celebrities')} demo={CELEBRITIES_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.celebrities} />
-          <TwoCardSection sector={SECTORS.find((s) => s.id === 'festivals')} demo={FESTIVALS_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.festivals} />
-          <TwoCardSection sector={SECTORS.find((s) => s.id === 'gaming')} demo={GAMING_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.gaming} />
+          <GamingFestivalsRow markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} gamingRef={refs.gaming} festivalsRef={refs.festivals} />
           <TwoCardSection sector={SECTORS.find((s) => s.id === 'streaming')} demo={STREAMING_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.streaming} />
+          <TwoCardSection sector={SECTORS.find((s) => s.id === 'trends')} demo={TRENDS_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.trends} />
         </main>
       </div>
       </div>
@@ -485,7 +529,8 @@ export default function LandingPage() {
         .dbm-home-music-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
         .dbm-home-movies-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
         .dbm-home-two-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-        @media (min-width: 640px) { .dbm-home-music-grid { grid-template-columns: repeat(3, 1fr); } .dbm-home-two-grid { grid-template-columns: repeat(2, 1fr); } }
+        .dbm-home-probability-row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 640px) { .dbm-home-music-grid { grid-template-columns: repeat(3, 1fr); } .dbm-home-two-grid { grid-template-columns: repeat(2, 1fr); } .dbm-home-probability-row { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) {
           .dbm-home-music-grid { grid-template-columns: repeat(4, 1fr); }
           .dbm-home-movies-grid { grid-template-columns: 1.6fr 1fr; }

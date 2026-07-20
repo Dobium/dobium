@@ -113,32 +113,77 @@ export default function Footer() {
     );
   }
 
+const HOME_COLUMNS = [
+  { title: 'Sectors', links: ['Music Intel', 'Cinema Index', 'Event Rumors', 'Tech/Gaming'] },
+  { title: 'Resources', links: ['Trade API', 'Market Rules', 'Security', 'Status'] },
+];
+
+function ConnectIcon({ kind }) {
+  const c = { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: '#8E9AB0', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  if (kind === 'mail') return <svg {...c}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></svg>;
+  if (kind === 'network') return <svg {...c}><circle cx="12" cy="5" r="2.5" /><circle cx="5" cy="19" r="2.5" /><circle cx="19" cy="19" r="2.5" /><path d="M12 7.5v6M12 13.5L6.8 17M12 13.5l5.2 3.5" /></svg>;
+  return <svg {...c}><path d="M4 20V10M10 20V4M16 20v-9M21 20H3" /></svg>;
+}
+
+function ConnectButton({ kind }) {
+  return (
+    <a href="#" onClick={(e) => e.preventDefault()}
+      style={{ width: 32, height: 32, borderRadius: 5, border: '1px solid #22314A', background: '#0C203A', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color .15s ease' }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#FFDF9B')}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#22314A')}
+    >
+      <ConnectIcon kind={kind} />
+    </a>
+  );
+}
+
   if (pathname === '/') {
     return (
       <footer style={{ borderTop: '1px solid #22314A', background: '#00132D', marginTop: 48 }}>
-        <div
-          className="dbm-footwrap"
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            flexWrap: 'wrap', gap: 14, padding: '24px 28px',
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <WaveMark height={15} />
-              <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15.5, color: '#F2F5FF' }}>
+        <div className="dbm-footwrap" style={{ padding: '34px 28px 0' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40, justifyContent: 'space-between' }}>
+            <div style={{ maxWidth: 320 }}>
+              <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 17, color: '#FFDF9B' }}>
                 Dobium
               </span>
+              <p style={{ color: '#8E9AB0', fontSize: 12, lineHeight: 1.7, margin: '12px 0 0' }}>
+                The next-generation intelligence exchange for cultural capital. Dobium provides
+                high-fidelity, real-time prediction markets for global entertainment, media, and cultural shifts.
+              </p>
             </div>
-            <div style={{ color: '#6E7E9C', fontSize: 11.5, marginTop: 9 }}>
-              © 2024 Dobium Markets. High-stakes culture prediction.
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 56 }}>
+              {HOME_COLUMNS.map((col) => (
+                <div key={col.title}>
+                  <div style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 12.5, color: '#E6EDF9' }}>
+                    {col.title}
+                  </div>
+                  <nav style={{ marginTop: 13, display: 'flex', flexDirection: 'column' }}>
+                    {col.links.map((label) => (
+                      <FooterLink key={label} label={label} style={{ color: '#8E9AB0', fontSize: 12, marginBottom: 10 }} />
+                    ))}
+                  </nav>
+                </div>
+              ))}
+              <div>
+                <div style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 12.5, color: '#E6EDF9' }}>Connect</div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 13 }}>
+                  <ConnectButton kind="mail" />
+                  <ConnectButton kind="network" />
+                  <ConnectButton kind="bars" />
+                </div>
+              </div>
             </div>
           </div>
-          <nav style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
-            {['Terms', 'Privacy', 'Discord', 'API Documentation'].map((label) => (
-              <FooterLink key={label} label={label} style={{ color: '#8E9AB0', fontSize: 12 }} />
-            ))}
-          </nav>
+
+          <div style={{ borderTop: '1px solid #1C304F', marginTop: 28, padding: '18px 0', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ color: '#5C7391', fontSize: 11 }}>© 2024 Dobium Technologies Inc. All rights reserved.</span>
+            <nav style={{ display: 'flex', gap: 20 }}>
+              {['Terms', 'Privacy', 'Status'].map((label) => (
+                <FooterLink key={label} label={label} style={{ color: '#5C7391', fontSize: 11 }} />
+              ))}
+            </nav>
+          </div>
         </div>
       </footer>
     );
