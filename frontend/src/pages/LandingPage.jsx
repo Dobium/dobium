@@ -91,6 +91,8 @@ const TRENDS_DEMO = [
   { title: 'A Grammys moment goes viral before the broadcast ends?', vol: '$140K', yes: 67, no: 33, tag: 'X / TWITTER' },
 ];
 
+const MUSIC_GENRES = ['All Music', 'R&B', 'Hip Hop', 'Rap', 'Pop', 'Electronic', 'Latin', 'Country', 'Rock', 'K-Pop'];
+
 function SectorIcon({ kind, color, size = 15 }) {
   const c = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { flexShrink: 0 } };
   switch (kind) {
@@ -403,6 +405,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [pulse, setPulse] = useState(null);
   const [activeSector, setActiveSector] = useState('music');
+  const [musicGenre, setMusicGenre] = useState('All Music');
 
   const fetchPulse = useCallback(() => { api.getPulse().then((r) => setPulse(r)).catch(() => {}); }, []);
   useEffect(() => { fetchPulse(); const t = setInterval(fetchPulse, 20000); return () => clearInterval(t); }, [fetchPulse]);
@@ -436,16 +439,39 @@ export default function LandingPage() {
           <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {SECTORS.map((s) => {
               const isActive = activeSector === s.id;
+              const isMusic = s.id === 'music';
               return (
-                <button key={s.id} onClick={() => goTo(s.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10, background: isActive ? '#394666' : 'transparent',
-                    border: 'none', borderRadius: 6, padding: '10px 11px', cursor: 'pointer', textAlign: 'left',
-                    color: isActive ? '#DCE6F5' : WARM, fontSize: 13, fontWeight: isActive ? 700 : 500,
-                  }}>
-                  <SectorIcon kind={s.icon} color={isActive ? '#DCE6F5' : WARM} />
-                  {s.label}
-                </button>
+                <div key={s.id}>
+                  <button onClick={() => goTo(s.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: isActive ? '#394666' : 'transparent',
+                      border: 'none', borderRadius: 6, padding: '10px 11px', cursor: 'pointer', textAlign: 'left',
+                      color: isActive ? '#DCE6F5' : WARM, fontSize: 13, fontWeight: isActive ? 700 : 500,
+                    }}>
+                    <SectorIcon kind={s.icon} color={isActive ? '#DCE6F5' : WARM} />
+                    <span style={{ flex: 1 }}>{s.label}</span>
+                    {isMusic && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isActive ? '#DCE6F5' : WARM} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                        style={{ transform: isActive ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease', flexShrink: 0 }}>
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    )}
+                  </button>
+                  {isMusic && isActive && (
+                    <div style={{ display: 'flex', flexDirection: 'column', marginTop: 2 }}>
+                      {MUSIC_GENRES.map((g) => (
+                        <button key={g} onClick={() => { setMusicGenre(g); goTo('music'); }}
+                          style={{
+                            background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                            padding: '7px 11px 7px 42px', fontSize: 12.5,
+                            color: musicGenre === g ? '#FFFFFF' : '#8E9AB0', fontWeight: musicGenre === g ? 700 : 500,
+                          }}>
+                          {g}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </nav>
