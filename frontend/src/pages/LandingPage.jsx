@@ -93,6 +93,67 @@ const TRENDS_DEMO = [
 
 const MUSIC_GENRES = ['All Music', 'R&B', 'Hip Hop', 'Rap', 'Pop', 'Electronic', 'Latin', 'Country', 'Rock', 'K-Pop'];
 
+// Genre-level classification is a best-effort keyword/artist heuristic on the
+// market title — there's no genre metadata stored per market yet, so this is
+// a text-pattern match, not authoritative tagging.
+const GENRE_RE = {
+  'R&B': /r&b|rnb|sza|usher|the weeknd|summer walker|chris brown|alicia keys|ne-?yo|jazmine sullivan/i,
+  'Hip Hop': /hip.?hop|kendrick|drake|j\.? ?cole|travis scott|kanye|\bye\b|21 savage|\bfuture\b|metro boomin|lil (uzi|baby|wayne)|gunna|yeat|young thug|a\$?ap|tyler,? the creator/i,
+  'Rap': /\brap\b|rapper|cardi b|nicki minaj|megan thee stallion|ice spice|playboi carti|central cee|glorilla|latto/i,
+  'Pop': /\bpop\b|taylor swift|ariana grande|dua lipa|olivia rodrigo|billie eilish|katy perry|justin bieber|selena gomez|sabrina carpenter|chappell roan/i,
+  'Electronic': /electronic|\bedm\b|house music|techno|dubstep|calvin harris|skrillex|david guetta|marshmello|deadmau5/i,
+  'Latin': /latin|reggaeton|bad bunny|karol g|shakira|j balvin|peso pluma|feid|rauw alejandro/i,
+  'Country': /country music|\bcountry\b|morgan wallen|luke combs|zach bryan|kacey musgraves|chris stapleton|carrie underwood/i,
+  'Rock': /\brock\b|metallica|foo fighters|arctic monkeys|red hot chili peppers|coldplay|imagine dragons|greta van fleet/i,
+  'K-Pop': /k-?pop|\bbts\b|blackpink|newjeans|stray kids|\btwice\b|seventeen|aespa|txt\b/i,
+};
+const GENRE_DEMO = {
+  'R&B': [
+    { title: 'Will SZA drop a deluxe "SOS" edition before 2025?', vol: '$680K', yes: 59, no: 41, tag: 'R&B CHARTS' },
+    { title: 'The Weeknd to headline a stadium tour in 2025?', vol: '$1.1M', yes: 74, no: 26, tag: 'TOUR DATA' },
+  ],
+  'Hip Hop': [
+    { title: 'Kendrick Lamar to headline the Super Bowl Halftime Show 2026?', vol: '$2.9M', yes: 38, no: 62, tag: 'HALFTIME' },
+    { title: 'Travis Scott to release "Utopia 2" before 2026?', vol: '$1.4M', yes: 29, no: 71, tag: 'RELEASE DATE' },
+  ],
+  'Rap': [
+    { title: "Cardi B to release her second studio album in 2025?", vol: '$920K', yes: 44, no: 56, tag: 'ALBUM WATCH' },
+    { title: 'Ice Spice to headline a major festival in 2025?', vol: '$410K', yes: 63, no: 37, tag: 'FESTIVALS' },
+  ],
+  'Pop': [
+    { title: 'Will Chappell Roan win Best New Artist at the Grammys?', vol: '$780K', yes: 52, no: 48, tag: 'GRAMMYS' },
+    { title: 'Dua Lipa to announce a new album before Q3?', vol: '$530K', yes: 41, no: 59, tag: 'ALBUM WATCH' },
+  ],
+  'Electronic': [
+    { title: 'Calvin Harris to headline a major EDM festival in 2025?', vol: '$390K', yes: 68, no: 32, tag: 'FESTIVALS' },
+    { title: 'Marshmello to release a collab album before 2026?', vol: '$210K', yes: 35, no: 65, tag: 'RELEASE DATE' },
+  ],
+  'Latin': [
+    { title: 'Bad Bunny to headline Coachella 2025?', vol: '$1.6M', yes: 71, no: 29, tag: 'COACHELLA' },
+    { title: 'Karol G to win Best Latin Album at the Grammys?', vol: '$460K', yes: 55, no: 45, tag: 'GRAMMYS' },
+  ],
+  'Country': [
+    { title: 'Morgan Wallen to have the #1 country album of 2025?', vol: '$640K', yes: 66, no: 34, tag: 'BILLBOARD' },
+    { title: 'Zach Bryan to announce a stadium tour in 2025?', vol: '$380K', yes: 58, no: 42, tag: 'TOUR DATA' },
+  ],
+  'Rock': [
+    { title: 'A rock act to headline a major festival in 2025?', vol: '$290K', yes: 47, no: 53, tag: 'FESTIVALS' },
+    { title: 'Foo Fighters to release a new album before 2026?', vol: '$220K', yes: 39, no: 61, tag: 'RELEASE DATE' },
+  ],
+  'K-Pop': [
+    { title: 'BTS to reunite for a full group comeback in 2025?', vol: '$3.1M', yes: 61, no: 39, tag: 'COMEBACK WATCH' },
+    { title: 'BLACKPINK to headline a US stadium tour in 2025?', vol: '$1.9M', yes: 57, no: 43, tag: 'TOUR DATA' },
+  ],
+};
+
+function genreMarkets(markets, genre) {
+  const re = GENRE_RE[genre];
+  if (!re) return [];
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && re.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
+
 function SectorIcon({ kind, color, size = 15 }) {
   const c = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { flexShrink: 0 } };
   switch (kind) {
@@ -219,12 +280,16 @@ function SectionHeader({ icon, label, onViewAll }) {
   );
 }
 
-function MusicSection({ markets, onOpen, onViewAll, forwardRef }) {
-  const real = sectorMarkets(markets, 'music').slice(0, 4).map((m, i) => toCardShape(m, MUSIC_DEMO[i]?.tag || 'MUSIC', i));
-  const rows = real.length >= 3 ? real : MUSIC_DEMO.map((d, i) => ({ ...d, id: null, _seed: i }));
+function MusicSection({ markets, genre, onOpen, onViewAll, forwardRef }) {
+  const isGenre = genre && genre !== 'All Music';
+  const real = isGenre
+    ? genreMarkets(markets, genre).slice(0, 4).map((m, i) => toCardShape(m, (GENRE_DEMO[genre]?.[i]?.tag) || genre.toUpperCase(), i))
+    : sectorMarkets(markets, 'music').slice(0, 4).map((m, i) => toCardShape(m, MUSIC_DEMO[i]?.tag || 'MUSIC', i));
+  const demoBank = isGenre ? (GENRE_DEMO[genre] || []) : MUSIC_DEMO;
+  const rows = real.length >= Math.min(2, demoBank.length) ? real : demoBank.map((d, i) => ({ ...d, id: null, _seed: i }));
   return (
     <div ref={forwardRef} style={{ marginBottom: 34, scrollMarginTop: 90 }}>
-      <SectionHeader icon="note" label="Music" onViewAll={onViewAll} />
+      <SectionHeader icon="note" label={isGenre ? `Music · ${genre}` : 'Music'} onViewAll={onViewAll} />
       <div className="dbm-home-music-grid">
         {rows.map((m, i) => <MusicCard key={m.id || `music-${i}`} m={m} onOpen={onOpen} />)}
       </div>
@@ -405,6 +470,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [pulse, setPulse] = useState(null);
   const [activeSector, setActiveSector] = useState('music');
+  const [musicOpen, setMusicOpen] = useState(true);
   const [musicGenre, setMusicGenre] = useState('All Music');
 
   const fetchPulse = useCallback(() => { api.getPulse().then((r) => setPulse(r)).catch(() => {}); }, []);
@@ -418,7 +484,25 @@ export default function LandingPage() {
 
   const goTo = (id) => {
     setActiveSector(id);
+    if (id !== 'music') setMusicOpen(false);
     refs[id]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const toggleMusic = () => {
+    if (activeSector === 'music') {
+      setMusicOpen((v) => !v);
+    } else {
+      setActiveSector('music');
+      setMusicOpen(true);
+    }
+    refs.music?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const selectGenre = (g) => {
+    setMusicGenre(g);
+    setActiveSector('music');
+    setMusicOpen(true);
+    refs.music?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const active = markets.filter((m) => m.status === 'active');
@@ -440,9 +524,10 @@ export default function LandingPage() {
             {SECTORS.map((s) => {
               const isActive = activeSector === s.id;
               const isMusic = s.id === 'music';
+              const expanded = isMusic && isActive && musicOpen;
               return (
                 <div key={s.id}>
-                  <button onClick={() => goTo(s.id)}
+                  <button onClick={() => (isMusic ? toggleMusic() : goTo(s.id))}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: isActive ? '#394666' : 'transparent',
                       border: 'none', borderRadius: 6, padding: '10px 11px', cursor: 'pointer', textAlign: 'left',
@@ -452,23 +537,28 @@ export default function LandingPage() {
                     <span style={{ flex: 1 }}>{s.label}</span>
                     {isMusic && (
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isActive ? '#DCE6F5' : WARM} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                        style={{ transform: isActive ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease', flexShrink: 0 }}>
+                        style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease', flexShrink: 0 }}>
                         <path d="M6 9l6 6 6-6" />
                       </svg>
                     )}
                   </button>
-                  {isMusic && isActive && (
+                  {expanded && (
                     <div style={{ display: 'flex', flexDirection: 'column', marginTop: 2 }}>
-                      {MUSIC_GENRES.map((g) => (
-                        <button key={g} onClick={() => { setMusicGenre(g); goTo('music'); }}
-                          style={{
-                            background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
-                            padding: '7px 11px 7px 42px', fontSize: 12.5,
-                            color: musicGenre === g ? '#FFFFFF' : '#8E9AB0', fontWeight: musicGenre === g ? 700 : 500,
-                          }}>
-                          {g}
-                        </button>
-                      ))}
+                      {MUSIC_GENRES.map((g) => {
+                        const genreActive = musicGenre === g;
+                        return (
+                          <button key={g} onClick={() => selectGenre(g)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 8,
+                              background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                              padding: '7px 11px 7px 38px', fontSize: 12.5,
+                              color: genreActive ? GOLD_DIM : WARM, fontWeight: genreActive ? 700 : 500,
+                            }}>
+                            <span style={{ width: 5, height: 5, borderRadius: 999, background: genreActive ? GOLD_DIM : 'transparent', flexShrink: 0 }} />
+                            {g}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -513,7 +603,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <MusicSection markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.music} />
+          <MusicSection markets={markets} genre={musicGenre} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.music} />
           <MoviesSection markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.movies} />
 
           <TwoCardSection sector={SECTORS.find((s) => s.id === 'celebrities')} demo={CELEBRITIES_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.celebrities} />
