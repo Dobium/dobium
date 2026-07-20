@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import ExploreCard from '../components/ExploreCard';
 import { MarketGridSkeleton } from '../components/MarketCardSkeleton';
 import { useMarkets } from '../hooks/useMarkets';
 import { api } from '../api/client';
 import { categoryBucket } from '../lib/categories';
+import { SECTORS, classifySector } from '../lib/sectors';
 import { EXPLORE_FLASH, MARKET_INTEL } from '../lib/demoContent';
 
 // ── Above-nav stat band (mock): ACTIVE MARKETS · LEADERBOARD TOP · LIVE
@@ -69,18 +70,61 @@ export function ExploreStatBand() {
 // (search arrives via the nav's ?q= param), and the FLASH MARKET banner +
 // Market Intelligence rail underneath.
 
-const CHIPS = [
-  { id: 'all', label: 'All' },
-  { id: 'trending', label: 'Trending' },
-  { id: 'music', label: 'Music' },
-  { id: 'media', label: 'Media' },
-];
+function CategoryDropdown({ category, setCategory }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
 
-function normalizeFilter(f) {
-  if (!f) return 'all';
-  const v = f.toLowerCase();
-  if (CHIPS.some((c) => c.id === v)) return v;
-  return categoryBucket(v);
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10, minWidth: 200,
+          fontFamily: 'var(--wordmark)', fontSize: 14, fontWeight: 500, color: '#CFC5B5',
+          background: '#001F43', border: '1px solid #2F3A4A', borderRadius: 6,
+          padding: '11px 14px', cursor: 'pointer', justifyContent: 'space-between',
+        }}
+      >
+        All Categories
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E9AB0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease' }}>
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 30, background: '#00132D', border: '1px solid #2F3A4A', borderRadius: 6, overflow: 'hidden', boxShadow: '0 14px 32px rgba(0,5,15,.55)' }}>
+          {SECTORS.map((s) => {
+            const active = category === s.id;
+            return (
+              <button
+                key={s.id}
+                onClick={() => { setCategory(active ? null : s.id); setOpen(false); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
+                  padding: '13px 16px', border: 'none', cursor: 'pointer',
+                  background: active ? '#1B3A62' : 'transparent',
+                  color: active ? '#FFDF9B' : '#C6D3E8',
+                  fontFamily: 'var(--wordmark)', fontSize: 14.5, fontWeight: active ? 700 : 500,
+                }}
+                onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,.04)'; }}
+                onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: 999, background: active ? '#FFDF9B' : 'transparent', flexShrink: 0 }} />
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ExplorePage() {
@@ -89,15 +133,19 @@ export default function ExplorePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlFilter = searchParams.get('filter');
   const urlQuery = searchParams.get('q');
-  const [chip, setChip] = useState(normalizeFilter(urlFilter));
-  useEffect(() => { setChip(normalizeFilter(urlFilter)); }, [urlFilter]);
+  const [category, setCategory] = useState(() => (SECTORS.some((s) => s.id === urlFilter) ? urlFilter : null));
+  useEffect(() => {
+    if (SECTORS.some((s) => s.id === urlFilter)) setCategory(urlFilter);
+  }, [urlFilter]);
   const search = (urlQuery || '').trim();
 
   const filtered = [...markets]
     .filter((m) => {
-      const chipMatch = chip === 'all' ? true : categoryBucket(m.category) === chip;
+      const categoryMatch = !category
+        ? (urlFilter === 'awards' ? categoryBucket(m.category) === 'media' : true)
+        : classifySector(m.title) === category;
       const searchMatch = !search || m.title?.toLowerCase().includes(search.toLowerCase());
-      return chipMatch && searchMatch;
+      return categoryMatch && searchMatch;
     })
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 
@@ -121,26 +169,8 @@ export default function ExplorePage() {
             High-fidelity data. Real-time predictions.
           </p>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' }}>
-          {CHIPS.map((c) => {
-            const active = chip === c.id;
-            return (
-              <button
-                key={c.id}
-                onClick={() => setChip(c.id)}
-                style={{
-                  fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em',
-                  padding: '8px 18px', borderRadius: 4, cursor: 'pointer',
-                  background: active ? '#FFDF9B' : '#001F43',
-                  border: active ? '1px solid #FFDF9B' : '1px solid #2F3A4A',
-                  color: active ? '#00132D' : '#CFC5B5',
-                  transition: 'color .15s ease, background .15s ease',
-                }}
-              >
-                {c.label}
-              </button>
-            );
-          })}
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <CategoryDropdown category={category} setCategory={setCategory} />
         </div>
       </div>
 

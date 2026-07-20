@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMarkets } from '../hooks/useMarkets';
 import { api } from '../api/client';
+import { SECTORS as SHARED_SECTORS, classifySector } from '../lib/sectors';
 
 // ── Homepage rebuilt as a sector-based market dashboard, matched to Neel's
 // reference mocks (palette sampled from the screenshots): #00132D page,
@@ -45,26 +46,11 @@ function compactVol(v) {
 }
 
 // ── Sector classification ────────────────────────────────────────────────
-const SECTORS = [
-  { id: 'music', label: 'Music', icon: 'note',
-    re: /kendrick|drake|sza|beyonc|taylor swift|billboard|album|tour(?!nament)|stream(ing)?|spotify|chart|single|mixtape|rapper|grammy nom/i },
-  { id: 'movies', label: 'Movies & TV', icon: 'film',
-    re: /movie|film|box office|netflix|hbo|disney|marvel|oscar|premiere|sequel|\bseries\b|renewal|episode|season \d|trailer|rotten tomatoes/i },
-  { id: 'celebrities', label: 'Celebrities', icon: 'star',
-    re: /breakup|engaged|married|dating|divorce|pregnan|scandal|lawsuit|arrest|feud/i },
-  { id: 'festivals', label: 'Festivals', icon: 'stage',
-    re: /coachella|festival|tour dates|stadium|concert|headlin|glastonbury|lollapalooza|rolling loud|bonnaroo/i },
-  { id: 'gaming', label: 'Gaming', icon: 'gamepad',
-    re: /\bgame\b|\bgta\b|esports|twitch|streamer|valorant|fortnite|minecraft|playstation|xbox|nintendo|steam|worlds \d|league of legends|call of duty|overwatch/i },
-  { id: 'streaming', label: 'Streaming', icon: 'play',
-    re: /netflix|hulu|hbo max|disney\+|paramount\+|peacock|apple tv|prime video|renewal|viewership|weekly views/i },
-  { id: 'trends', label: 'Internet Trends', icon: 'trend',
-    re: /tiktok|viral|meme|trending on|twitter|\bx\.com\b|instagram|influencer|challenge/i },
-];
+const SECTOR_ICONS = { music: 'note', movies: 'film', celebrities: 'star', festivals: 'stage', gaming: 'gamepad', streaming: 'play', trends: 'trend' };
+const SECTORS = SHARED_SECTORS.map((s) => ({ ...s, icon: SECTOR_ICONS[s.id] }));
 
 function classify(title) {
-  for (const s of SECTORS) if (s.re.test(title || '')) return s.id;
-  return null;
+  return classifySector(title);
 }
 
 function sectorMarkets(markets, id) {
