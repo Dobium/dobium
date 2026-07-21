@@ -233,10 +233,65 @@ function gamingSubMarkets(markets, sub) {
     .filter((m) => m.status === 'active' && re.test(m.title || ''))
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
+const STREAMING_SUBS = ['All Streaming', 'Netflix', 'Disney+', 'HBO/Max Releases', 'Prime Video', 'Apple TV', 'Hulu', 'Streaming Charts'];
+const STREAMING_SUB_ICONS = {
+  'All Streaming': 'film', 'Netflix': 'playcircle', 'Disney+': 'castle', 'HBO/Max Releases': 'console',
+  'Prime Video': 'play', 'Apple TV': 'console', 'Hulu': 'playcircle', 'Streaming Charts': 'bars',
+};
 const STREAMING_DEMO = [
-  { title: "Netflix Series: 'Beef' Season 2 Renewal?", vol: '$180K', yes: 92, no: 8, tag: 'NETFLIX' },
-  { title: 'The Bear Season 4 release date set for 2024?', vol: '$288K', yes: 12, no: 88, tag: 'HULU / FX' },
+  { title: 'Stranger Things Season 5 to drop before Q3 2025?', vol: '$8.4M', yes: 42, no: 58, tag: 'NETFLIX' },
+  { title: 'Netflix to acquire A24 by end of year?', vol: '$12.1M', yes: 12, no: 88, tag: 'M&A RUMORS' },
+  { title: 'White Lotus S3 viewership to exceed 20M in first 48 hours?', vol: '$4.2M', yes: 65, no: 35, tag: 'HBO / MAX' },
+  { title: 'MrBeast to hit 500M subscribers before 2026?', vol: '$15.7M', yes: 78, no: 22, tag: 'YOUTUBE' },
 ];
+const STREAMING_SUB_DEMO = {
+  'Netflix': [
+    { title: 'Stranger Things Season 5 to drop before Q3 2025?', vol: '$8.4M', yes: 42, no: 58, tag: 'NETFLIX' },
+    { title: 'Netflix to raise subscription prices again in 2025?', vol: '$2.9M', yes: 61, no: 39, tag: 'NETFLIX' },
+  ],
+  'Disney+': [
+    { title: 'Disney+ to merge fully with the Hulu app in 2025?', vol: '$1.6M', yes: 57, no: 43, tag: 'DISNEY+' },
+    { title: 'A new Marvel series premieres on Disney+ before Q4?', vol: '$980K', yes: 69, no: 31, tag: 'DISNEY+' },
+  ],
+  'HBO/Max Releases': [
+    { title: 'White Lotus S3 viewership to exceed 20M in first 48 hours?', vol: '$4.2M', yes: 65, no: 35, tag: 'HBO / MAX' },
+    { title: 'House of the Dragon Season 3 premieres before 2026?', vol: '$1.3M', yes: 58, no: 42, tag: 'HBO / MAX' },
+  ],
+  'Prime Video': [
+    { title: 'Fallout Season 2 to premiere before Q3 2025?', vol: '$1.1M', yes: 71, no: 29, tag: 'PRIME VIDEO' },
+    { title: 'Amazon to greenlight a new Jack Ryan season in 2025?', vol: '$620K', yes: 48, no: 52, tag: 'PRIME VIDEO' },
+  ],
+  'Apple TV': [
+    { title: 'Severance Season 3 renewal confirmed before the finale?', vol: '$890K', yes: 77, no: 23, tag: 'APPLE TV' },
+    { title: 'Apple TV+ to raise subscription prices in 2025?', vol: '$340K', yes: 44, no: 56, tag: 'APPLE TV' },
+  ],
+  'Hulu': [
+    { title: 'Hulu to fully merge into the Disney+ app in 2025?', vol: '$710K', yes: 53, no: 47, tag: 'HULU' },
+    { title: '"Only Murders in the Building" Season 5 renewal confirmed?', vol: '$260K', yes: 82, no: 18, tag: 'HULU' },
+  ],
+  'Streaming Charts': [
+    { title: 'A Netflix original tops the global Top 10 for 3+ weeks?', vol: '$540K', yes: 66, no: 34, tag: 'STREAMING CHARTS' },
+    { title: 'A non-English series breaks into the weekly global Top 5?', vol: '$310K', yes: 39, no: 61, tag: 'STREAMING CHARTS' },
+  ],
+};
+// Same title-heuristic caveat as the other four sub-filters — no real
+// per-market platform tagging exists yet.
+const STREAMING_SUB_RE = {
+  'Netflix': /netflix/i,
+  'Disney+': /disney\+|disney plus/i,
+  'HBO/Max Releases': /\bhbo\b|hbo max/i,
+  'Prime Video': /prime video|amazon prime/i,
+  'Apple TV': /apple tv/i,
+  'Hulu': /\bhulu\b/i,
+  'Streaming Charts': /top 10|top ten|\bchart(s)?\b|weekly views|viewership/i,
+};
+function streamingSubMarkets(markets, sub) {
+  const re = STREAMING_SUB_RE[sub];
+  if (!re) return [];
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && re.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
 const TRENDS_DEMO = [
   { title: 'Will #KendrickChallenge trend #1 on TikTok this week?', vol: '$96K', yes: 58, no: 42, tag: 'TIKTOK' },
   { title: 'A Grammys moment goes viral before the broadcast ends?', vol: '$140K', yes: 67, no: 33, tag: 'X / TWITTER' },
@@ -373,6 +428,8 @@ function SectorIcon({ kind, color, size = 15 }) {
     case 'console': return <svg {...c}><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>;
     case 'trophy': return <svg {...c}><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0zM7 6H4a2 2 0 002 4h1M17 6h3a2 2 0 01-2 4h-1" /></svg>;
     case 'hardware': return <svg {...c}><rect x="6" y="6" width="12" height="12" rx="2" /><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3" /></svg>;
+    case 'playcircle': return <svg {...c}><circle cx="12" cy="12" r="9" /><path d="M10 9l5 3-5 3z" fill={color} stroke="none" /></svg>;
+    case 'castle': return <svg {...c}><path d="M4 21V9l3-2v2h2V7l3-2 3 2v2h2V7l3 2v12z" /><path d="M4 21h16M9 21v-5h6v5" /></svg>;
     default: return null;
   }
 }
@@ -646,6 +703,8 @@ export default function LandingPage() {
   const [festivalSub, setFestivalSub] = useState('All Festivals');
   const [gamingOpen, setGamingOpen] = useState(false);
   const [gamingSub, setGamingSub] = useState('All Gaming');
+  const [streamingOpen, setStreamingOpen] = useState(false);
+  const [streamingSub, setStreamingSub] = useState('All Streaming');
 
   const fetchPulse = useCallback(() => { api.getPulse().then((r) => setPulse(r)).catch(() => {}); }, []);
   useEffect(() => { fetchPulse(); const t = setInterval(fetchPulse, 20000); return () => clearInterval(t); }, [fetchPulse]);
@@ -663,6 +722,7 @@ export default function LandingPage() {
     if (id !== 'celebrities') setCelebsOpen(false);
     if (id !== 'festivals') setFestivalsOpen(false);
     if (id !== 'gaming') setGamingOpen(false);
+    if (id !== 'streaming') setStreamingOpen(false);
     refs[id]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -676,6 +736,7 @@ export default function LandingPage() {
       setCelebsOpen(false);
       setFestivalsOpen(false);
       setGamingOpen(false);
+      setStreamingOpen(false);
     }
     refs.music?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -697,6 +758,7 @@ export default function LandingPage() {
       setCelebsOpen(false);
       setFestivalsOpen(false);
       setGamingOpen(false);
+      setStreamingOpen(false);
     }
     refs.movies?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -718,6 +780,7 @@ export default function LandingPage() {
       setMoviesOpen(false);
       setFestivalsOpen(false);
       setGamingOpen(false);
+      setStreamingOpen(false);
     }
     refs.celebrities?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -739,6 +802,7 @@ export default function LandingPage() {
       setMoviesOpen(false);
       setCelebsOpen(false);
       setGamingOpen(false);
+      setStreamingOpen(false);
     }
     refs.festivals?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -760,6 +824,7 @@ export default function LandingPage() {
       setMoviesOpen(false);
       setCelebsOpen(false);
       setFestivalsOpen(false);
+      setStreamingOpen(false);
     }
     refs.gaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -769,6 +834,28 @@ export default function LandingPage() {
     setActiveSector('gaming');
     setGamingOpen(true);
     refs.gaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const toggleStreaming = () => {
+    if (activeSector === 'streaming') {
+      setStreamingOpen((v) => !v);
+    } else {
+      setActiveSector('streaming');
+      setStreamingOpen(true);
+      setMusicOpen(false);
+      setMoviesOpen(false);
+      setCelebsOpen(false);
+      setFestivalsOpen(false);
+      setGamingOpen(false);
+    }
+    refs.streaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const selectStreamingSub = (v) => {
+    setStreamingSub(v);
+    setActiveSector('streaming');
+    setStreamingOpen(true);
+    refs.streaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const active = markets.filter((m) => m.status === 'active');
@@ -794,13 +881,14 @@ export default function LandingPage() {
               const isCelebs = s.id === 'celebrities';
               const isFestivals = s.id === 'festivals';
               const isGaming = s.id === 'gaming';
-              const hasDropdown = isMusic || isMovies || isCelebs || isFestivals || isGaming;
-              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCelebs && celebsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen));
-              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCelebs ? toggleCelebs : isFestivals ? toggleFestivals : isGaming ? toggleGaming : () => goTo(s.id);
-              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCelebs ? CELEB_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : null;
-              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCelebs ? celebSub : isFestivals ? festivalSub : isGaming ? gamingSub : null;
-              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCelebs ? selectCelebSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : null;
-              const iconSubs = isCelebs ? CELEB_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : null;
+              const isStreaming = s.id === 'streaming';
+              const hasDropdown = isMusic || isMovies || isCelebs || isFestivals || isGaming || isStreaming;
+              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCelebs && celebsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen));
+              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCelebs ? toggleCelebs : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : () => goTo(s.id);
+              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCelebs ? CELEB_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : null;
+              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCelebs ? celebSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : null;
+              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCelebs ? selectCelebSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : null;
+              const iconSubs = isCelebs ? CELEB_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : isStreaming ? STREAMING_SUB_ICONS : null;
               return (
                 <div key={s.id}>
                   <button onClick={onClickHeader}
@@ -934,7 +1022,17 @@ export default function LandingPage() {
             onViewAll={() => navigate('/explore')}
             forwardRef={refs.gaming}
           />
-          <TwoCardSection sector={SECTORS.find((s) => s.id === 'streaming')} demo={STREAMING_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.streaming} />
+          <TwoCardSection
+            sector={SECTORS.find((s) => s.id === 'streaming')}
+            demo={streamingSub === 'All Streaming' ? STREAMING_DEMO : (STREAMING_SUB_DEMO[streamingSub] || STREAMING_DEMO)}
+            max={4}
+            title={streamingSub === 'All Streaming' ? 'Streaming Markets' : `Streaming Markets · ${streamingSub}`}
+            pickReal={streamingSub === 'All Streaming' ? undefined : (m) => streamingSubMarkets(m, streamingSub)}
+            markets={markets}
+            onOpen={(id) => navigate(`/markets/${id}`)}
+            onViewAll={() => navigate('/explore')}
+            forwardRef={refs.streaming}
+          />
           <TwoCardSection sector={SECTORS.find((s) => s.id === 'trends')} demo={TRENDS_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.trends} />
         </main>
       </div>
