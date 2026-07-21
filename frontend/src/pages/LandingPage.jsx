@@ -171,6 +171,24 @@ const CELEBRITIES_DEMO = [
   { title: 'MrBeast to hit 350M subscribers before Q4?', vol: '$2.1M', yes: 78, no: 22, tag: 'SOCIAL MEDIA' },
   { title: 'Kylie Jenner to announce a new brand partnership this month?', vol: '$1.2M', yes: 15, no: 85, tag: 'ENDORSEMENTS' },
 ];
+const CELEBRITIES_TRENDS_DEMO = [
+  { title: 'Will Kim Kardashian launch a new fragrance line by Q4?', vol: '$640K', yes: 61, no: 39, tag: 'TRENDING NOW' },
+  { title: 'A celebrity breakup dominates social media this week?', vol: '$380K', yes: 72, no: 28, tag: 'VIRAL MOMENT' },
+  { title: 'Zendaya to be named a Time 100 honoree this year?', vol: '$290K', yes: 55, no: 45, tag: 'AWARDS BUZZ' },
+];
+
+// "Celebrities Trends" is a genuinely different slice from "All Celebrities":
+// sorted by how much a market's price has actually moved recently (biggest
+// swing first), not by volume — so it surfaces what's suddenly heating up
+// rather than just what's biggest overall.
+function celebTrendingMarkets(markets) {
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && classifySector(m.title) === 'celebrities')
+    .map((m) => ({ m, delta: Math.abs(deltaFor(m, yesOf(m) || leaderOf(m))) }))
+    .filter((x) => x.delta > 0)
+    .sort((a, b) => b.delta - a.delta)
+    .map((x) => x.m);
+}
 const FESTIVALS_PROB_DEMO = { title: 'Coachella 2025 Headliners include Rihanna?', desc: 'Rumors intensified after Fenty sponsorship discussions surfaced.', prob: 52 };
 const GAMING_PROB_DEMO = { title: 'GTA VI to be delayed to 2026?', desc: 'Institutional prediction pool based on Rockstar developer sentiment analysis.', prob: 24 };
 const STREAMING_DEMO = [
@@ -508,8 +526,9 @@ function SectorGridCard({ m, onOpen }) {
   );
 }
 
-function TwoCardSection({ sector, markets, demo, max = 2, title, onOpen, onViewAll, forwardRef }) {
-  const real = sectorMarkets(markets, sector.id).slice(0, max).map((m, i) => toCardShape(m, demo[i]?.tag || sector.label.toUpperCase(), i));
+function TwoCardSection({ sector, markets, demo, max = 2, title, pickReal, onOpen, onViewAll, forwardRef }) {
+  const pool = pickReal ? pickReal(markets) : sectorMarkets(markets, sector.id);
+  const real = pool.slice(0, max).map((m, i) => toCardShape(m, demo[i]?.tag || sector.label.toUpperCase(), i));
   const rows = real.length >= Math.min(2, demo.length) ? real : demo.map((d, i) => ({ ...d, id: null, _seed: i }));
   return (
     <div ref={forwardRef} style={{ marginBottom: 34, scrollMarginTop: 90 }}>
@@ -774,7 +793,17 @@ export default function LandingPage() {
           <MusicSection markets={markets} genre={musicGenre} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.music} />
           <MoviesSection markets={markets} platform={moviesPlatform} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.movies} />
 
-          <TwoCardSection sector={SECTORS.find((s) => s.id === 'celebrities')} demo={CELEBRITIES_DEMO} max={3} title="Celebrity Markets" markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.celebrities} />
+          <TwoCardSection
+            sector={SECTORS.find((s) => s.id === 'celebrities')}
+            demo={celebSub === 'Celebrities Trends' ? CELEBRITIES_TRENDS_DEMO : CELEBRITIES_DEMO}
+            max={3}
+            title={celebSub === 'Celebrities Trends' ? 'Celebrity Markets · Trending' : 'Celebrity Markets'}
+            pickReal={celebSub === 'Celebrities Trends' ? celebTrendingMarkets : undefined}
+            markets={markets}
+            onOpen={(id) => navigate(`/markets/${id}`)}
+            onViewAll={() => navigate('/explore')}
+            forwardRef={refs.celebrities}
+          />
           <GamingFestivalsRow markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} gamingRef={refs.gaming} festivalsRef={refs.festivals} />
           <TwoCardSection sector={SECTORS.find((s) => s.id === 'streaming')} demo={STREAMING_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.streaming} />
           <TwoCardSection sector={SECTORS.find((s) => s.id === 'trends')} demo={TRENDS_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.trends} />
