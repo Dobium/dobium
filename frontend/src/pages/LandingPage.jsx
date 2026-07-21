@@ -167,8 +167,9 @@ function platformMarkets(markets, platform) {
 }
 
 const CELEBRITIES_DEMO = [
-  { title: "Will Taylor Swift announce a new album at her next Era's Tour stop?", vol: '$1.2M', yes: 72, no: 28, tag: "ERA'S TOUR" },
-  { title: 'Zendaya and Tom Holland to announce engagement by EOY 2024?', vol: '$840K', yes: 45, no: 55, tag: 'HOLLYWOOD RUMORS' },
+  { title: "Will Taylor Swift announce a new album at her next Eras Tour stop?", vol: '$12.5M', yes: 45, no: 55, tag: 'MUSIC INDUSTRY' },
+  { title: 'MrBeast to hit 350M subscribers before Q4?', vol: '$2.1M', yes: 78, no: 22, tag: 'SOCIAL MEDIA' },
+  { title: 'Kylie Jenner to announce a new brand partnership this month?', vol: '$1.2M', yes: 15, no: 85, tag: 'ENDORSEMENTS' },
 ];
 const FESTIVALS_PROB_DEMO = { title: 'Coachella 2025 Headliners include Rihanna?', desc: 'Rumors intensified after Fenty sponsorship discussions surfaced.', prob: 52 };
 const GAMING_PROB_DEMO = { title: 'GTA VI to be delayed to 2026?', desc: 'Institutional prediction pool based on Rockstar developer sentiment analysis.', prob: 24 };
@@ -243,6 +244,9 @@ function genreMarkets(markets, genre) {
     .filter((m) => m.status === 'active' && re.test(m.title || ''))
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
+
+const CELEB_SUBS = ['All Celebrities', 'Celebrities Trends'];
+const CELEB_SUB_ICONS = { 'All Celebrities': 'star', 'Celebrities Trends': 'trend' };
 
 function SectorIcon({ kind, color, size = 15 }) {
   const c = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { flexShrink: 0 } };
@@ -504,12 +508,12 @@ function SectorGridCard({ m, onOpen }) {
   );
 }
 
-function TwoCardSection({ sector, markets, demo, onOpen, onViewAll, forwardRef }) {
-  const real = sectorMarkets(markets, sector.id).slice(0, 2).map((m, i) => toCardShape(m, demo[i]?.tag || sector.label.toUpperCase(), i));
-  const rows = real.length >= 2 ? real : demo.map((d, i) => ({ ...d, id: null, _seed: i }));
+function TwoCardSection({ sector, markets, demo, max = 2, title, onOpen, onViewAll, forwardRef }) {
+  const real = sectorMarkets(markets, sector.id).slice(0, max).map((m, i) => toCardShape(m, demo[i]?.tag || sector.label.toUpperCase(), i));
+  const rows = real.length >= Math.min(2, demo.length) ? real : demo.map((d, i) => ({ ...d, id: null, _seed: i }));
   return (
     <div ref={forwardRef} style={{ marginBottom: 34, scrollMarginTop: 90 }}>
-      <SectionHeader icon={sector.icon} label={sector.label} onViewAll={onViewAll} />
+      <SectionHeader icon={sector.icon} label={title || sector.label} onViewAll={onViewAll} />
       <div className="dbm-home-two-grid">
         {rows.map((m, i) => <SectorGridCard key={m.id || `${sector.id}-${i}`} m={m} onOpen={onOpen} />)}
       </div>
@@ -566,6 +570,8 @@ export default function LandingPage() {
   const [musicGenre, setMusicGenre] = useState('All Music');
   const [moviesOpen, setMoviesOpen] = useState(false);
   const [moviesPlatform, setMoviesPlatform] = useState(null);
+  const [celebsOpen, setCelebsOpen] = useState(false);
+  const [celebSub, setCelebSub] = useState('All Celebrities');
 
   const fetchPulse = useCallback(() => { api.getPulse().then((r) => setPulse(r)).catch(() => {}); }, []);
   useEffect(() => { fetchPulse(); const t = setInterval(fetchPulse, 20000); return () => clearInterval(t); }, [fetchPulse]);
@@ -580,6 +586,7 @@ export default function LandingPage() {
     setActiveSector(id);
     if (id !== 'music') setMusicOpen(false);
     if (id !== 'movies') setMoviesOpen(false);
+    if (id !== 'celebrities') setCelebsOpen(false);
     refs[id]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -590,6 +597,7 @@ export default function LandingPage() {
       setActiveSector('music');
       setMusicOpen(true);
       setMoviesOpen(false);
+      setCelebsOpen(false);
     }
     refs.music?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -608,6 +616,7 @@ export default function LandingPage() {
       setActiveSector('movies');
       setMoviesOpen(true);
       setMusicOpen(false);
+      setCelebsOpen(false);
     }
     refs.movies?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -617,6 +626,25 @@ export default function LandingPage() {
     setActiveSector('movies');
     setMoviesOpen(true);
     refs.movies?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const toggleCelebs = () => {
+    if (activeSector === 'celebrities') {
+      setCelebsOpen((v) => !v);
+    } else {
+      setActiveSector('celebrities');
+      setCelebsOpen(true);
+      setMusicOpen(false);
+      setMoviesOpen(false);
+    }
+    refs.celebrities?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const selectCelebSub = (v) => {
+    setCelebSub(v);
+    setActiveSector('celebrities');
+    setCelebsOpen(true);
+    refs.celebrities?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const active = markets.filter((m) => m.status === 'active');
@@ -639,12 +667,13 @@ export default function LandingPage() {
               const isActive = activeSector === s.id;
               const isMusic = s.id === 'music';
               const isMovies = s.id === 'movies';
-              const hasDropdown = isMusic || isMovies;
-              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen));
-              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : () => goTo(s.id);
-              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : null;
-              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : null;
-              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : null;
+              const isCelebs = s.id === 'celebrities';
+              const hasDropdown = isMusic || isMovies || isCelebs;
+              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCelebs && celebsOpen));
+              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCelebs ? toggleCelebs : () => goTo(s.id);
+              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCelebs ? CELEB_SUBS : null;
+              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCelebs ? celebSub : null;
+              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCelebs ? selectCelebSub : null;
               return (
                 <div key={s.id}>
                   <button onClick={onClickHeader}
@@ -662,7 +691,26 @@ export default function LandingPage() {
                       </svg>
                     )}
                   </button>
-                  {expanded && (
+                  {expanded && isCelebs && (
+                    <div style={{ display: 'flex', flexDirection: 'column', marginTop: 2 }}>
+                      {CELEB_SUBS.map((g) => {
+                        const genreActive = subActive === g;
+                        return (
+                          <button key={g} onClick={() => onSelectSub(g)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 9,
+                              background: genreActive ? 'rgba(255,223,155,.08)' : 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                              padding: '9px 11px', margin: '0 6px', borderRadius: 5, fontSize: 13,
+                              color: genreActive ? GOLD_DIM : WARM, fontWeight: genreActive ? 700 : 500,
+                            }}>
+                            <SectorIcon kind={CELEB_SUB_ICONS[g]} color={genreActive ? GOLD_DIM : WARM} size={13} />
+                            {g}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {expanded && !isCelebs && (
                     <div style={{ display: 'flex', flexDirection: 'column', marginTop: 2 }}>
                       {subItems.map((g) => {
                         const genreActive = subActive === g;
@@ -726,7 +774,7 @@ export default function LandingPage() {
           <MusicSection markets={markets} genre={musicGenre} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.music} />
           <MoviesSection markets={markets} platform={moviesPlatform} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.movies} />
 
-          <TwoCardSection sector={SECTORS.find((s) => s.id === 'celebrities')} demo={CELEBRITIES_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.celebrities} />
+          <TwoCardSection sector={SECTORS.find((s) => s.id === 'celebrities')} demo={CELEBRITIES_DEMO} max={3} title="Celebrity Markets" markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.celebrities} />
           <GamingFestivalsRow markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} gamingRef={refs.gaming} festivalsRef={refs.festivals} />
           <TwoCardSection sector={SECTORS.find((s) => s.id === 'streaming')} demo={STREAMING_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.streaming} />
           <TwoCardSection sector={SECTORS.find((s) => s.id === 'trends')} demo={TRENDS_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.trends} />
