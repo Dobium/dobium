@@ -189,7 +189,50 @@ function celebTrendingMarkets(markets) {
     .sort((a, b) => b.delta - a.delta)
     .map((x) => x.m);
 }
-const GAMING_PROB_DEMO = { title: 'GTA VI to be delayed to 2026?', desc: 'Institutional prediction pool based on Rockstar developer sentiment analysis.', prob: 24 };
+const GAMING_SUBS = ['All Gaming', 'Console', 'Esports Odds', 'Studio Deals', 'Gaming Hardware'];
+const GAMING_SUB_ICONS = {
+  'All Gaming': 'gamepad', 'Console': 'console', 'Esports Odds': 'trophy',
+  'Studio Deals': 'briefcase', 'Gaming Hardware': 'hardware',
+};
+const GAMING_MARKETS_DEMO = [
+  { title: 'GTA VI to be delayed to 2026?', vol: '$2.1M', yes: 24, no: 76, tag: 'ROCKSTAR GAMES' },
+  { title: 'Nintendo Switch 2 Official Announcement before March 2025?', vol: '$1.5M', yes: 88, no: 12, tag: 'NINTENDO' },
+  { title: 'T1 to win League of Legends Worlds 2024?', vol: '$940K', yes: 65, no: 35, tag: 'ESPORTS' },
+  { title: 'Sony to announce acquisition of FromSoftware by EOY?', vol: '$3.2M', yes: 15, no: 85, tag: 'M&A RUMORS' },
+];
+const GAMING_SUB_DEMO = {
+  'Console': [
+    { title: 'PlayStation 6 to be announced before 2026?', vol: '$1.1M', yes: 38, no: 62, tag: 'PLAYSTATION' },
+    { title: 'Xbox to discontinue console hardware by 2027?', vol: '$620K', yes: 22, no: 78, tag: 'XBOX' },
+  ],
+  'Esports Odds': [
+    { title: 'T1 to win League of Legends Worlds 2024?', vol: '$940K', yes: 65, no: 35, tag: 'ESPORTS' },
+    { title: 'FaZe Clan to make Valorant Champions playoffs in 2025?', vol: '$410K', yes: 44, no: 56, tag: 'ESPORTS' },
+  ],
+  'Studio Deals': [
+    { title: 'Sony to announce acquisition of FromSoftware by EOY?', vol: '$3.2M', yes: 15, no: 85, tag: 'M&A RUMORS' },
+    { title: 'Microsoft to acquire another major studio in 2025?', vol: '$780K', yes: 33, no: 67, tag: 'M&A RUMORS' },
+  ],
+  'Gaming Hardware': [
+    { title: 'Nvidia to release a new GPU generation before Q4?', vol: '$560K', yes: 71, no: 29, tag: 'HARDWARE' },
+    { title: 'Valve to release a new Steam Deck model in 2025?', vol: '$340K', yes: 52, no: 48, tag: 'HARDWARE' },
+  ],
+};
+// Same title-heuristic caveat as the other sub-filters — no real per-market
+// category tagging exists yet.
+const GAMING_SUB_RE = {
+  'Console': /playstation|\bps5\b|\bxbox\b|nintendo switch|\bconsole\b/i,
+  'Esports Odds': /esports|e-sports|worlds \d|league of legends|valorant|call of duty league|overwatch league|\bfaze\b|cloud9|\bt1\b/i,
+  'Studio Deals': /acquir|merger|acquisition|buyout|stake in|studio deal/i,
+  'Gaming Hardware': /\bgpu\b|nvidia|graphics card|steam deck|hardware|processor/i,
+};
+function gamingSubMarkets(markets, sub) {
+  const re = GAMING_SUB_RE[sub];
+  if (!re) return [];
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && re.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
 const STREAMING_DEMO = [
   { title: "Netflix Series: 'Beef' Season 2 Renewal?", vol: '$180K', yes: 92, no: 8, tag: 'NETFLIX' },
   { title: 'The Bear Season 4 release date set for 2024?', vol: '$288K', yes: 12, no: 88, tag: 'HULU / FX' },
@@ -327,6 +370,9 @@ function SectorIcon({ kind, color, size = 15 }) {
     case 'calendar': return <svg {...c}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 3v4M16 3v4M3 10h18" /></svg>;
     case 'ticket': return <svg {...c}><path d="M3 8a2 2 0 012-2h14a2 2 0 012 2v2a2 2 0 000 4v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 000-4z" /><path d="M9 6v12" strokeDasharray="2 2" /></svg>;
     case 'briefcase': return <svg {...c}><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M3 12h18" /></svg>;
+    case 'console': return <svg {...c}><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>;
+    case 'trophy': return <svg {...c}><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0zM7 6H4a2 2 0 002 4h1M17 6h3a2 2 0 01-2 4h-1" /></svg>;
+    case 'hardware': return <svg {...c}><rect x="6" y="6" width="12" height="12" rx="2" /><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3" /></svg>;
     default: return null;
   }
 }
@@ -511,42 +557,6 @@ function MoviesSection({ markets, platform, onOpen, onViewAll, forwardRef }) {
   );
 }
 
-function ProbabilityCard({ m, onOpen }) {
-  const barColor = m.prob >= 50 ? GREEN : SALMON;
-  return (
-    <div onClick={() => m.id && onOpen(m.id)}
-      style={{ background: CARD_BG, border: `1px solid ${CARD_LINE}`, borderRadius: 8, padding: '16px 18px', cursor: m.id ? 'pointer' : 'default', minWidth: 0 }}>
-      <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 14.5 }}>{m.title}</div>
-      <p style={{ color: '#8E9AB0', fontSize: 11.5, lineHeight: 1.6, margin: '7px 0 0' }}>{m.desc}</p>
-      <div style={{ marginTop: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <span style={{ ...mono({ fontSize: 8.5, color: WARM }) }}>PROBABILITY</span>
-          <span style={{ color: barColor, fontWeight: 800, fontSize: 13 }}>{m.prob}%</span>
-        </div>
-        <div style={{ height: 4, background: '#0C2745', borderRadius: 2, marginTop: 7 }}>
-          <div style={{ width: `${m.prob}%`, height: '100%', background: barColor, borderRadius: 2 }} />
-        </div>
-      </div>
-      <button style={{ width: '100%', marginTop: 16, background: '#182A45', border: `1px solid ${CARD_LINE}`, borderRadius: 4, padding: '10px 0', cursor: 'pointer', color: '#D5E3FF', fontWeight: 700, fontSize: 12 }}>
-        Trade Pool
-      </button>
-    </div>
-  );
-}
-
-function GamingSection({ markets, onOpen, onViewAll, forwardRef }) {
-  const gm = sectorMarkets(markets, 'gaming')[0];
-  const gaming = gm ? { id: gm.id, title: gm.title, desc: gm.description || GAMING_PROB_DEMO.desc, prob: Math.round((leaderOf(gm)?.probability) || GAMING_PROB_DEMO.prob) } : GAMING_PROB_DEMO;
-  return (
-    <div ref={forwardRef} style={{ marginBottom: 34, scrollMarginTop: 90 }}>
-      <SectionHeader icon="gamepad" label="Gaming Sector" onViewAll={onViewAll} />
-      <div style={{ maxWidth: 480 }}>
-        <ProbabilityCard m={gaming} onOpen={onOpen} />
-      </div>
-    </div>
-  );
-}
-
 function SectorGridCard({ m, onOpen }) {
   return (
     <div key={m.id || m.title} onClick={() => m.id && onOpen(m.id)}
@@ -634,6 +644,8 @@ export default function LandingPage() {
   const [celebSub, setCelebSub] = useState('All Celebrities');
   const [festivalsOpen, setFestivalsOpen] = useState(false);
   const [festivalSub, setFestivalSub] = useState('All Festivals');
+  const [gamingOpen, setGamingOpen] = useState(false);
+  const [gamingSub, setGamingSub] = useState('All Gaming');
 
   const fetchPulse = useCallback(() => { api.getPulse().then((r) => setPulse(r)).catch(() => {}); }, []);
   useEffect(() => { fetchPulse(); const t = setInterval(fetchPulse, 20000); return () => clearInterval(t); }, [fetchPulse]);
@@ -650,6 +662,7 @@ export default function LandingPage() {
     if (id !== 'movies') setMoviesOpen(false);
     if (id !== 'celebrities') setCelebsOpen(false);
     if (id !== 'festivals') setFestivalsOpen(false);
+    if (id !== 'gaming') setGamingOpen(false);
     refs[id]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -662,6 +675,7 @@ export default function LandingPage() {
       setMoviesOpen(false);
       setCelebsOpen(false);
       setFestivalsOpen(false);
+      setGamingOpen(false);
     }
     refs.music?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -682,6 +696,7 @@ export default function LandingPage() {
       setMusicOpen(false);
       setCelebsOpen(false);
       setFestivalsOpen(false);
+      setGamingOpen(false);
     }
     refs.movies?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -702,6 +717,7 @@ export default function LandingPage() {
       setMusicOpen(false);
       setMoviesOpen(false);
       setFestivalsOpen(false);
+      setGamingOpen(false);
     }
     refs.celebrities?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -722,6 +738,7 @@ export default function LandingPage() {
       setMusicOpen(false);
       setMoviesOpen(false);
       setCelebsOpen(false);
+      setGamingOpen(false);
     }
     refs.festivals?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -731,6 +748,27 @@ export default function LandingPage() {
     setActiveSector('festivals');
     setFestivalsOpen(true);
     refs.festivals?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const toggleGaming = () => {
+    if (activeSector === 'gaming') {
+      setGamingOpen((v) => !v);
+    } else {
+      setActiveSector('gaming');
+      setGamingOpen(true);
+      setMusicOpen(false);
+      setMoviesOpen(false);
+      setCelebsOpen(false);
+      setFestivalsOpen(false);
+    }
+    refs.gaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const selectGamingSub = (v) => {
+    setGamingSub(v);
+    setActiveSector('gaming');
+    setGamingOpen(true);
+    refs.gaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const active = markets.filter((m) => m.status === 'active');
@@ -755,13 +793,14 @@ export default function LandingPage() {
               const isMovies = s.id === 'movies';
               const isCelebs = s.id === 'celebrities';
               const isFestivals = s.id === 'festivals';
-              const hasDropdown = isMusic || isMovies || isCelebs || isFestivals;
-              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCelebs && celebsOpen) || (isFestivals && festivalsOpen));
-              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCelebs ? toggleCelebs : isFestivals ? toggleFestivals : () => goTo(s.id);
-              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCelebs ? CELEB_SUBS : isFestivals ? FESTIVAL_SUBS : null;
-              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCelebs ? celebSub : isFestivals ? festivalSub : null;
-              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCelebs ? selectCelebSub : isFestivals ? selectFestivalSub : null;
-              const iconSubs = isCelebs ? CELEB_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : null;
+              const isGaming = s.id === 'gaming';
+              const hasDropdown = isMusic || isMovies || isCelebs || isFestivals || isGaming;
+              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCelebs && celebsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen));
+              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCelebs ? toggleCelebs : isFestivals ? toggleFestivals : isGaming ? toggleGaming : () => goTo(s.id);
+              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCelebs ? CELEB_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : null;
+              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCelebs ? celebSub : isFestivals ? festivalSub : isGaming ? gamingSub : null;
+              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCelebs ? selectCelebSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : null;
+              const iconSubs = isCelebs ? CELEB_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : null;
               return (
                 <div key={s.id}>
                   <button onClick={onClickHeader}
@@ -884,7 +923,17 @@ export default function LandingPage() {
             onViewAll={() => navigate('/explore')}
             forwardRef={refs.festivals}
           />
-          <GamingSection markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.gaming} />
+          <TwoCardSection
+            sector={SECTORS.find((s) => s.id === 'gaming')}
+            demo={gamingSub === 'All Gaming' ? GAMING_MARKETS_DEMO : (GAMING_SUB_DEMO[gamingSub] || GAMING_MARKETS_DEMO)}
+            max={4}
+            title={gamingSub === 'All Gaming' ? 'Gaming Markets' : `Gaming Markets · ${gamingSub}`}
+            pickReal={gamingSub === 'All Gaming' ? undefined : (m) => gamingSubMarkets(m, gamingSub)}
+            markets={markets}
+            onOpen={(id) => navigate(`/markets/${id}`)}
+            onViewAll={() => navigate('/explore')}
+            forwardRef={refs.gaming}
+          />
           <TwoCardSection sector={SECTORS.find((s) => s.id === 'streaming')} demo={STREAMING_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.streaming} />
           <TwoCardSection sector={SECTORS.find((s) => s.id === 'trends')} demo={TRENDS_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.trends} />
         </main>
