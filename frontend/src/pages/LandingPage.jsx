@@ -46,7 +46,7 @@ function compactVol(v) {
 }
 
 // ── Sector classification ────────────────────────────────────────────────
-const SECTOR_ICONS = { music: 'note', movies: 'film', celebrities: 'star', festivals: 'stage', gaming: 'gamepad', streaming: 'play', trends: 'trend' };
+const SECTOR_ICONS = { music: 'note', movies: 'film', celebrities: 'people', festivals: 'stage', gaming: 'gamepad', streaming: 'play', trends: 'trend' };
 const SECTORS = SHARED_SECTORS.map((s) => ({ ...s, icon: SECTOR_ICONS[s.id] }));
 
 function classify(title) {
@@ -142,29 +142,46 @@ function platformMarkets(markets, platform) {
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
 
-const CELEBRITIES_DEMO = [
-  { title: "Will Taylor Swift announce a new album at her next Eras Tour stop?", vol: '$12.5M', yes: 45, no: 55, tag: 'MUSIC INDUSTRY' },
-  { title: 'MrBeast to hit 350M subscribers before Q4?', vol: '$2.1M', yes: 78, no: 22, tag: 'SOCIAL MEDIA' },
-  { title: 'Kylie Jenner to announce a new brand partnership this month?', vol: '$1.2M', yes: 15, no: 85, tag: 'ENDORSEMENTS' },
+const CREATORS_DEMO = [
+  { title: 'MrBeast to reach 400M subscribers by end of 2024?', vol: '$8.4M', yes: 72, no: 28, tag: 'YOUTUBE' },
+  { title: 'Kai Cenat to break the all-time sub record in next subathon?', vol: '$5.1M', yes: 55, no: 45, tag: 'TWITCH / KICK' },
+  { title: 'IShowSpeed to sign exclusive deal with Kick by Q3?', vol: '$3.9M', yes: 38, no: 62, tag: 'STREAMING WARS' },
+  { title: 'xQc to return to full-time variety gaming on Twitch?', vol: '$2.2M', yes: 12, no: 88, tag: 'CONTENT TRENDS' },
 ];
-const CELEBRITIES_TRENDS_DEMO = [
-  { title: 'Will Kim Kardashian launch a new fragrance line by Q4?', vol: '$640K', yes: 61, no: 39, tag: 'TRENDING NOW' },
-  { title: 'A celebrity breakup dominates social media this week?', vol: '$380K', yes: 72, no: 28, tag: 'VIRAL MOMENT' },
-  { title: 'Zendaya to be named a Time 100 honoree this year?', vol: '$290K', yes: 55, no: 45, tag: 'AWARDS BUZZ' },
-];
-
-// "Celebrities Trends" is a genuinely different slice from "All Celebrities":
-// sorted by how much a market's price has actually moved recently (biggest
-// swing first), not by volume — so it surfaces what's suddenly heating up
-// rather than just what's biggest overall.
-function celebTrendingMarkets(markets) {
+const CREATOR_SUB_DEMO = {
+  'YouTube Milestones': [
+    { title: 'MrBeast to reach 400M subscribers by end of 2024?', vol: '$8.4M', yes: 72, no: 28, tag: 'YOUTUBE' },
+    { title: 'A YouTuber to surpass 300M subscribers in 2025?', vol: '$1.8M', yes: 41, no: 59, tag: 'YOUTUBE' },
+  ],
+  'Twitch Live Streaming': [
+    { title: 'Kai Cenat to break the all-time sub record in next subathon?', vol: '$5.1M', yes: 55, no: 45, tag: 'TWITCH' },
+    { title: 'xQc to return to full-time variety gaming on Twitch?', vol: '$2.2M', yes: 12, no: 88, tag: 'TWITCH' },
+  ],
+  'Kick Live Streaming': [
+    { title: 'IShowSpeed to sign exclusive deal with Kick by Q3?', vol: '$3.9M', yes: 38, no: 62, tag: 'KICK' },
+    { title: 'Kick to surpass Twitch in peak concurrent viewers this year?', vol: '$390K', yes: 19, no: 81, tag: 'KICK' },
+  ],
+  'Viral Streamers and Events': [
+    { title: 'A creator collab event goes viral before Q4?', vol: '$610K', yes: 47, no: 53, tag: 'VIRAL EVENTS' },
+    { title: 'A streamer-hosted IRL event breaks attendance records in 2025?', vol: '$340K', yes: 33, no: 67, tag: 'VIRAL EVENTS' },
+  ],
+};
+// Same title-heuristic caveat as the other six sub-filters — no real
+// per-market creator/platform metadata exists yet.
+const CREATOR_SUB_RE = {
+  'YouTube Milestones': /youtube|mrbeast|subscriber/i,
+  'Twitch Live Streaming': /twitch|kai cenat|subathon|\bxqc\b/i,
+  'Kick Live Streaming': /\bkick\b/i,
+  'Viral Streamers and Events': /viral|challenge|\bevent\b|\birl\b|meetup|collab/i,
+};
+function creatorSubMarkets(markets, sub) {
+  const re = CREATOR_SUB_RE[sub];
+  if (!re) return [];
   return [...(markets || [])]
-    .filter((m) => m.status === 'active' && classifySector(m.title) === 'celebrities')
-    .map((m) => ({ m, delta: Math.abs(deltaFor(m, yesOf(m) || leaderOf(m))) }))
-    .filter((x) => x.delta > 0)
-    .sort((a, b) => b.delta - a.delta)
-    .map((x) => x.m);
+    .filter((m) => m.status === 'active' && re.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
+
 const GAMING_SUBS = ['All Gaming', 'Console', 'Esports Odds', 'Studio Deals', 'Gaming Hardware'];
 const GAMING_SUB_ICONS = {
   'All Gaming': 'gamepad', 'Console': 'console', 'Esports Odds': 'trophy',
@@ -402,8 +419,11 @@ function genreMarkets(markets, genre) {
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
 
-const CELEB_SUBS = ['All Celebrities', 'Celebrities Trends'];
-const CELEB_SUB_ICONS = { 'All Celebrities': 'star', 'Celebrities Trends': 'trend' };
+const CREATOR_SUBS = ['All Creators', 'YouTube Milestones', 'Twitch Live Streaming', 'Kick Live Streaming', 'Viral Streamers and Events'];
+const CREATOR_SUB_ICONS = {
+  'All Creators': 'people', 'YouTube Milestones': 'playcircle', 'Twitch Live Streaming': 'play',
+  'Kick Live Streaming': 'bolt', 'Viral Streamers and Events': 'trend',
+};
 
 const FESTIVAL_SUBS = ['All Festivals', 'Performances & Lineups', 'Headliner', 'Ticket Volatility', 'Festival M&A'];
 const FESTIVAL_SUB_ICONS = {
@@ -473,6 +493,7 @@ function SectorIcon({ kind, color, size = 15 }) {
     case 'playcircle': return <svg {...c}><circle cx="12" cy="12" r="9" /><path d="M10 9l5 3-5 3z" fill={color} stroke="none" /></svg>;
     case 'castle': return <svg {...c}><path d="M4 21V9l3-2v2h2V7l3-2 3 2v2h2V7l3 2v12z" /><path d="M4 21h16M9 21v-5h6v5" /></svg>;
     case 'pin': return <svg {...c}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="2.5" fill={color} stroke="none" /></svg>;
+    case 'people': return <svg {...c}><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5" /><circle cx="17.5" cy="9" r="2.6" /><path d="M16 15.2c2.7.2 4.8 1.6 5.5 4.3" /></svg>;
     case 'tiktok': return <svg {...c}><path d="M14 4v10.5a3.5 3.5 0 11-3-3.46M14 4a4.5 4.5 0 004.5 4.5" /></svg>;
     default: return null;
   }
@@ -741,8 +762,8 @@ export default function LandingPage() {
   const [musicGenre, setMusicGenre] = useState('All Music');
   const [moviesOpen, setMoviesOpen] = useState(false);
   const [moviesPlatform, setMoviesPlatform] = useState('All Movies & TV');
-  const [celebsOpen, setCelebsOpen] = useState(false);
-  const [celebSub, setCelebSub] = useState('All Celebrities');
+  const [creatorsOpen, setCreatorsOpen] = useState(false);
+  const [creatorSub, setCreatorSub] = useState('All Creators');
   const [festivalsOpen, setFestivalsOpen] = useState(false);
   const [festivalSub, setFestivalSub] = useState('All Festivals');
   const [gamingOpen, setGamingOpen] = useState(false);
@@ -765,7 +786,7 @@ export default function LandingPage() {
     setActiveSector(id);
     if (id !== 'music') setMusicOpen(false);
     if (id !== 'movies') setMoviesOpen(false);
-    if (id !== 'celebrities') setCelebsOpen(false);
+    if (id !== 'celebrities') setCreatorsOpen(false);
     if (id !== 'festivals') setFestivalsOpen(false);
     if (id !== 'gaming') setGamingOpen(false);
     if (id !== 'streaming') setStreamingOpen(false);
@@ -780,7 +801,7 @@ export default function LandingPage() {
       setActiveSector('music');
       setMusicOpen(true);
       setMoviesOpen(false);
-      setCelebsOpen(false);
+      setCreatorsOpen(false);
       setFestivalsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
@@ -803,7 +824,7 @@ export default function LandingPage() {
       setActiveSector('movies');
       setMoviesOpen(true);
       setMusicOpen(false);
-      setCelebsOpen(false);
+      setCreatorsOpen(false);
       setFestivalsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
@@ -819,12 +840,12 @@ export default function LandingPage() {
     refs.movies?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const toggleCelebs = () => {
+  const toggleCreators = () => {
     if (activeSector === 'celebrities') {
-      setCelebsOpen((v) => !v);
+      setCreatorsOpen((v) => !v);
     } else {
       setActiveSector('celebrities');
-      setCelebsOpen(true);
+      setCreatorsOpen(true);
       setMusicOpen(false);
       setMoviesOpen(false);
       setFestivalsOpen(false);
@@ -835,10 +856,10 @@ export default function LandingPage() {
     refs.celebrities?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const selectCelebSub = (v) => {
-    setCelebSub(v);
+  const selectCreatorSub = (v) => {
+    setCreatorSub(v);
     setActiveSector('celebrities');
-    setCelebsOpen(true);
+    setCreatorsOpen(true);
     refs.celebrities?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -850,7 +871,7 @@ export default function LandingPage() {
       setFestivalsOpen(true);
       setMusicOpen(false);
       setMoviesOpen(false);
-      setCelebsOpen(false);
+      setCreatorsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
@@ -873,7 +894,7 @@ export default function LandingPage() {
       setGamingOpen(true);
       setMusicOpen(false);
       setMoviesOpen(false);
-      setCelebsOpen(false);
+      setCreatorsOpen(false);
       setFestivalsOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
@@ -896,7 +917,7 @@ export default function LandingPage() {
       setStreamingOpen(true);
       setMusicOpen(false);
       setMoviesOpen(false);
-      setCelebsOpen(false);
+      setCreatorsOpen(false);
       setFestivalsOpen(false);
       setGamingOpen(false);
       setTrendsOpen(false);
@@ -919,7 +940,7 @@ export default function LandingPage() {
       setTrendsOpen(true);
       setMusicOpen(false);
       setMoviesOpen(false);
-      setCelebsOpen(false);
+      setCreatorsOpen(false);
       setFestivalsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
@@ -954,18 +975,18 @@ export default function LandingPage() {
               const isActive = activeSector === s.id;
               const isMusic = s.id === 'music';
               const isMovies = s.id === 'movies';
-              const isCelebs = s.id === 'celebrities';
+              const isCreators = s.id === 'celebrities';
               const isFestivals = s.id === 'festivals';
               const isGaming = s.id === 'gaming';
               const isStreaming = s.id === 'streaming';
               const isTrends = s.id === 'trends';
-              const hasDropdown = isMusic || isMovies || isCelebs || isFestivals || isGaming || isStreaming || isTrends;
-              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCelebs && celebsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen) || (isTrends && trendsOpen));
-              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCelebs ? toggleCelebs : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : isTrends ? toggleTrends : () => goTo(s.id);
-              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCelebs ? CELEB_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : isTrends ? INTERNET_TRENDS_SUBS : null;
-              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCelebs ? celebSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : isTrends ? trendsSub : null;
-              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCelebs ? selectCelebSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : isTrends ? selectTrendsSub : null;
-              const iconSubs = isCelebs ? CELEB_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : isStreaming ? STREAMING_SUB_ICONS : isTrends ? TRENDS_SUB_ICONS : null;
+              const hasDropdown = isMusic || isMovies || isCreators || isFestivals || isGaming || isStreaming || isTrends;
+              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCreators && creatorsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen) || (isTrends && trendsOpen));
+              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCreators ? toggleCreators : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : isTrends ? toggleTrends : () => goTo(s.id);
+              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCreators ? CREATOR_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : isTrends ? INTERNET_TRENDS_SUBS : null;
+              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCreators ? creatorSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : isTrends ? trendsSub : null;
+              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCreators ? selectCreatorSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : isTrends ? selectTrendsSub : null;
+              const iconSubs = isCreators ? CREATOR_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : isStreaming ? STREAMING_SUB_ICONS : isTrends ? TRENDS_SUB_ICONS : null;
               return (
                 <div key={s.id}>
                   <button onClick={onClickHeader}
@@ -1068,10 +1089,10 @@ export default function LandingPage() {
 
           <TwoCardSection
             sector={SECTORS.find((s) => s.id === 'celebrities')}
-            demo={celebSub === 'Celebrities Trends' ? CELEBRITIES_TRENDS_DEMO : CELEBRITIES_DEMO}
-            max={3}
-            title={celebSub === 'Celebrities Trends' ? 'Celebrity Markets · Trending' : 'Celebrity Markets'}
-            pickReal={celebSub === 'Celebrities Trends' ? celebTrendingMarkets : undefined}
+            demo={creatorSub === 'All Creators' ? CREATORS_DEMO : (CREATOR_SUB_DEMO[creatorSub] || CREATORS_DEMO)}
+            max={4}
+            title={creatorSub === 'All Creators' ? 'Creators & Streamers' : `Creators & Streamers · ${creatorSub}`}
+            pickReal={creatorSub === 'All Creators' ? undefined : (m) => creatorSubMarkets(m, creatorSub)}
             markets={markets}
             onOpen={(id) => navigate(`/markets/${id}`)}
             onViewAll={() => navigate('/explore')}
