@@ -76,6 +76,96 @@ const MOVIES_DEMO_SIDE = [
   { title: '"Gladiator II" Critics Score above 85%?', vol: '$412K', yes: 64, no: 36, tag: 'ROTTEN TOMATOES' },
   { title: '"The Bear" Season 4 release date set for 2024?', vol: '$288K', yes: 12, no: 88, tag: 'STREAMING WARS' },
 ];
+
+const MOVIES_PLATFORMS = ['Netflix', 'HBO/Max', 'Disney+', 'Prime Video', 'Apple TV+', 'Hulu', 'Box Office Hits', 'Awards', 'Franchises'];
+
+// Same caveat as the Music genre filters below: title/keyword heuristics,
+// not real per-market platform metadata.
+const PLATFORM_RE = {
+  'Netflix': /netflix/i,
+  'HBO/Max': /\bhbo\b|hbo max/i,
+  'Disney+': /disney\+|disney plus/i,
+  'Prime Video': /prime video|amazon prime/i,
+  'Apple TV+': /apple tv/i,
+  'Hulu': /\bhulu\b/i,
+  'Box Office Hits': /box office/i,
+  'Awards': /oscar|academy award|golden globe|\bemmy\b|\baward\b/i,
+  'Franchises': /marvel|\bmcu\b|star wars|\bdc\b|sequel|part \d|chapter \d|franchise/i,
+};
+const PLATFORM_DEMO = {
+  'Netflix': {
+    featured: { title: 'Will "Stranger Things" Season 5 break Netflix viewership records?', desc: 'Final-season hype has been building fast since the teaser trailer dropped.', yes: 74, no: 26 },
+    side: [
+      { title: "Netflix Series: 'Beef' Season 2 Renewal?", vol: '$180K', yes: 92, no: 8, tag: 'NETFLIX' },
+      { title: 'Will "Wednesday" Season 2 premiere before Q3?', vol: '$310K', yes: 66, no: 34, tag: 'NETFLIX' },
+    ],
+  },
+  'HBO/Max': {
+    featured: { title: 'Will "House of the Dragon" Season 3 premiere before 2026?', desc: 'Production wrapped early, fueling speculation about an accelerated release window.', yes: 58, no: 42 },
+    side: [
+      { title: '"The Last of Us" Season 3 renewal confirmed?', vol: '$260K', yes: 81, no: 19, tag: 'HBO MAX' },
+      { title: '"Euphoria" Season 3 premiere date announced?', vol: '$340K', yes: 47, no: 53, tag: 'HBO MAX' },
+    ],
+  },
+  'Disney+': {
+    featured: { title: 'Will a new "Star Wars" series be announced at D23?', desc: 'Rumors point to a Mandalorian spinoff following recent casting leaks.', yes: 63, no: 37 },
+    side: [
+      { title: '"Daredevil: Born Again" Season 2 confirmed?', vol: '$290K', yes: 70, no: 30, tag: 'DISNEY+' },
+      { title: 'Disney+ password-sharing crackdown expands in 2025?', vol: '$150K', yes: 55, no: 45, tag: 'DISNEY+' },
+    ],
+  },
+  'Prime Video': {
+    featured: { title: 'Will "The Boys" Season 5 be its final season?', desc: 'Showrunner comments have fueled speculation the flagship series is wrapping up.', yes: 52, no: 48 },
+    side: [
+      { title: '"Fallout" Season 2 premiere date set for 2025?', vol: '$220K', yes: 68, no: 32, tag: 'PRIME VIDEO' },
+      { title: 'Amazon to greenlight a new "Lord of the Rings" film?', vol: '$310K', yes: 34, no: 66, tag: 'PRIME VIDEO' },
+    ],
+  },
+  'Apple TV+': {
+    featured: { title: 'Will "Severance" Season 3 be renewed before the S2 finale?', desc: 'Critical acclaim and social buzz have made an early renewal increasingly likely.', yes: 77, no: 23 },
+    side: [
+      { title: '"Ted Lasso" Season 4 officially confirmed?', vol: '$260K', yes: 41, no: 59, tag: 'APPLE TV+' },
+      { title: 'Apple TV+ to raise subscription prices in 2025?', vol: '$95K', yes: 48, no: 52, tag: 'APPLE TV+' },
+    ],
+  },
+  'Hulu': {
+    featured: { title: 'Will "The Bear" Season 4 premiere before summer 2025?', desc: 'FX production schedule leaks suggest a faster turnaround than Season 3 had.', yes: 56, no: 44 },
+    side: [
+      { title: 'Hulu and Disney+ bundle merges into one app in 2025?', vol: '$180K', yes: 61, no: 39, tag: 'HULU' },
+      { title: '"Only Murders in the Building" Season 5 renewal confirmed?', vol: '$140K', yes: 83, no: 17, tag: 'HULU' },
+    ],
+  },
+  'Box Office Hits': {
+    featured: MOVIES_DEMO_FEATURED,
+    side: [
+      { title: '"Gladiator II" to cross $500M worldwide?', vol: '$412K', yes: 64, no: 36, tag: 'ROTTEN TOMATOES' },
+      { title: 'Will a 2025 release cross $1B worldwide?', vol: '$680K', yes: 37, no: 63, tag: 'BOX OFFICE' },
+    ],
+  },
+  'Awards': {
+    featured: { title: 'Will "Oppenheimer" sweep Best Picture at the 2025 Oscars?', desc: 'Awards-season momentum has made it the frontrunner across major guild ceremonies.', yes: 69, no: 31 },
+    side: [
+      { title: 'Will "Stranger Things" win Outstanding Drama Series at the 2026 Emmys?', vol: '$0', yes: 50, no: 50, tag: 'ROTTEN TOMATOES' },
+      { title: 'A streaming-only film wins Best Picture before 2027?', vol: '$220K', yes: 44, no: 56, tag: 'AWARDS' },
+    ],
+  },
+  'Franchises': {
+    featured: { title: 'Will Marvel announce Avengers: Secret Wars casting before 2026?', desc: 'Studio insiders suggest a major casting reveal is being planned for a fan event.', yes: 59, no: 41 },
+    side: [
+      { title: 'A new "Star Wars" trilogy greenlit before 2026?', vol: '$310K', yes: 33, no: 67, tag: 'FRANCHISES' },
+      { title: 'DC to reboot Batman again before 2027?', vol: '$260K', yes: 28, no: 72, tag: 'FRANCHISES' },
+    ],
+  },
+};
+
+function platformMarkets(markets, platform) {
+  const re = PLATFORM_RE[platform];
+  if (!re) return [];
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && re.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
+
 const CELEBRITIES_DEMO = [
   { title: "Will Taylor Swift announce a new album at her next Era's Tour stop?", vol: '$1.2M', yes: 72, no: 28, tag: "ERA'S TOUR" },
   { title: 'Zendaya and Tom Holland to announce engagement by EOY 2024?', vol: '$840K', yes: 45, no: 55, tag: 'HOLLYWOOD RUMORS' },
@@ -297,22 +387,24 @@ function MusicSection({ markets, genre, onOpen, onViewAll, forwardRef }) {
   );
 }
 
-function MoviesSection({ markets, onOpen, onViewAll, forwardRef }) {
-  const real = sectorMarkets(markets, 'movies');
+function MoviesSection({ markets, platform, onOpen, onViewAll, forwardRef }) {
+  const isPlatform = !!platform;
+  const real = isPlatform ? platformMarkets(markets, platform) : sectorMarkets(markets, 'movies');
   const featuredM = real[0];
   const sideMs = real.slice(1, 3);
+  const demoSet = isPlatform ? (PLATFORM_DEMO[platform] || { featured: MOVIES_DEMO_FEATURED, side: MOVIES_DEMO_SIDE }) : { featured: MOVIES_DEMO_FEATURED, side: MOVIES_DEMO_SIDE };
 
   const featured = featuredM
-    ? { id: featuredM.id, title: featuredM.title, desc: featuredM.description || MOVIES_DEMO_FEATURED.desc, ...(() => { const y = yesOf(featuredM) || leaderOf(featuredM); const yp = Math.round((yesOf(featuredM) ? y.probability : y?.probability) || 50); return { yes: yp, no: 100 - yp }; })(), image: featuredM.image || featuredM.event_image }
-    : MOVIES_DEMO_FEATURED;
+    ? { id: featuredM.id, title: featuredM.title, desc: featuredM.description || demoSet.featured.desc, ...(() => { const y = yesOf(featuredM) || leaderOf(featuredM); const yp = Math.round((yesOf(featuredM) ? y.probability : y?.probability) || 50); return { yes: yp, no: 100 - yp }; })(), image: featuredM.image || featuredM.event_image }
+    : demoSet.featured;
 
   const side = sideMs.length > 0
-    ? sideMs.map((m, i) => toCardShape(m, i === 0 ? 'ROTTEN TOMATOES' : 'STREAMING WARS', i))
-    : MOVIES_DEMO_SIDE.map((d, i) => ({ ...d, id: null, _seed: i }));
+    ? sideMs.map((m, i) => toCardShape(m, demoSet.side[i]?.tag || (isPlatform ? platform.toUpperCase() : (i === 0 ? 'ROTTEN TOMATOES' : 'STREAMING WARS')), i))
+    : demoSet.side.map((d, i) => ({ ...d, id: null, _seed: i }));
 
   return (
     <div ref={forwardRef} style={{ marginBottom: 34, scrollMarginTop: 90 }}>
-      <SectionHeader icon="film" label="Movies & TV" onViewAll={onViewAll} />
+      <SectionHeader icon="film" label={isPlatform ? `Movies & TV · ${platform}` : 'Movies & TV'} onViewAll={onViewAll} />
       <div className="dbm-home-movies-grid">
         <div
           onClick={() => featured.id && onOpen(featured.id)}
@@ -321,7 +413,7 @@ function MoviesSection({ markets, onOpen, onViewAll, forwardRef }) {
           {!(featured.image && /^https?:/.test(featured.image)) && <DuneArt />}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,10,26,.05) 0%, rgba(0,10,26,.85) 78%)' }} />
           <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ ...mono({ fontSize: 8.5, color: WARM, background: 'rgba(0,19,45,.85)', border: `1px solid ${CARD_LINE}`, borderRadius: 2, padding: '4px 9px' }) }}>FEATURED BOX OFFICE</span>
+            <span style={{ ...mono({ fontSize: 8.5, color: WARM, background: 'rgba(0,19,45,.85)', border: `1px solid ${CARD_LINE}`, borderRadius: 2, padding: '4px 9px' }) }}>{isPlatform ? `FEATURED · ${platform.toUpperCase()}` : 'FEATURED BOX OFFICE'}</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, ...mono({ fontSize: 8.5, color: GREEN }) }}>
               <span style={{ width: 5, height: 5, borderRadius: 999, background: GREEN }} />LIVE MARKET
             </span>
@@ -472,6 +564,8 @@ export default function LandingPage() {
   const [activeSector, setActiveSector] = useState('music');
   const [musicOpen, setMusicOpen] = useState(true);
   const [musicGenre, setMusicGenre] = useState('All Music');
+  const [moviesOpen, setMoviesOpen] = useState(false);
+  const [moviesPlatform, setMoviesPlatform] = useState(null);
 
   const fetchPulse = useCallback(() => { api.getPulse().then((r) => setPulse(r)).catch(() => {}); }, []);
   useEffect(() => { fetchPulse(); const t = setInterval(fetchPulse, 20000); return () => clearInterval(t); }, [fetchPulse]);
@@ -485,6 +579,7 @@ export default function LandingPage() {
   const goTo = (id) => {
     setActiveSector(id);
     if (id !== 'music') setMusicOpen(false);
+    if (id !== 'movies') setMoviesOpen(false);
     refs[id]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -494,6 +589,7 @@ export default function LandingPage() {
     } else {
       setActiveSector('music');
       setMusicOpen(true);
+      setMoviesOpen(false);
     }
     refs.music?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -503,6 +599,24 @@ export default function LandingPage() {
     setActiveSector('music');
     setMusicOpen(true);
     refs.music?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const toggleMovies = () => {
+    if (activeSector === 'movies') {
+      setMoviesOpen((v) => !v);
+    } else {
+      setActiveSector('movies');
+      setMoviesOpen(true);
+      setMusicOpen(false);
+    }
+    refs.movies?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const selectPlatform = (p) => {
+    setMoviesPlatform(p);
+    setActiveSector('movies');
+    setMoviesOpen(true);
+    refs.movies?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const active = markets.filter((m) => m.status === 'active');
@@ -524,10 +638,16 @@ export default function LandingPage() {
             {SECTORS.map((s) => {
               const isActive = activeSector === s.id;
               const isMusic = s.id === 'music';
-              const expanded = isMusic && isActive && musicOpen;
+              const isMovies = s.id === 'movies';
+              const hasDropdown = isMusic || isMovies;
+              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen));
+              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : () => goTo(s.id);
+              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : null;
+              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : null;
+              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : null;
               return (
                 <div key={s.id}>
-                  <button onClick={() => (isMusic ? toggleMusic() : goTo(s.id))}
+                  <button onClick={onClickHeader}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: isActive ? '#394666' : 'transparent',
                       border: 'none', borderRadius: 6, padding: '10px 11px', cursor: 'pointer', textAlign: 'left',
@@ -535,7 +655,7 @@ export default function LandingPage() {
                     }}>
                     <SectorIcon kind={s.icon} color={isActive ? '#DCE6F5' : WARM} />
                     <span style={{ flex: 1 }}>{s.label}</span>
-                    {isMusic && (
+                    {hasDropdown && (
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isActive ? '#DCE6F5' : WARM} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                         style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease', flexShrink: 0 }}>
                         <path d="M6 9l6 6 6-6" />
@@ -544,10 +664,10 @@ export default function LandingPage() {
                   </button>
                   {expanded && (
                     <div style={{ display: 'flex', flexDirection: 'column', marginTop: 2 }}>
-                      {MUSIC_GENRES.map((g) => {
-                        const genreActive = musicGenre === g;
+                      {subItems.map((g) => {
+                        const genreActive = subActive === g;
                         return (
-                          <button key={g} onClick={() => selectGenre(g)}
+                          <button key={g} onClick={() => onSelectSub(g)}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 8,
                               background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
@@ -604,7 +724,7 @@ export default function LandingPage() {
           </div>
 
           <MusicSection markets={markets} genre={musicGenre} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.music} />
-          <MoviesSection markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.movies} />
+          <MoviesSection markets={markets} platform={moviesPlatform} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.movies} />
 
           <TwoCardSection sector={SECTORS.find((s) => s.id === 'celebrities')} demo={CELEBRITIES_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.celebrities} />
           <GamingFestivalsRow markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} gamingRef={refs.gaming} festivalsRef={refs.festivals} />
