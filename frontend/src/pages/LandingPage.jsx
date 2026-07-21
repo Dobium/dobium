@@ -189,7 +189,6 @@ function celebTrendingMarkets(markets) {
     .sort((a, b) => b.delta - a.delta)
     .map((x) => x.m);
 }
-const FESTIVALS_PROB_DEMO = { title: 'Coachella 2025 Headliners include Rihanna?', desc: 'Rumors intensified after Fenty sponsorship discussions surfaced.', prob: 52 };
 const GAMING_PROB_DEMO = { title: 'GTA VI to be delayed to 2026?', desc: 'Institutional prediction pool based on Rockstar developer sentiment analysis.', prob: 24 };
 const STREAMING_DEMO = [
   { title: "Netflix Series: 'Beef' Season 2 Renewal?", vol: '$180K', yes: 92, no: 8, tag: 'NETFLIX' },
@@ -266,6 +265,51 @@ function genreMarkets(markets, genre) {
 const CELEB_SUBS = ['All Celebrities', 'Celebrities Trends'];
 const CELEB_SUB_ICONS = { 'All Celebrities': 'star', 'Celebrities Trends': 'trend' };
 
+const FESTIVAL_SUBS = ['All Festivals', 'Performances & Lineups', 'Headliner', 'Ticket Volatility', 'Festival M&A'];
+const FESTIVAL_SUB_ICONS = {
+  'All Festivals': 'stage', 'Performances & Lineups': 'calendar', 'Headliner': 'note',
+  'Ticket Volatility': 'ticket', 'Festival M&A': 'briefcase',
+};
+const FESTIVALS_DEMO = [
+  { title: 'Coachella 2025: Rihanna to headline?', vol: '$4.8M', yes: 32, no: 68, tag: 'GOLDENVOICE' },
+  { title: 'Tomorrowland 2025 early bird to sell out in < 5 mins?', vol: '$2.1M', yes: 85, no: 15, tag: 'ID&T' },
+  { title: 'Glastonbury to announce expansion into Asia by EOY?', vol: '$1.2M', yes: 12, no: 88, tag: 'LIVE NATION' },
+  { title: 'Burning Man 2024 total attendance to exceed 80k?', vol: '$3.5M', yes: 55, no: 45, tag: 'BLACK ROCK CITY' },
+];
+const FESTIVAL_SUB_DEMO = {
+  'Performances & Lineups': [
+    { title: 'Full Coachella 2025 lineup announced before February?', vol: '$680K', yes: 74, no: 26, tag: 'LINEUP WATCH' },
+    { title: 'A surprise guest joins a Coachella headliner set?', vol: '$310K', yes: 61, no: 39, tag: 'PERFORMANCES' },
+  ],
+  'Headliner': [
+    { title: 'Beyoncé confirmed as a 2025 festival headliner?', vol: '$1.4M', yes: 48, no: 52, tag: 'HEADLINER WATCH' },
+    { title: 'A K-pop act headlines a major US festival in 2025?', vol: '$390K', yes: 29, no: 71, tag: 'HEADLINER WATCH' },
+  ],
+  'Ticket Volatility': [
+    { title: 'Coachella 2025 resale prices exceed 3x face value?', vol: '$520K', yes: 66, no: 34, tag: 'TICKET VOLATILITY' },
+    { title: 'A major festival sells out in under 10 minutes in 2025?', vol: '$440K', yes: 58, no: 42, tag: 'TICKET VOLATILITY' },
+  ],
+  'Festival M&A': [
+    { title: 'Live Nation to acquire another major festival brand in 2025?', vol: '$610K', yes: 41, no: 59, tag: 'FESTIVAL M&A' },
+    { title: 'A private equity firm buys a stake in a top festival in 2025?', vol: '$280K', yes: 35, no: 65, tag: 'FESTIVAL M&A' },
+  ],
+};
+// Same title-heuristic caveat as the Music/Movies sub-filters — no real
+// per-market category tagging exists yet.
+const FESTIVAL_SUB_RE = {
+  'Performances & Lineups': /lineup|line-up|perform(ance)?|set time|schedule announc/i,
+  'Headliner': /headlin/i,
+  'Ticket Volatility': /ticket|sell.?out|early bird|resale/i,
+  'Festival M&A': /acquir|merger|acquisition|buyout|stake in/i,
+};
+function festivalSubMarkets(markets, sub) {
+  const re = FESTIVAL_SUB_RE[sub];
+  if (!re) return [];
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && re.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
+
 function SectorIcon({ kind, color, size = 15 }) {
   const c = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { flexShrink: 0 } };
   switch (kind) {
@@ -280,6 +324,9 @@ function SectorIcon({ kind, color, size = 15 }) {
     case 'api': return <svg {...c}><path d="M4 4l16 16M20 4L4 20" /></svg>;
     case 'bars': return <svg {...c} strokeWidth="2.4"><path d="M5 20V12M12 20V6M19 20v-9" /></svg>;
     case 'trend': return <svg {...c}><path d="M3 17l6-6 4 4 8-8M15 7h6v6" /></svg>;
+    case 'calendar': return <svg {...c}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 3v4M16 3v4M3 10h18" /></svg>;
+    case 'ticket': return <svg {...c}><path d="M3 8a2 2 0 012-2h14a2 2 0 012 2v2a2 2 0 000 4v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 000-4z" /><path d="M9 6v12" strokeDasharray="2 2" /></svg>;
+    case 'briefcase': return <svg {...c}><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M3 12h18" /></svg>;
     default: return null;
   }
 }
@@ -487,20 +534,14 @@ function ProbabilityCard({ m, onOpen }) {
   );
 }
 
-function GamingFestivalsRow({ markets, onOpen, onViewAll, gamingRef, festivalsRef }) {
+function GamingSection({ markets, onOpen, onViewAll, forwardRef }) {
   const gm = sectorMarkets(markets, 'gaming')[0];
-  const fm = sectorMarkets(markets, 'festivals')[0];
   const gaming = gm ? { id: gm.id, title: gm.title, desc: gm.description || GAMING_PROB_DEMO.desc, prob: Math.round((leaderOf(gm)?.probability) || GAMING_PROB_DEMO.prob) } : GAMING_PROB_DEMO;
-  const fest = fm ? { id: fm.id, title: fm.title, desc: fm.description || FESTIVALS_PROB_DEMO.desc, prob: Math.round((leaderOf(fm)?.probability) || FESTIVALS_PROB_DEMO.prob) } : FESTIVALS_PROB_DEMO;
   return (
-    <div className="dbm-home-probability-row" style={{ marginBottom: 34 }}>
-      <div ref={gamingRef} style={{ scrollMarginTop: 90 }}>
-        <SectionHeader icon="gamepad" label="Gaming Sector" onViewAll={onViewAll} />
+    <div ref={forwardRef} style={{ marginBottom: 34, scrollMarginTop: 90 }}>
+      <SectionHeader icon="gamepad" label="Gaming Sector" onViewAll={onViewAll} />
+      <div style={{ maxWidth: 480 }}>
         <ProbabilityCard m={gaming} onOpen={onOpen} />
-      </div>
-      <div ref={festivalsRef} style={{ scrollMarginTop: 90 }}>
-        <SectionHeader icon="stage" label="Festivals & Events" onViewAll={onViewAll} />
-        <ProbabilityCard m={fest} onOpen={onOpen} />
       </div>
     </div>
   );
@@ -591,6 +632,8 @@ export default function LandingPage() {
   const [moviesPlatform, setMoviesPlatform] = useState(null);
   const [celebsOpen, setCelebsOpen] = useState(false);
   const [celebSub, setCelebSub] = useState('All Celebrities');
+  const [festivalsOpen, setFestivalsOpen] = useState(false);
+  const [festivalSub, setFestivalSub] = useState('All Festivals');
 
   const fetchPulse = useCallback(() => { api.getPulse().then((r) => setPulse(r)).catch(() => {}); }, []);
   useEffect(() => { fetchPulse(); const t = setInterval(fetchPulse, 20000); return () => clearInterval(t); }, [fetchPulse]);
@@ -606,6 +649,7 @@ export default function LandingPage() {
     if (id !== 'music') setMusicOpen(false);
     if (id !== 'movies') setMoviesOpen(false);
     if (id !== 'celebrities') setCelebsOpen(false);
+    if (id !== 'festivals') setFestivalsOpen(false);
     refs[id]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -617,6 +661,7 @@ export default function LandingPage() {
       setMusicOpen(true);
       setMoviesOpen(false);
       setCelebsOpen(false);
+      setFestivalsOpen(false);
     }
     refs.music?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -636,6 +681,7 @@ export default function LandingPage() {
       setMoviesOpen(true);
       setMusicOpen(false);
       setCelebsOpen(false);
+      setFestivalsOpen(false);
     }
     refs.movies?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -655,6 +701,7 @@ export default function LandingPage() {
       setCelebsOpen(true);
       setMusicOpen(false);
       setMoviesOpen(false);
+      setFestivalsOpen(false);
     }
     refs.celebrities?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -664,6 +711,26 @@ export default function LandingPage() {
     setActiveSector('celebrities');
     setCelebsOpen(true);
     refs.celebrities?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const toggleFestivals = () => {
+    if (activeSector === 'festivals') {
+      setFestivalsOpen((v) => !v);
+    } else {
+      setActiveSector('festivals');
+      setFestivalsOpen(true);
+      setMusicOpen(false);
+      setMoviesOpen(false);
+      setCelebsOpen(false);
+    }
+    refs.festivals?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const selectFestivalSub = (v) => {
+    setFestivalSub(v);
+    setActiveSector('festivals');
+    setFestivalsOpen(true);
+    refs.festivals?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const active = markets.filter((m) => m.status === 'active');
@@ -687,12 +754,14 @@ export default function LandingPage() {
               const isMusic = s.id === 'music';
               const isMovies = s.id === 'movies';
               const isCelebs = s.id === 'celebrities';
-              const hasDropdown = isMusic || isMovies || isCelebs;
-              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCelebs && celebsOpen));
-              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCelebs ? toggleCelebs : () => goTo(s.id);
-              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCelebs ? CELEB_SUBS : null;
-              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCelebs ? celebSub : null;
-              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCelebs ? selectCelebSub : null;
+              const isFestivals = s.id === 'festivals';
+              const hasDropdown = isMusic || isMovies || isCelebs || isFestivals;
+              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCelebs && celebsOpen) || (isFestivals && festivalsOpen));
+              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCelebs ? toggleCelebs : isFestivals ? toggleFestivals : () => goTo(s.id);
+              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCelebs ? CELEB_SUBS : isFestivals ? FESTIVAL_SUBS : null;
+              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCelebs ? celebSub : isFestivals ? festivalSub : null;
+              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCelebs ? selectCelebSub : isFestivals ? selectFestivalSub : null;
+              const iconSubs = isCelebs ? CELEB_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : null;
               return (
                 <div key={s.id}>
                   <button onClick={onClickHeader}
@@ -710,9 +779,9 @@ export default function LandingPage() {
                       </svg>
                     )}
                   </button>
-                  {expanded && isCelebs && (
+                  {expanded && iconSubs && (
                     <div style={{ display: 'flex', flexDirection: 'column', marginTop: 2 }}>
-                      {CELEB_SUBS.map((g) => {
+                      {subItems.map((g) => {
                         const genreActive = subActive === g;
                         return (
                           <button key={g} onClick={() => onSelectSub(g)}
@@ -722,14 +791,14 @@ export default function LandingPage() {
                               padding: '9px 11px', margin: '0 6px', borderRadius: 5, fontSize: 13,
                               color: genreActive ? GOLD_DIM : WARM, fontWeight: genreActive ? 700 : 500,
                             }}>
-                            <SectorIcon kind={CELEB_SUB_ICONS[g]} color={genreActive ? GOLD_DIM : WARM} size={13} />
+                            <SectorIcon kind={iconSubs[g]} color={genreActive ? GOLD_DIM : WARM} size={13} />
                             {g}
                           </button>
                         );
                       })}
                     </div>
                   )}
-                  {expanded && !isCelebs && (
+                  {expanded && !iconSubs && (
                     <div style={{ display: 'flex', flexDirection: 'column', marginTop: 2 }}>
                       {subItems.map((g) => {
                         const genreActive = subActive === g;
@@ -804,7 +873,18 @@ export default function LandingPage() {
             onViewAll={() => navigate('/explore')}
             forwardRef={refs.celebrities}
           />
-          <GamingFestivalsRow markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} gamingRef={refs.gaming} festivalsRef={refs.festivals} />
+          <TwoCardSection
+            sector={SECTORS.find((s) => s.id === 'festivals')}
+            demo={festivalSub === 'All Festivals' ? FESTIVALS_DEMO : (FESTIVAL_SUB_DEMO[festivalSub] || FESTIVALS_DEMO)}
+            max={4}
+            title={festivalSub === 'All Festivals' ? 'Festival Markets' : `Festival Markets · ${festivalSub}`}
+            pickReal={festivalSub === 'All Festivals' ? undefined : (m) => festivalSubMarkets(m, festivalSub)}
+            markets={markets}
+            onOpen={(id) => navigate(`/markets/${id}`)}
+            onViewAll={() => navigate('/explore')}
+            forwardRef={refs.festivals}
+          />
+          <GamingSection markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.gaming} />
           <TwoCardSection sector={SECTORS.find((s) => s.id === 'streaming')} demo={STREAMING_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.streaming} />
           <TwoCardSection sector={SECTORS.find((s) => s.id === 'trends')} demo={TRENDS_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.trends} />
         </main>
@@ -828,8 +908,7 @@ export default function LandingPage() {
         .dbm-home-music-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
         .dbm-home-movies-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
         .dbm-home-two-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-        .dbm-home-probability-row { display: grid; grid-template-columns: 1fr; gap: 16px; }
-        @media (min-width: 640px) { .dbm-home-music-grid { grid-template-columns: repeat(3, 1fr); } .dbm-home-two-grid { grid-template-columns: repeat(2, 1fr); } .dbm-home-probability-row { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 640px) { .dbm-home-music-grid { grid-template-columns: repeat(3, 1fr); } .dbm-home-two-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) {
           .dbm-home-music-grid { grid-template-columns: repeat(4, 1fr); }
           .dbm-home-movies-grid { grid-template-columns: 1.6fr 1fr; }
