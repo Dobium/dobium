@@ -292,10 +292,76 @@ function streamingSubMarkets(markets, sub) {
     .filter((m) => m.status === 'active' && re.test(m.title || ''))
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
-const TRENDS_DEMO = [
-  { title: 'Will #KendrickChallenge trend #1 on TikTok this week?', vol: '$96K', yes: 58, no: 42, tag: 'TIKTOK' },
-  { title: 'A Grammys moment goes viral before the broadcast ends?', vol: '$140K', yes: 67, no: 33, tag: 'X / TWITTER' },
+const INTERNET_TRENDS_SUBS = ['Google Trends', 'Reddit', 'X/Twitter', 'Tiktok', 'YouTube', 'Twitch', 'Kick'];
+const TRENDS_SUB_ICONS = {
+  'Google Trends': 'trend', 'Reddit': 'bars', 'X/Twitter': 'pin', 'Tiktok': 'tiktok',
+  'YouTube': 'play', 'Twitch': 'gamepad', 'Kick': 'bolt',
+};
+// Default ("Google Trends") view shows two themed groups rather than one
+// flat grid, matching the mock. Everything else here has the same
+// title-heuristic caveat as the other five dropdowns.
+const VIRAL_CHALLENGES_DEMO = [
+  { title: "Next 'Dance Challenge' to reach 1B views by June?", vol: '$4.2M', yes: 42, no: 58, tag: 'TIKTOK' },
+  { title: 'MrBeast to surpass 400M subscribers in 2024?', vol: '$8.1M', yes: 72, no: 28, tag: 'YOUTUBE' },
 ];
+const CREATOR_MILESTONES_DEMO = [
+  { title: 'Kai Cenat to break concurrent viewership record this month?', vol: '$2.5M', yes: 35, no: 65, tag: 'TWITCH' },
+  { title: 'Elon Musk to step down as CEO of X by Q4?', vol: '$12.4M', yes: 18, no: 82, tag: 'X / TWITTER' },
+];
+const VIRAL_RE = /challenge|viral|trend(ing)?|\bmeme\b/i;
+const MILESTONE_RE = /subscriber|concurrent viewership|record|milestone|follower/i;
+function viralChallengeMarkets(markets) {
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && classifySector(m.title) === 'trends' && VIRAL_RE.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
+function creatorMilestoneMarkets(markets) {
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && classifySector(m.title) === 'trends' && MILESTONE_RE.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
+
+const TRENDS_PLATFORM_DEMO = {
+  'Reddit': [
+    { title: 'A subreddit hits 50M members before 2026?', vol: '$180K', yes: 44, no: 56, tag: 'REDDIT' },
+    { title: 'r/wallstreetbets sparks another meme-stock rally in 2025?', vol: '$620K', yes: 29, no: 71, tag: 'REDDIT' },
+  ],
+  'X/Twitter': [
+    { title: 'Elon Musk to step down as CEO of X by Q4?', vol: '$12.4M', yes: 18, no: 82, tag: 'X / TWITTER' },
+    { title: 'X to relaunch a Vine-style short video feature before 2026?', vol: '$410K', yes: 33, no: 67, tag: 'X / TWITTER' },
+  ],
+  'Tiktok': [
+    { title: "Next 'Dance Challenge' to reach 1B views by June?", vol: '$4.2M', yes: 42, no: 58, tag: 'TIKTOK' },
+    { title: 'TikTok to be banned in the US before 2026?', vol: '$3.8M', yes: 24, no: 76, tag: 'TIKTOK' },
+  ],
+  'YouTube': [
+    { title: 'MrBeast to surpass 400M subscribers in 2024?', vol: '$8.1M', yes: 72, no: 28, tag: 'YOUTUBE' },
+    { title: 'YouTube to launch a dedicated Shorts monetization tier in 2025?', vol: '$290K', yes: 61, no: 39, tag: 'YOUTUBE' },
+  ],
+  'Twitch': [
+    { title: 'Kai Cenat to break concurrent viewership record this month?', vol: '$2.5M', yes: 35, no: 65, tag: 'TWITCH' },
+    { title: 'A new streamer surpasses 100K subs on Twitch this year?', vol: '$310K', yes: 54, no: 46, tag: 'TWITCH' },
+  ],
+  'Kick': [
+    { title: 'Kick to sign another major streamer exclusive in 2025?', vol: '$220K', yes: 41, no: 59, tag: 'KICK' },
+    { title: 'Kick to surpass Twitch in peak concurrent viewers this year?', vol: '$390K', yes: 19, no: 81, tag: 'KICK' },
+  ],
+};
+const TRENDS_PLATFORM_RE = {
+  'Reddit': /reddit/i,
+  'X/Twitter': /twitter|\bx\/twitter\b|elon musk/i,
+  'Tiktok': /tiktok/i,
+  'YouTube': /youtube|mrbeast/i,
+  'Twitch': /twitch|kai cenat|streamer/i,
+  'Kick': /\bkick\b/i,
+};
+function trendsPlatformMarkets(markets, sub) {
+  const re = TRENDS_PLATFORM_RE[sub];
+  if (!re) return [];
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && re.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
 
 const MUSIC_GENRES = ['All Music', 'R&B', 'Hip Hop', 'Rap', 'Pop', 'Electronic', 'Latin', 'Country', 'Rock', 'K-Pop'];
 
@@ -430,6 +496,8 @@ function SectorIcon({ kind, color, size = 15 }) {
     case 'hardware': return <svg {...c}><rect x="6" y="6" width="12" height="12" rx="2" /><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3" /></svg>;
     case 'playcircle': return <svg {...c}><circle cx="12" cy="12" r="9" /><path d="M10 9l5 3-5 3z" fill={color} stroke="none" /></svg>;
     case 'castle': return <svg {...c}><path d="M4 21V9l3-2v2h2V7l3-2 3 2v2h2V7l3 2v12z" /><path d="M4 21h16M9 21v-5h6v5" /></svg>;
+    case 'pin': return <svg {...c}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="2.5" fill={color} stroke="none" /></svg>;
+    case 'tiktok': return <svg {...c}><path d="M14 4v10.5a3.5 3.5 0 11-3-3.46M14 4a4.5 4.5 0 004.5 4.5" /></svg>;
     default: return null;
   }
 }
@@ -705,6 +773,8 @@ export default function LandingPage() {
   const [gamingSub, setGamingSub] = useState('All Gaming');
   const [streamingOpen, setStreamingOpen] = useState(false);
   const [streamingSub, setStreamingSub] = useState('All Streaming');
+  const [trendsOpen, setTrendsOpen] = useState(false);
+  const [trendsSub, setTrendsSub] = useState('Google Trends');
 
   const fetchPulse = useCallback(() => { api.getPulse().then((r) => setPulse(r)).catch(() => {}); }, []);
   useEffect(() => { fetchPulse(); const t = setInterval(fetchPulse, 20000); return () => clearInterval(t); }, [fetchPulse]);
@@ -723,6 +793,7 @@ export default function LandingPage() {
     if (id !== 'festivals') setFestivalsOpen(false);
     if (id !== 'gaming') setGamingOpen(false);
     if (id !== 'streaming') setStreamingOpen(false);
+    if (id !== 'trends') setTrendsOpen(false);
     refs[id]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -737,6 +808,7 @@ export default function LandingPage() {
       setFestivalsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
+      setTrendsOpen(false);
     }
     refs.music?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -759,6 +831,7 @@ export default function LandingPage() {
       setFestivalsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
+      setTrendsOpen(false);
     }
     refs.movies?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -781,6 +854,7 @@ export default function LandingPage() {
       setFestivalsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
+      setTrendsOpen(false);
     }
     refs.celebrities?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -803,6 +877,7 @@ export default function LandingPage() {
       setCelebsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
+      setTrendsOpen(false);
     }
     refs.festivals?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -825,6 +900,7 @@ export default function LandingPage() {
       setCelebsOpen(false);
       setFestivalsOpen(false);
       setStreamingOpen(false);
+      setTrendsOpen(false);
     }
     refs.gaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -847,6 +923,7 @@ export default function LandingPage() {
       setCelebsOpen(false);
       setFestivalsOpen(false);
       setGamingOpen(false);
+      setTrendsOpen(false);
     }
     refs.streaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -856,6 +933,29 @@ export default function LandingPage() {
     setActiveSector('streaming');
     setStreamingOpen(true);
     refs.streaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const toggleTrends = () => {
+    if (activeSector === 'trends') {
+      setTrendsOpen((v) => !v);
+    } else {
+      setActiveSector('trends');
+      setTrendsOpen(true);
+      setMusicOpen(false);
+      setMoviesOpen(false);
+      setCelebsOpen(false);
+      setFestivalsOpen(false);
+      setGamingOpen(false);
+      setStreamingOpen(false);
+    }
+    refs.trends?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const selectTrendsSub = (v) => {
+    setTrendsSub(v);
+    setActiveSector('trends');
+    setTrendsOpen(true);
+    refs.trends?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const active = markets.filter((m) => m.status === 'active');
@@ -882,13 +982,14 @@ export default function LandingPage() {
               const isFestivals = s.id === 'festivals';
               const isGaming = s.id === 'gaming';
               const isStreaming = s.id === 'streaming';
-              const hasDropdown = isMusic || isMovies || isCelebs || isFestivals || isGaming || isStreaming;
-              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCelebs && celebsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen));
-              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCelebs ? toggleCelebs : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : () => goTo(s.id);
-              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCelebs ? CELEB_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : null;
-              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCelebs ? celebSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : null;
-              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCelebs ? selectCelebSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : null;
-              const iconSubs = isCelebs ? CELEB_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : isStreaming ? STREAMING_SUB_ICONS : null;
+              const isTrends = s.id === 'trends';
+              const hasDropdown = isMusic || isMovies || isCelebs || isFestivals || isGaming || isStreaming || isTrends;
+              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCelebs && celebsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen) || (isTrends && trendsOpen));
+              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCelebs ? toggleCelebs : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : isTrends ? toggleTrends : () => goTo(s.id);
+              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCelebs ? CELEB_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : isTrends ? INTERNET_TRENDS_SUBS : null;
+              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCelebs ? celebSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : isTrends ? trendsSub : null;
+              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCelebs ? selectCelebSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : isTrends ? selectTrendsSub : null;
+              const iconSubs = isCelebs ? CELEB_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : isStreaming ? STREAMING_SUB_ICONS : isTrends ? TRENDS_SUB_ICONS : null;
               return (
                 <div key={s.id}>
                   <button onClick={onClickHeader}
@@ -1033,7 +1134,41 @@ export default function LandingPage() {
             onViewAll={() => navigate('/explore')}
             forwardRef={refs.streaming}
           />
-          <TwoCardSection sector={SECTORS.find((s) => s.id === 'trends')} demo={TRENDS_DEMO} markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.trends} />
+          <div ref={refs.trends} style={{ scrollMarginTop: 90 }}>
+            {trendsSub === 'Google Trends' ? (
+              <>
+                <TwoCardSection
+                  sector={{ id: 'trends', icon: 'trend', label: 'Viral Challenges' }}
+                  demo={VIRAL_CHALLENGES_DEMO}
+                  max={2}
+                  pickReal={viralChallengeMarkets}
+                  markets={markets}
+                  onOpen={(id) => navigate(`/markets/${id}`)}
+                  onViewAll={() => navigate('/explore')}
+                />
+                <TwoCardSection
+                  sector={{ id: 'trends', icon: 'bars', label: 'Creator Milestones' }}
+                  demo={CREATOR_MILESTONES_DEMO}
+                  max={2}
+                  pickReal={creatorMilestoneMarkets}
+                  markets={markets}
+                  onOpen={(id) => navigate(`/markets/${id}`)}
+                  onViewAll={() => navigate('/explore')}
+                />
+              </>
+            ) : (
+              <TwoCardSection
+                sector={SECTORS.find((s) => s.id === 'trends')}
+                demo={TRENDS_PLATFORM_DEMO[trendsSub] || VIRAL_CHALLENGES_DEMO}
+                max={4}
+                title={`Internet Trends · ${trendsSub}`}
+                pickReal={(m) => trendsPlatformMarkets(m, trendsSub)}
+                markets={markets}
+                onOpen={(id) => navigate(`/markets/${id}`)}
+                onViewAll={() => navigate('/explore')}
+              />
+            )}
+          </div>
         </main>
       </div>
       </div>
