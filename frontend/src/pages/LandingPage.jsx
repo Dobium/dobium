@@ -77,69 +77,38 @@ const MOVIES_DEMO_SIDE = [
   { title: '"The Bear" Season 4 release date set for 2024?', vol: '$288K', yes: 12, no: 88, tag: 'STREAMING WARS' },
 ];
 
-const MOVIES_PLATFORMS = ['Netflix', 'HBO/Max', 'Disney+', 'Prime Video', 'Apple TV+', 'Hulu', 'Box Office Hits', 'Awards', 'Franchises'];
+const MOVIES_PLATFORMS = ['All Movies & TV', 'Box Office Hits', 'New Releases', 'Franchises', 'Awards', 'TV Shows', 'Industry Deals'];
 
 // Same caveat as the Music genre filters below: title/keyword heuristics,
-// not real per-market platform metadata.
+// not real per-market category metadata.
 const PLATFORM_RE = {
-  'Netflix': /netflix/i,
-  'HBO/Max': /\bhbo\b|hbo max/i,
-  'Disney+': /disney\+|disney plus/i,
-  'Prime Video': /prime video|amazon prime/i,
-  'Apple TV+': /apple tv/i,
-  'Hulu': /\bhulu\b/i,
   'Box Office Hits': /box office/i,
-  'Awards': /oscar|academy award|golden globe|\bemmy\b|\baward\b/i,
+  'New Releases': /premiere|release date|debut|drops? (this|next)|opens? in theaters|streaming (debut|premiere)/i,
   'Franchises': /marvel|\bmcu\b|star wars|\bdc\b|sequel|part \d|chapter \d|franchise/i,
+  'Awards': /oscar|academy award|golden globe|\bemmy\b|\baward\b/i,
+  'TV Shows': /\bseries\b|season \d|renewal|episode|finale|\bshow\b/i,
+  'Industry Deals': /acquir|merger|acquisition|buyout|stake in|studio deal|deal with/i,
 };
 const PLATFORM_DEMO = {
-  'Netflix': {
-    featured: { title: 'Will "Stranger Things" Season 5 break Netflix viewership records?', desc: 'Final-season hype has been building fast since the teaser trailer dropped.', yes: 74, no: 26 },
-    side: [
-      { title: "Netflix Series: 'Beef' Season 2 Renewal?", vol: '$180K', yes: 92, no: 8, tag: 'NETFLIX' },
-      { title: 'Will "Wednesday" Season 2 premiere before Q3?', vol: '$310K', yes: 66, no: 34, tag: 'NETFLIX' },
-    ],
-  },
-  'HBO/Max': {
-    featured: { title: 'Will "House of the Dragon" Season 3 premiere before 2026?', desc: 'Production wrapped early, fueling speculation about an accelerated release window.', yes: 58, no: 42 },
-    side: [
-      { title: '"The Last of Us" Season 3 renewal confirmed?', vol: '$260K', yes: 81, no: 19, tag: 'HBO MAX' },
-      { title: '"Euphoria" Season 3 premiere date announced?', vol: '$340K', yes: 47, no: 53, tag: 'HBO MAX' },
-    ],
-  },
-  'Disney+': {
-    featured: { title: 'Will a new "Star Wars" series be announced at D23?', desc: 'Rumors point to a Mandalorian spinoff following recent casting leaks.', yes: 63, no: 37 },
-    side: [
-      { title: '"Daredevil: Born Again" Season 2 confirmed?', vol: '$290K', yes: 70, no: 30, tag: 'DISNEY+' },
-      { title: 'Disney+ password-sharing crackdown expands in 2025?', vol: '$150K', yes: 55, no: 45, tag: 'DISNEY+' },
-    ],
-  },
-  'Prime Video': {
-    featured: { title: 'Will "The Boys" Season 5 be its final season?', desc: 'Showrunner comments have fueled speculation the flagship series is wrapping up.', yes: 52, no: 48 },
-    side: [
-      { title: '"Fallout" Season 2 premiere date set for 2025?', vol: '$220K', yes: 68, no: 32, tag: 'PRIME VIDEO' },
-      { title: 'Amazon to greenlight a new "Lord of the Rings" film?', vol: '$310K', yes: 34, no: 66, tag: 'PRIME VIDEO' },
-    ],
-  },
-  'Apple TV+': {
-    featured: { title: 'Will "Severance" Season 3 be renewed before the S2 finale?', desc: 'Critical acclaim and social buzz have made an early renewal increasingly likely.', yes: 77, no: 23 },
-    side: [
-      { title: '"Ted Lasso" Season 4 officially confirmed?', vol: '$260K', yes: 41, no: 59, tag: 'APPLE TV+' },
-      { title: 'Apple TV+ to raise subscription prices in 2025?', vol: '$95K', yes: 48, no: 52, tag: 'APPLE TV+' },
-    ],
-  },
-  'Hulu': {
-    featured: { title: 'Will "The Bear" Season 4 premiere before summer 2025?', desc: 'FX production schedule leaks suggest a faster turnaround than Season 3 had.', yes: 56, no: 44 },
-    side: [
-      { title: 'Hulu and Disney+ bundle merges into one app in 2025?', vol: '$180K', yes: 61, no: 39, tag: 'HULU' },
-      { title: '"Only Murders in the Building" Season 5 renewal confirmed?', vol: '$140K', yes: 83, no: 17, tag: 'HULU' },
-    ],
-  },
   'Box Office Hits': {
     featured: MOVIES_DEMO_FEATURED,
     side: [
       { title: '"Gladiator II" to cross $500M worldwide?', vol: '$412K', yes: 64, no: 36, tag: 'ROTTEN TOMATOES' },
       { title: 'Will a 2025 release cross $1B worldwide?', vol: '$680K', yes: 37, no: 63, tag: 'BOX OFFICE' },
+    ],
+  },
+  'New Releases': {
+    featured: { title: 'Wicked: Part Two to open above $150M opening weekend?', desc: 'Pre-release tracking has surged sharply following the latest trailer drop.', yes: 58, no: 42 },
+    side: [
+      { title: "A24's \"Death of a Unicorn\" wide release confirmed for 2025?", vol: '$210K', yes: 71, no: 29, tag: 'NEW RELEASES' },
+      { title: 'Mission: Impossible 8 to open before July 4th weekend?', vol: '$480K', yes: 83, no: 17, tag: 'NEW RELEASES' },
+    ],
+  },
+  'Franchises': {
+    featured: { title: 'Will Marvel announce Avengers: Secret Wars casting before 2026?', desc: 'Studio insiders suggest a major casting reveal is being planned for a fan event.', yes: 59, no: 41 },
+    side: [
+      { title: 'A new "Star Wars" trilogy greenlit before 2026?', vol: '$310K', yes: 33, no: 67, tag: 'FRANCHISES' },
+      { title: 'DC to reboot Batman again before 2027?', vol: '$260K', yes: 28, no: 72, tag: 'FRANCHISES' },
     ],
   },
   'Awards': {
@@ -149,11 +118,18 @@ const PLATFORM_DEMO = {
       { title: 'A streaming-only film wins Best Picture before 2027?', vol: '$220K', yes: 44, no: 56, tag: 'AWARDS' },
     ],
   },
-  'Franchises': {
-    featured: { title: 'Will Marvel announce Avengers: Secret Wars casting before 2026?', desc: 'Studio insiders suggest a major casting reveal is being planned for a fan event.', yes: 59, no: 41 },
+  'TV Shows': {
+    featured: { title: 'Will "Severance" Season 3 premiere before the end of 2025?', desc: 'Production wrapped ahead of schedule, fueling speculation about an early release.', yes: 66, no: 34 },
     side: [
-      { title: 'A new "Star Wars" trilogy greenlit before 2026?', vol: '$310K', yes: 33, no: 67, tag: 'FRANCHISES' },
-      { title: 'DC to reboot Batman again before 2027?', vol: '$260K', yes: 28, no: 72, tag: 'FRANCHISES' },
+      { title: '"The Last of Us" Season 3 renewal confirmed?', vol: '$260K', yes: 81, no: 19, tag: 'TV SHOWS' },
+      { title: '"Stranger Things" final season to premiere before Q4 2025?', vol: '$620K', yes: 47, no: 53, tag: 'TV SHOWS' },
+    ],
+  },
+  'Industry Deals': {
+    featured: { title: 'Will Netflix acquire A24 before end of year?', desc: 'Deal talk has intensified after A24\'s recent string of box office hits.', yes: 38, no: 62 },
+    side: [
+      { title: 'Warner Bros. Discovery to spin off its streaming division in 2025?', vol: '$390K', yes: 29, no: 71, tag: 'INDUSTRY DEALS' },
+      { title: 'A major studio merger announced before Q4 2025?', vol: '$310K', yes: 22, no: 78, tag: 'INDUSTRY DEALS' },
     ],
   },
 };
@@ -628,7 +604,7 @@ function MusicSection({ markets, genre, onOpen, onViewAll, forwardRef }) {
 }
 
 function MoviesSection({ markets, platform, onOpen, onViewAll, forwardRef }) {
-  const isPlatform = !!platform;
+  const isPlatform = !!platform && platform !== 'All Movies & TV';
   const real = isPlatform ? platformMarkets(markets, platform) : sectorMarkets(markets, 'movies');
   const featuredM = real[0];
   const sideMs = real.slice(1, 3);
@@ -764,7 +740,7 @@ export default function LandingPage() {
   const [musicOpen, setMusicOpen] = useState(true);
   const [musicGenre, setMusicGenre] = useState('All Music');
   const [moviesOpen, setMoviesOpen] = useState(false);
-  const [moviesPlatform, setMoviesPlatform] = useState(null);
+  const [moviesPlatform, setMoviesPlatform] = useState('All Movies & TV');
   const [celebsOpen, setCelebsOpen] = useState(false);
   const [celebSub, setCelebSub] = useState('All Celebrities');
   const [festivalsOpen, setFestivalsOpen] = useState(false);
