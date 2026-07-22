@@ -46,7 +46,7 @@ function compactVol(v) {
 }
 
 // ── Sector classification ────────────────────────────────────────────────
-const SECTOR_ICONS = { music: 'note', movies: 'film', celebrities: 'people', festivals: 'stage', gaming: 'gamepad', streaming: 'play', trends: 'trend' };
+const SECTOR_ICONS = { music: 'note', movies: 'film', celebrities: 'people', festivals: 'stage', gaming: 'gamepad', streaming: 'play', trends: 'trend', tech: 'grid' };
 const SECTORS = SHARED_SECTORS.map((s) => ({ ...s, icon: SECTOR_ICONS[s.id] }));
 
 function classify(title) {
@@ -346,6 +346,84 @@ function trendsPlatformMarkets(markets, sub) {
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
 
+const TECH_SUBS = ['All Tech', 'Trending AI Companies', 'AI Models', 'Big Tech', 'Startup Raises and Funding', 'Open Source AI & Github Repos', 'Startup Acquisitions', 'Space Tech'];
+const TECH_SUB_ICONS = {
+  'All Tech': 'grid', 'Trending AI Companies': 'hardware', 'AI Models': 'robot', 'Big Tech': 'building',
+  'Startup Raises and Funding': 'briefcase', 'Open Source AI & Github Repos': 'terminal',
+  'Startup Acquisitions': 'layers', 'Space Tech': 'rocket',
+};
+// Default ("All Tech") view shows two themed groups, matching the mock —
+// same pattern as Internet Trends' default "Google Trends" view.
+const AI_BENCHMARKS_DEMO = [
+  { title: 'GPT-5 official release before Q4?', vol: '$42.2M', yes: 68, no: 32, tag: 'OPENAI' },
+  { title: 'Claude 3.5 Opus to top LMSYS leaderboard?', vol: '$18.5M', yes: 54, no: 46, tag: 'ANTHROPIC' },
+];
+const STARTUP_FUNDING_DEMO = [
+  { title: 'SpaceX valuation to hit $250B by year-end?', vol: '$125.4M', yes: 82, no: 18, tag: 'SPACEX' },
+  { title: 'OpenAI to announce IPO date in 2025?', vol: '$310.1M', yes: 15, no: 85, tag: 'OPENAI / IPO' },
+];
+const AI_BENCHMARK_RE = /\bgpt\b|\bllm\b|leaderboard|benchmark|model release|lmsys|\bclaude\b|openai|anthropic/i;
+const FUNDING_MA_RE = /valuation|\bipo\b|funding|\braise\b|series [a-e]\b|acquisition|acquire|venture capital/i;
+function aiBenchmarkMarkets(markets) {
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && classifySector(m.title) === 'tech' && AI_BENCHMARK_RE.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
+function startupFundingMarkets(markets) {
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && classifySector(m.title) === 'tech' && FUNDING_MA_RE.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
+
+const TECH_SUB_DEMO = {
+  'Trending AI Companies': [
+    { title: 'OpenAI to surpass $150B valuation in 2025?', vol: '$88.2M', yes: 61, no: 39, tag: 'OPENAI' },
+    { title: 'Anthropic to raise a new round above $30B valuation?', vol: '$42.6M', yes: 57, no: 43, tag: 'ANTHROPIC' },
+  ],
+  'AI Models': [
+    { title: 'GPT-5 official release before Q4?', vol: '$42.2M', yes: 68, no: 32, tag: 'OPENAI' },
+    { title: 'Llama 4 to top open-source leaderboards in 2025?', vol: '$12.8M', yes: 49, no: 51, tag: 'META' },
+  ],
+  'Big Tech': [
+    { title: 'Nvidia to cross $4T market cap in 2025?', vol: '$62.1M', yes: 44, no: 56, tag: 'NVIDIA' },
+    { title: 'Apple to announce a major AI acquisition in 2025?', vol: '$28.4M', yes: 31, no: 69, tag: 'APPLE' },
+  ],
+  'Startup Raises and Funding': [
+    { title: 'A startup to raise a $1B+ round in Q3 2025?', vol: '$34.7M', yes: 73, no: 27, tag: 'FUNDING' },
+    { title: 'Y Combinator S24 demo day to produce a unicorn?', vol: '$9.2M', yes: 38, no: 62, tag: 'Y COMBINATOR' },
+  ],
+  'Open Source AI & Github Repos': [
+    { title: 'Llama 4 weights leak confirmed as authentic?', vol: '$6.4M', yes: 79, no: 21, tag: 'META' },
+    { title: 'An open-source model tops a major leaderboard in 2025?', vol: '$11.3M', yes: 52, no: 48, tag: 'OPEN SOURCE' },
+  ],
+  'Startup Acquisitions': [
+    { title: 'OpenAI to acquire another AI startup before EOY?', vol: '$19.6M', yes: 41, no: 59, tag: 'M&A' },
+    { title: 'A major cloud provider to acquire an AI chip startup in 2025?', vol: '$14.2M', yes: 35, no: 65, tag: 'M&A' },
+  ],
+  'Space Tech': [
+    { title: 'SpaceX valuation to hit $250B by year-end?', vol: '$125.4M', yes: 82, no: 18, tag: 'SPACEX' },
+    { title: 'Starship to complete a full orbital flight in 2025?', vol: '$21.9M', yes: 66, no: 34, tag: 'SPACEX' },
+  ],
+};
+// Same title-heuristic caveat as the other seven sub-filters — no real
+// per-market company/category metadata exists yet.
+const TECH_SUB_RE = {
+  'Trending AI Companies': /openai|anthropic|\bxai\b|mistral|cohere|perplexity|deepmind|stability ai/i,
+  'AI Models': /\bgpt\b|\bllm\b|\bclaude\b|gemini|llama|model release|benchmark|leaderboard/i,
+  'Big Tech': /\bapple\b|\bgoogle\b|\bmeta\b|\bmicrosoft\b|\bamazon\b|\bnvidia\b|big tech/i,
+  'Startup Raises and Funding': /\braise\b|funding round|series [a-e]\b|seed round|valuation/i,
+  'Open Source AI & Github Repos': /open.?source|github|\bllama\b|hugging ?face|\brepo\b/i,
+  'Startup Acquisitions': /acquir|acquisition|\bm&a\b|merger|buyout|bought by/i,
+  'Space Tech': /spacex|\bnasa\b|rocket launch|starship|space tech|satellite|blue origin/i,
+};
+function techSubMarkets(markets, sub) {
+  const re = TECH_SUB_RE[sub];
+  if (!re) return [];
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && re.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
+
 const MUSIC_GENRES = ['All Music', 'R&B', 'Hip Hop', 'Rap', 'Pop', 'Electronic', 'Latin', 'Country', 'Rock', 'K-Pop'];
 
 // Genre-level classification is a best-effort keyword/artist heuristic on the
@@ -485,6 +563,12 @@ function SectorIcon({ kind, color, size = 15 }) {
     case 'pin': return <svg {...c}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="2.5" fill={color} stroke="none" /></svg>;
     case 'people': return <svg {...c}><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5" /><circle cx="17.5" cy="9" r="2.6" /><path d="M16 15.2c2.7.2 4.8 1.6 5.5 4.3" /></svg>;
     case 'tiktok': return <svg {...c}><path d="M14 4v10.5a3.5 3.5 0 11-3-3.46M14 4a4.5 4.5 0 004.5 4.5" /></svg>;
+    case 'grid': return <svg {...c}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>;
+    case 'robot': return <svg {...c}><rect x="5" y="9" width="14" height="10" rx="2" /><path d="M12 9V5M9 5h6M9 13v2M15 13v2" /><circle cx="12" cy="4" r="1.2" fill={color} stroke="none" /></svg>;
+    case 'building': return <svg {...c}><rect x="5" y="3" width="14" height="18" rx="1" /><path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01M10 21v-4h4v4" /></svg>;
+    case 'terminal': return <svg {...c}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 9l3 3-3 3M13 15h4" /></svg>;
+    case 'layers': return <svg {...c}><path d="M12 3l9 5-9 5-9-5z" /><path d="M3 13l9 5 9-5M3 8l9 5 9-5" /></svg>;
+    case 'rocket': return <svg {...c}><path d="M12 2c3 2 5 6 5 10 0 2-1 4-2 5l-3 2-3-2c-1-1-2-3-2-5 0-4 2-8 5-10z" /><circle cx="12" cy="10" r="1.6" fill={color} stroke="none" /><path d="M9 16l-2 4M15 16l2 4M10.5 18.5h3" /></svg>;
     default: return null;
   }
 }
@@ -762,6 +846,8 @@ export default function LandingPage() {
   const [streamingSub, setStreamingSub] = useState('All Streaming');
   const [trendsOpen, setTrendsOpen] = useState(false);
   const [trendsSub, setTrendsSub] = useState('Google Trends');
+  const [techOpen, setTechOpen] = useState(false);
+  const [techSub, setTechSub] = useState('All Tech');
 
   const fetchPulse = useCallback(() => { api.getPulse().then((r) => setPulse(r)).catch(() => {}); }, []);
   useEffect(() => { fetchPulse(); const t = setInterval(fetchPulse, 20000); return () => clearInterval(t); }, [fetchPulse]);
@@ -769,7 +855,7 @@ export default function LandingPage() {
   const refs = {
     music: useRef(null), movies: useRef(null), celebrities: useRef(null),
     festivals: useRef(null), gaming: useRef(null), streaming: useRef(null),
-    trends: useRef(null),
+    trends: useRef(null), tech: useRef(null),
   };
 
   const goTo = (id) => {
@@ -781,6 +867,7 @@ export default function LandingPage() {
     if (id !== 'gaming') setGamingOpen(false);
     if (id !== 'streaming') setStreamingOpen(false);
     if (id !== 'trends') setTrendsOpen(false);
+    if (id !== 'tech') setTechOpen(false);
     refs[id]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -796,6 +883,7 @@ export default function LandingPage() {
       setGamingOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
+      setTechOpen(false);
     }
     refs.music?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -819,6 +907,7 @@ export default function LandingPage() {
       setGamingOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
+      setTechOpen(false);
     }
     refs.movies?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -842,6 +931,7 @@ export default function LandingPage() {
       setGamingOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
+      setTechOpen(false);
     }
     refs.celebrities?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -865,6 +955,7 @@ export default function LandingPage() {
       setGamingOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
+      setTechOpen(false);
     }
     refs.festivals?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -888,6 +979,7 @@ export default function LandingPage() {
       setFestivalsOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
+      setTechOpen(false);
     }
     refs.gaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -911,6 +1003,7 @@ export default function LandingPage() {
       setFestivalsOpen(false);
       setGamingOpen(false);
       setTrendsOpen(false);
+      setTechOpen(false);
     }
     refs.streaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -934,6 +1027,7 @@ export default function LandingPage() {
       setFestivalsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
+      setTechOpen(false);
     }
     refs.trends?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -943,6 +1037,30 @@ export default function LandingPage() {
     setActiveSector('trends');
     setTrendsOpen(true);
     refs.trends?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const toggleTech = () => {
+    if (activeSector === 'tech') {
+      setTechOpen((v) => !v);
+    } else {
+      setActiveSector('tech');
+      setTechOpen(true);
+      setMusicOpen(false);
+      setMoviesOpen(false);
+      setCreatorsOpen(false);
+      setFestivalsOpen(false);
+      setGamingOpen(false);
+      setStreamingOpen(false);
+      setTrendsOpen(false);
+    }
+    refs.tech?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const selectTechSub = (v) => {
+    setTechSub(v);
+    setActiveSector('tech');
+    setTechOpen(true);
+    refs.tech?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const active = markets.filter((m) => m.status === 'active');
@@ -970,13 +1088,14 @@ export default function LandingPage() {
               const isGaming = s.id === 'gaming';
               const isStreaming = s.id === 'streaming';
               const isTrends = s.id === 'trends';
-              const hasDropdown = isMusic || isMovies || isCreators || isFestivals || isGaming || isStreaming || isTrends;
-              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCreators && creatorsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen) || (isTrends && trendsOpen));
-              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCreators ? toggleCreators : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : isTrends ? toggleTrends : () => goTo(s.id);
-              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCreators ? CREATOR_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : isTrends ? INTERNET_TRENDS_SUBS : null;
-              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCreators ? creatorSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : isTrends ? trendsSub : null;
-              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCreators ? selectCreatorSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : isTrends ? selectTrendsSub : null;
-              const iconSubs = isCreators ? CREATOR_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : isStreaming ? STREAMING_SUB_ICONS : isTrends ? TRENDS_SUB_ICONS : null;
+              const isTech = s.id === 'tech';
+              const hasDropdown = isMusic || isMovies || isCreators || isFestivals || isGaming || isStreaming || isTrends || isTech;
+              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCreators && creatorsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen) || (isTrends && trendsOpen) || (isTech && techOpen));
+              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCreators ? toggleCreators : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : isTrends ? toggleTrends : isTech ? toggleTech : () => goTo(s.id);
+              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCreators ? CREATOR_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : isTrends ? INTERNET_TRENDS_SUBS : isTech ? TECH_SUBS : null;
+              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCreators ? creatorSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : isTrends ? trendsSub : isTech ? techSub : null;
+              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCreators ? selectCreatorSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : isTrends ? selectTrendsSub : isTech ? selectTechSub : null;
+              const iconSubs = isCreators ? CREATOR_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : isStreaming ? STREAMING_SUB_ICONS : isTrends ? TRENDS_SUB_ICONS : isTech ? TECH_SUB_ICONS : null;
               return (
                 <div key={s.id}>
                   <button onClick={onClickHeader}
@@ -1150,6 +1269,41 @@ export default function LandingPage() {
                 max={4}
                 title={`Internet Trends · ${trendsSub}`}
                 pickReal={(m) => trendsPlatformMarkets(m, trendsSub)}
+                markets={markets}
+                onOpen={(id) => navigate(`/markets/${id}`)}
+                onViewAll={() => navigate('/explore')}
+              />
+            )}
+          </div>
+          <div ref={refs.tech} style={{ scrollMarginTop: 90 }}>
+            {techSub === 'All Tech' ? (
+              <>
+                <TwoCardSection
+                  sector={{ id: 'tech', icon: 'hardware', label: 'AI Model Benchmarks' }}
+                  demo={AI_BENCHMARKS_DEMO}
+                  max={2}
+                  pickReal={aiBenchmarkMarkets}
+                  markets={markets}
+                  onOpen={(id) => navigate(`/markets/${id}`)}
+                  onViewAll={() => navigate('/explore')}
+                />
+                <TwoCardSection
+                  sector={{ id: 'tech', icon: 'rocket', label: 'Startup Funding & M&A' }}
+                  demo={STARTUP_FUNDING_DEMO}
+                  max={2}
+                  pickReal={startupFundingMarkets}
+                  markets={markets}
+                  onOpen={(id) => navigate(`/markets/${id}`)}
+                  onViewAll={() => navigate('/explore')}
+                />
+              </>
+            ) : (
+              <TwoCardSection
+                sector={SECTORS.find((s) => s.id === 'tech')}
+                demo={TECH_SUB_DEMO[techSub] || AI_BENCHMARKS_DEMO}
+                max={4}
+                title={`Tech Startups · ${techSub}`}
+                pickReal={(m) => techSubMarkets(m, techSub)}
                 markets={markets}
                 onOpen={(id) => navigate(`/markets/${id}`)}
                 onViewAll={() => navigate('/explore')}

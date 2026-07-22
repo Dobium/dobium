@@ -17,6 +17,8 @@ export const SECTORS = [
     re: /netflix|hulu|hbo max|disney\+|paramount\+|peacock|apple tv|prime video|renewal|viewership|weekly views/i },
   { id: 'trends', label: 'Internet Trends',
     re: /tiktok|viral|meme|trending on|twitter|\bx\.com\b|instagram|influencer|challenge/i },
+  { id: 'tech', label: 'Tech Startups',
+    re: /\bai\b|\bgpt\b|\bllm\b|openai|anthropic|\bclaude\b|startup|venture capital|\bvc\b|\bipo\b|spacex|nvidia|silicon valley|y combinator|artificial intelligence/i },
 ];
 
 export function classifySector(title) {
