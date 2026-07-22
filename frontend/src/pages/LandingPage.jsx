@@ -285,10 +285,10 @@ function streamingSubMarkets(markets, sub) {
     .filter((m) => m.status === 'active' && re.test(m.title || ''))
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
-const INTERNET_TRENDS_SUBS = ['Google Trends', 'Reddit', 'X/Twitter', 'Tiktok', 'YouTube', 'Twitch', 'Kick'];
+const INTERNET_TRENDS_SUBS = ['Google Trends', 'Reddit', 'X/Twitter', 'Tiktok', 'YouTube'];
 const TRENDS_SUB_ICONS = {
   'Google Trends': 'trend', 'Reddit': 'bars', 'X/Twitter': 'pin', 'Tiktok': 'tiktok',
-  'YouTube': 'play', 'Twitch': 'gamepad', 'Kick': 'bolt',
+  'YouTube': 'play',
 };
 // Default ("Google Trends") view shows two themed groups rather than one
 // flat grid, matching the mock. Everything else here has the same
@@ -331,22 +331,12 @@ const TRENDS_PLATFORM_DEMO = {
     { title: 'MrBeast to surpass 400M subscribers in 2024?', vol: '$8.1M', yes: 72, no: 28, tag: 'YOUTUBE' },
     { title: 'YouTube to launch a dedicated Shorts monetization tier in 2025?', vol: '$290K', yes: 61, no: 39, tag: 'YOUTUBE' },
   ],
-  'Twitch': [
-    { title: 'Kai Cenat to break concurrent viewership record this month?', vol: '$2.5M', yes: 35, no: 65, tag: 'TWITCH' },
-    { title: 'A new streamer surpasses 100K subs on Twitch this year?', vol: '$310K', yes: 54, no: 46, tag: 'TWITCH' },
-  ],
-  'Kick': [
-    { title: 'Kick to sign another major streamer exclusive in 2025?', vol: '$220K', yes: 41, no: 59, tag: 'KICK' },
-    { title: 'Kick to surpass Twitch in peak concurrent viewers this year?', vol: '$390K', yes: 19, no: 81, tag: 'KICK' },
-  ],
 };
 const TRENDS_PLATFORM_RE = {
   'Reddit': /reddit/i,
   'X/Twitter': /twitter|\bx\/twitter\b|elon musk/i,
   'Tiktok': /tiktok/i,
   'YouTube': /youtube|mrbeast/i,
-  'Twitch': /twitch|kai cenat|streamer/i,
-  'Kick': /\bkick\b/i,
 };
 function trendsPlatformMarkets(markets, sub) {
   const re = TRENDS_PLATFORM_RE[sub];
