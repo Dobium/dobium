@@ -177,7 +177,7 @@ export default function WaitlistPage() {
                       type="email"
                       value={email}
                       onChange={(e) => { setEmail(e.target.value); if (status === 'error') setStatus('idle'); }}
-                      placeholder="ENTER_EMAIL_ADDRESS"
+                      placeholder="ACCESS_REQUEST_SUBMIT"
                       style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', fontFamily: 'var(--mono)', fontSize: 12, color: '#DCE1FF', letterSpacing: '0.04em' }}
                     />
                     <span className="wl-blink" style={{ color: GOLD, fontFamily: 'var(--mono)', fontSize: 13, flexShrink: 0 }}>▌</span>
