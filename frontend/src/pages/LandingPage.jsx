@@ -424,6 +424,24 @@ function techSubMarkets(markets, sub) {
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
 
+// "Global Attention" isn't a content category like the other eight sectors —
+// it's a cross-cutting "what's biggest right now" view, so instead of a
+// keyword classifier it just pulls the platform's top markets by volume
+// regardless of sector. Kept out of the shared sectors.js taxonomy for that
+// reason (Explore's dropdown expects mutually-exclusive categories).
+const ATTENTION_SUBS = ['Trending Attention & News'];
+const GLOBAL_ATTENTION_DEMO = [
+  { title: 'Will Kendrick Lamar drop a surprise album this week?', vol: '$4.2M', yes: 58, no: 42, tag: 'BREAKING' },
+  { title: 'GTA VI release date to be confirmed before Q4?', vol: '$6.1M', yes: 44, no: 56, tag: 'TOP STORY' },
+  { title: 'Taylor Swift to announce a new tour before 2026?', vol: '$3.8M', yes: 61, no: 39, tag: 'TRENDING' },
+  { title: 'SpaceX Starship to complete an orbital flight this year?', vol: '$2.9M', yes: 69, no: 31, tag: 'TOP STORY' },
+];
+function globalAttentionMarkets(markets) {
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active')
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
+
 const MUSIC_GENRES = ['All Music', 'R&B', 'Hip Hop', 'Rap', 'Pop', 'Electronic', 'Latin', 'Country', 'Rock', 'K-Pop'];
 
 // Genre-level classification is a best-effort keyword/artist heuristic on the
@@ -569,6 +587,7 @@ function SectorIcon({ kind, color, size = 15 }) {
     case 'terminal': return <svg {...c}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 9l3 3-3 3M13 15h4" /></svg>;
     case 'layers': return <svg {...c}><path d="M12 3l9 5-9 5-9-5z" /><path d="M3 13l9 5 9-5M3 8l9 5 9-5" /></svg>;
     case 'rocket': return <svg {...c}><path d="M12 2c3 2 5 6 5 10 0 2-1 4-2 5l-3 2-3-2c-1-1-2-3-2-5 0-4 2-8 5-10z" /><circle cx="12" cy="10" r="1.6" fill={color} stroke="none" /><path d="M9 16l-2 4M15 16l2 4M10.5 18.5h3" /></svg>;
+    case 'globe': return <svg {...c}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.5 4 5.6 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.6-4-9s1.5-6.5 4-9z" /></svg>;
     default: return null;
   }
 }
@@ -831,8 +850,10 @@ export default function LandingPage() {
   const { markets } = useMarkets();
   const navigate = useNavigate();
   const [pulse, setPulse] = useState(null);
-  const [activeSector, setActiveSector] = useState('music');
-  const [musicOpen, setMusicOpen] = useState(true);
+  const [activeSector, setActiveSector] = useState('attention');
+  const [attentionOpen, setAttentionOpen] = useState(true);
+  const [attentionSub, setAttentionSub] = useState('Trending Attention & News');
+  const [musicOpen, setMusicOpen] = useState(false);
   const [musicGenre, setMusicGenre] = useState('All Music');
   const [moviesOpen, setMoviesOpen] = useState(false);
   const [moviesPlatform, setMoviesPlatform] = useState('All Movies & TV');
@@ -853,13 +874,14 @@ export default function LandingPage() {
   useEffect(() => { fetchPulse(); const t = setInterval(fetchPulse, 20000); return () => clearInterval(t); }, [fetchPulse]);
 
   const refs = {
-    music: useRef(null), movies: useRef(null), celebrities: useRef(null),
+    attention: useRef(null), music: useRef(null), movies: useRef(null), celebrities: useRef(null),
     festivals: useRef(null), gaming: useRef(null), streaming: useRef(null),
     trends: useRef(null), tech: useRef(null),
   };
 
   const goTo = (id) => {
     setActiveSector(id);
+    if (id !== 'attention') setAttentionOpen(false);
     if (id !== 'music') setMusicOpen(false);
     if (id !== 'movies') setMoviesOpen(false);
     if (id !== 'celebrities') setCreatorsOpen(false);
@@ -869,6 +891,31 @@ export default function LandingPage() {
     if (id !== 'trends') setTrendsOpen(false);
     if (id !== 'tech') setTechOpen(false);
     refs[id]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const toggleAttention = () => {
+    if (activeSector === 'attention') {
+      setAttentionOpen((v) => !v);
+    } else {
+      setActiveSector('attention');
+      setAttentionOpen(true);
+      setMusicOpen(false);
+      setMoviesOpen(false);
+      setCreatorsOpen(false);
+      setFestivalsOpen(false);
+      setGamingOpen(false);
+      setStreamingOpen(false);
+      setTrendsOpen(false);
+      setTechOpen(false);
+    }
+    refs.attention?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const selectAttentionSub = (v) => {
+    setAttentionSub(v);
+    setActiveSector('attention');
+    setAttentionOpen(true);
+    refs.attention?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const toggleMusic = () => {
@@ -884,6 +931,7 @@ export default function LandingPage() {
       setStreamingOpen(false);
       setTrendsOpen(false);
       setTechOpen(false);
+      setAttentionOpen(false);
     }
     refs.music?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -908,6 +956,7 @@ export default function LandingPage() {
       setStreamingOpen(false);
       setTrendsOpen(false);
       setTechOpen(false);
+      setAttentionOpen(false);
     }
     refs.movies?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -932,6 +981,7 @@ export default function LandingPage() {
       setStreamingOpen(false);
       setTrendsOpen(false);
       setTechOpen(false);
+      setAttentionOpen(false);
     }
     refs.celebrities?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -956,6 +1006,7 @@ export default function LandingPage() {
       setStreamingOpen(false);
       setTrendsOpen(false);
       setTechOpen(false);
+      setAttentionOpen(false);
     }
     refs.festivals?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -980,6 +1031,7 @@ export default function LandingPage() {
       setStreamingOpen(false);
       setTrendsOpen(false);
       setTechOpen(false);
+      setAttentionOpen(false);
     }
     refs.gaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -1004,6 +1056,7 @@ export default function LandingPage() {
       setGamingOpen(false);
       setTrendsOpen(false);
       setTechOpen(false);
+      setAttentionOpen(false);
     }
     refs.streaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -1028,6 +1081,7 @@ export default function LandingPage() {
       setGamingOpen(false);
       setStreamingOpen(false);
       setTechOpen(false);
+      setAttentionOpen(false);
     }
     refs.trends?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -1052,6 +1106,7 @@ export default function LandingPage() {
       setGamingOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
+      setAttentionOpen(false);
     }
     refs.tech?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -1079,6 +1134,41 @@ export default function LandingPage() {
           <div style={{ color: '#FFFFFF', fontWeight: 800, fontSize: 15, letterSpacing: '0.02em', marginTop: 8, marginBottom: 20 }}>MARKETS</div>
 
           <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div>
+              <button onClick={toggleAttention}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                  background: activeSector === 'attention' ? '#394666' : 'transparent',
+                  border: 'none', borderRadius: 6, padding: '10px 11px', cursor: 'pointer', textAlign: 'left',
+                  color: activeSector === 'attention' ? '#DCE6F5' : WARM, fontSize: 13, fontWeight: activeSector === 'attention' ? 700 : 500,
+                }}>
+                <SectorIcon kind="globe" color={activeSector === 'attention' ? '#DCE6F5' : WARM} />
+                <span style={{ flex: 1 }}>Global Attention</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={activeSector === 'attention' ? '#DCE6F5' : WARM} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  style={{ transform: activeSector === 'attention' && attentionOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease', flexShrink: 0 }}>
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              {activeSector === 'attention' && attentionOpen && (
+                <div style={{ display: 'flex', flexDirection: 'column', marginTop: 2 }}>
+                  {ATTENTION_SUBS.map((g) => {
+                    const genreActive = attentionSub === g;
+                    return (
+                      <button key={g} onClick={() => selectAttentionSub(g)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                          padding: '7px 11px 7px 38px', fontSize: 12.5,
+                          color: genreActive ? GOLD_DIM : WARM, fontWeight: genreActive ? 700 : 500,
+                        }}>
+                        <span style={{ width: 5, height: 5, borderRadius: 999, background: genreActive ? GOLD_DIM : 'transparent', flexShrink: 0 }} />
+                        {g}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             {SECTORS.map((s) => {
               const isActive = activeSector === s.id;
               const isMusic = s.id === 'music';
@@ -1193,6 +1283,17 @@ export default function LandingPage() {
             </div>
           </div>
 
+          <TwoCardSection
+            sector={{ id: 'attention', icon: 'globe', label: 'Global Attention' }}
+            demo={GLOBAL_ATTENTION_DEMO}
+            max={4}
+            title="Trending Attention & News"
+            pickReal={globalAttentionMarkets}
+            markets={markets}
+            onOpen={(id) => navigate(`/markets/${id}`)}
+            onViewAll={() => navigate('/explore')}
+            forwardRef={refs.attention}
+          />
           <MusicSection markets={markets} genre={musicGenre} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.music} />
           <MoviesSection markets={markets} platform={moviesPlatform} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.movies} />
 
