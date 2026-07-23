@@ -2,10 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useMarkets } from '../hooks/useMarkets';
-import TrendingRadar from '../components/TrendingRadar';
-import ResolveQueue from '../components/ResolveQueue';
-import WaitlistAdmin from '../components/WaitlistAdmin';
-import { api } from '../api/client';
 
 const RADAR_KEY = 'dobium-radar-9247';
 const STORAGE_KEY = 'dobium_radar_unlocked';
@@ -21,12 +17,7 @@ export default function RadarPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
-  const [seedBusy, setSeedBusy] = useState(false);
-  const [badgeBusy, setBadgeBusy] = useState(false);
-  const [badgeMsg, setBadgeMsg] = useState('');
-  const [seedMsg, setSeedMsg] = useState('');
   const [tab, setTab] = useState('trending'); // trending|hiphop|popculture|festivals|grammys | live
-  const [adminOpen, setAdminOpen] = useState(false);
 
   useEffect(() => {
     if (sessionStorage.getItem(STORAGE_KEY) === RADAR_KEY) setUnlocked(true);
@@ -56,7 +47,6 @@ export default function RadarPage() {
           <div className="dbm-radar-grid">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <IntelFeed />
-              <WaitlistAdmin radarKey={RADAR_KEY} compact />
             </div>
 
             <RadarHero markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} />
@@ -67,7 +57,7 @@ export default function RadarPage() {
             </div>
           </div>
 
-          <LiveMarketGrid markets={markets} genre={tab} onCreate={() => setTab('live')} onOpen={(id) => navigate(`/markets/${id}`)} />
+          <LiveMarketGrid markets={markets} genre={tab} onOpen={(id) => navigate(`/markets/${id}`)} />
 
           <style>{`
             .dbm-radar-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 18px; }
@@ -94,84 +84,7 @@ export default function RadarPage() {
         <LiveMarketsBrowser
           markets={markets}
           onOpen={(id) => navigate(`/markets/${id}`)}
-          onOpenAdmin={() => setAdminOpen(true)}
         />
-      )}
-
-      {adminOpen && (
-        <AdminToolsDrawer onClose={() => setAdminOpen(false)}>
-          {/* Only appears when a market actually needs a human resolution */}
-          <ResolveQueue radarKey={RADAR_KEY} />
-
-          <TrendingRadar
-            radarKey={RADAR_KEY}
-            sidebar={
-              <>
-                <WaitlistAdmin radarKey={RADAR_KEY} />
-
-                <div style={{ padding: 16, borderRadius: 6, border: '1px solid #2F3A4A', background: '#001F43' }}>
-                  <div style={{ color: '#F2F6FF', fontWeight: 700, fontSize: 14 }}>Curated starter batch</div>
-                  <div style={{ color: '#8E9AB0', fontSize: 12.5, marginTop: 4, lineHeight: 1.55 }}>
-                    Hand-picked markets — the original 21 (Drake, Travis Scott, Kanye…) plus the Sonotrade-style batch.
-                    Safe to click more than once — already-live markets are skipped automatically.
-                  </div>
-                  <button
-                    onClick={async () => {
-                      setSeedBusy(true); setSeedMsg('');
-                      try {
-                        const r = await api.seedCuratedMarkets(RADAR_KEY);
-                        setSeedMsg(r.created > 0
-                          ? `✓ ${r.created} new markets published · ${r.skipped_existing} already live`
-                          : `✓ All ${r.skipped_existing} curated markets are live on the site`);
-                      } catch (e) {
-                        setSeedMsg(`Failed: ${e.message}`);
-                      }
-                      setSeedBusy(false);
-                    }}
-                    disabled={seedBusy}
-                    style={{
-                      width: '100%', marginTop: 12, background: '#FFDF9B',
-                      color: '#00132D', fontWeight: 800, fontSize: 13, border: 'none',
-                      borderRadius: 4, padding: '11px 14px', cursor: 'pointer', opacity: seedBusy ? 0.6 : 1,
-                    }}
-                  >
-                    {seedBusy ? 'Creating…' : 'Publish curated batch'}
-                  </button>
-                  {seedMsg && <p style={{ color: '#8E9AB0', fontSize: 12, marginTop: 10, marginBottom: 0, fontFamily: 'var(--mono)' }}>{seedMsg}</p>}
-                </div>
-
-                <div style={{ padding: 16, borderRadius: 6, border: '1px solid #2F3A4A', background: '#001F43' }}>
-                  <div style={{ color: '#F2F6FF', fontWeight: 700, fontSize: 14 }}>Regenerate all market images</div>
-                  <div style={{ color: '#8E9AB0', fontSize: 12.5, marginTop: 4, lineHeight: 1.55 }}>
-                    Rebuilds every active market's icon badge from scratch — isolated from the scan and scout.
-                    Use this if any market still shows an old image.
-                  </div>
-                  <button
-                    onClick={async () => {
-                      setBadgeBusy(true); setBadgeMsg('');
-                      try {
-                        const r = await api.regenerateBadges(RADAR_KEY);
-                        setBadgeMsg(`Updated ${r.updated} of ${r.total} markets${r.errors?.length ? ` · ${r.errors.length} failed` : ''}`);
-                      } catch (e) {
-                        setBadgeMsg(`Failed: ${e.message}`);
-                      }
-                      setBadgeBusy(false);
-                    }}
-                    disabled={badgeBusy}
-                    style={{
-                      width: '100%', marginTop: 12, background: '#243550', color: '#D5E3FF',
-                      fontWeight: 700, fontSize: 13, border: 'none', borderRadius: 4,
-                      padding: '11px 14px', cursor: 'pointer', opacity: badgeBusy ? 0.6 : 1,
-                    }}
-                  >
-                    {badgeBusy ? 'Regenerating…' : 'Regenerate all images'}
-                  </button>
-                  {badgeMsg && <p style={{ color: '#8E9AB0', fontSize: 12, marginTop: 10, marginBottom: 0, fontFamily: 'var(--mono)' }}>{badgeMsg}</p>}
-                </div>
-              </>
-            }
-          />
-        </AdminToolsDrawer>
       )}
 
     </div>
@@ -640,7 +553,7 @@ function gridVol(v) {
   return `$${Math.round(v || 0)}`;
 }
 
-export function LiveMarketGrid({ markets, genre, onCreate, onOpen }) {
+export function LiveMarketGrid({ markets, genre, onOpen }) {
   const binaries = [...(markets || [])]
     .filter((m) => m.status === 'active' && (m.outcomes || []).length === 2 && m.outcomes.some((o) => (o.title || '').toLowerCase().startsWith('yes')))
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
@@ -682,10 +595,6 @@ export function LiveMarketGrid({ markets, genre, onCreate, onOpen }) {
         <span style={radarMono({ fontSize: 7.5, letterSpacing: '0.12em', background: '#243550', borderRadius: 2, padding: '4px 8px' })}>SYNC: {sync} UTC</span>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 12 }}>
           <span style={radarMono({ fontSize: 8.5 })}>SORT BY VOL</span>
-          <button onClick={onCreate}
-            style={{ background: RADAR_GOLD, color: '#00132D', fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 800, letterSpacing: '0.12em', border: 'none', borderRadius: 2, padding: '7px 12px', cursor: 'pointer' }}>
-            CREATE MARKET
-          </button>
         </span>
       </div>
 
@@ -867,20 +776,6 @@ function sectorRows(markets, sectorId) {
   return [...real.slice(0, 3), ...demo.slice(0, need)];
 }
 
-function DeployTile({ sectorLabel, onClick }) {
-  return (
-    <div onClick={onClick} style={{ background: '#0C203A', border: '1px dashed #2F3A4A', borderRadius: 8, padding: '16px 14px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: 130 }}>
-      <span style={{ width: 34, height: 34, borderRadius: 8, background: '#182A45', border: '1px solid #39465F', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={RADAR_GOLD_DIM} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 20V10M10 20V4M16 20v-7M21 20H3" />
-        </svg>
-      </span>
-      <div style={{ color: '#F2F6FF', fontWeight: 700, fontSize: 12 }}>New {sectorLabel} Context</div>
-      <div style={{ color: '#8E9AB0', fontSize: 10.5, marginTop: 5 }}>Deploy custom sector liquidity</div>
-    </div>
-  );
-}
-
 function LiveMarketCard({ m, onOpen }) {
   return (
     <div
@@ -916,7 +811,7 @@ function LiveMarketCard({ m, onOpen }) {
   );
 }
 
-function SectorSection({ sector, markets, onOpen, onDeploy, forwardRef }) {
+function SectorSection({ sector, markets, onOpen, forwardRef }) {
   const rows = sectorRows(markets, sector.id);
   const descriptions = {
     music: 'Tracking drops, charts, and tour performance.',
@@ -929,28 +824,22 @@ function SectorSection({ sector, markets, onOpen, onDeploy, forwardRef }) {
   };
   return (
     <div ref={forwardRef} style={{ marginBottom: 30, scrollMarginTop: 90 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
-        <div>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <SectorIcon kind={sector.icon} color={RADAR_GOLD_DIM} />
-            <span style={{ color: '#FFFFFF', fontWeight: 800, fontSize: 16 }}>{sector.label} Markets</span>
-          </span>
-          <p style={{ color: '#8E9AB0', fontSize: 11.5, margin: '5px 0 0 22px' }}>{descriptions[sector.id]}</p>
-        </div>
-        <button onClick={onDeploy} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.1em', color: RADAR_GOLD_DIM }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={RADAR_GOLD_DIM} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></svg>
-          DEPLOY MARKET
-        </button>
+      <div style={{ marginBottom: 4 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <SectorIcon kind={sector.icon} color={RADAR_GOLD_DIM} />
+          <span style={{ color: '#FFFFFF', fontWeight: 800, fontSize: 16 }}>{sector.label} Markets</span>
+        </span>
+        <p style={{ color: '#8E9AB0', fontSize: 11.5, margin: '5px 0 0 22px' }}>{descriptions[sector.id]}</p>
       </div>
       <div className="dbm-live-cards" style={{ marginTop: 14 }}>
         {rows.map((m, i) => <LiveMarketCard key={m.id || `${sector.id}-${i}`} m={m} onOpen={onOpen} />)}
-        <DeployTile sectorLabel={sector.label} onClick={onDeploy} />
       </div>
     </div>
   );
 }
 
-export function LiveMarketsBrowser({ markets, onOpen, onOpenAdmin }) {
+export function LiveMarketsBrowser({ markets, onOpen }) {
+  const navigate = useNavigate();
   const [activeSector, setActiveSector] = useState('trending');
   const refs = {};
   const goTo = (id) => {
@@ -1002,11 +891,8 @@ export function LiveMarketsBrowser({ markets, onOpen, onOpenAdmin }) {
           <button style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', borderRadius: 5, padding: '9px 10px', cursor: 'default', textAlign: 'left', color: '#5C7391', fontSize: 12 }}>
             <SectorIcon kind="life" color="#5C7391" /> Support
           </button>
-          <button onClick={onOpenAdmin} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', borderRadius: 5, padding: '9px 10px', cursor: 'pointer', textAlign: 'left', color: '#8E9AB0', fontSize: 12 }}>
-            <SectorIcon kind="gear" color="#8E9AB0" /> Settings
-          </button>
         </div>
-        <button onClick={onOpenAdmin}
+        <button onClick={() => navigate('/explore')}
           style={{ width: '100%', marginTop: 16, background: RADAR_GOLD, color: '#00132D', fontWeight: 800, fontSize: 12.5, border: 'none', borderRadius: 5, padding: '11px 0', cursor: 'pointer' }}>
           Quick Trade
         </button>
@@ -1027,20 +913,9 @@ export function LiveMarketsBrowser({ markets, onOpen, onOpenAdmin }) {
         </div>
 
         {contentSectors.map((s) => (
-          <SectorSection key={s.id} sector={s} markets={markets} onOpen={onOpen} onDeploy={onOpenAdmin} forwardRef={refs[s.id]} />
+          <SectorSection key={s.id} sector={s} markets={markets} onOpen={onOpen} forwardRef={refs[s.id]} />
         ))}
       </main>
-
-      <button onClick={onOpenAdmin}
-        style={{
-          position: 'fixed', right: 26, bottom: 26, width: 52, height: 52, borderRadius: 999,
-          background: RADAR_GOLD, border: 'none', cursor: 'pointer', zIndex: 40,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 26px rgba(0,5,15,.5)',
-        }}
-        title="Radar admin tools"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00132D" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-      </button>
 
       <style>{`
         .dbm-live-shell { display: flex; align-items: flex-start; }
@@ -1060,22 +935,6 @@ export function LiveMarketsBrowser({ markets, onOpen, onOpenAdmin }) {
 // ── Admin tools drawer: everything that used to live inline under the old
 // "Live Markets" tab (resolve queue, scan/scout, waitlist, curated seeding,
 // image regeneration) — now one tap away instead of taking over the tab.
-export function AdminToolsDrawer({ onClose, children }) {
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', justifyContent: 'flex-end' }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,6,16,.65)' }} />
-      <div style={{ position: 'relative', width: 'min(920px, 96vw)', height: '100%', background: '#00132D', borderLeft: '1px solid #14223E', overflowY: 'auto' }}>
-        <div style={{ position: 'sticky', top: 0, zIndex: 1, background: '#000E24', borderBottom: '1px solid #14223E', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <SectorIcon kind="gear" color={RADAR_GOLD_DIM} />
-            <span style={{ color: '#F2F6FF', fontWeight: 700, fontSize: 14 }}>Radar Admin Tools</span>
-          </span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8E9AB0', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 4 }}>×</button>
-        </div>
-        <div style={{ padding: '20px 20px 40px' }}>
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
+// ── Admin tooling (resolve queue, scan/scout, waitlist management, curated
+// seeding, image regeneration) has been removed from the Radar page per
+// Neel — deleted rather than hidden.
