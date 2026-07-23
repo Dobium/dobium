@@ -286,11 +286,6 @@ function binaryTop(markets, n) {
 export function RadarTopBar({ tab, setTab, onBrand }) {
   const TABS = [
     { id: 'trending', label: 'Trending' },
-    { id: 'hiphop', label: 'Hip Hop' },
-    { id: 'popculture', label: 'Pop Culture' },
-    { id: 'festivals', label: 'Festivals' },
-    { id: 'grammys', label: 'Grammys' },
-    { id: 'live', label: 'Live Markets' },
   ];
   return (
     <div style={{ background: '#00132D', borderBottom: '1px solid #14223E' }}>
