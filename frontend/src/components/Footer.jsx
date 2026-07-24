@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom';
-import { WaveMark } from './TopNav';
+import { WaveMark, VerifiedBadge } from './TopNav';
 
 // Sitewide footer, route-aware per the approved mocks:
 // • Home ('/'): the simple band — wordmark + "High-stakes culture prediction"
@@ -44,9 +44,12 @@ export default function Footer() {
             flexWrap: 'wrap', gap: 18, padding: '20px 28px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 14.5, color: '#F2F5FF' }}>
-              Dobium
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 14.5, color: '#F2F5FF' }}>
+                Dobium
+              </span>
+              <VerifiedBadge size={13} />
             </span>
             <span style={{ color: '#8E9AB0', fontSize: 11.5 }}>
               © 2024 Dobium Terminal. All market data is real-time.
@@ -84,7 +87,9 @@ export default function Footer() {
               <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15.5, color: '#F2F5FF' }}>
                 Dobium
               </span>
+              <VerifiedBadge size={14} />
             </div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#5C7391', marginTop: 4 }}>@DobiumHQ</div>
             <p style={{ color: '#CFC5B5', fontSize: 11.5, lineHeight: 1.65, margin: '12px 0 0' }}>
               © 2024 Dobium Markets. High-fidelity prediction protocols for a deterministic future.
             </p>
@@ -143,9 +148,13 @@ function ConnectButton({ kind }) {
         <div className="dbm-footwrap" style={{ padding: '34px 28px 0' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40, justifyContent: 'space-between' }}>
             <div style={{ maxWidth: 320 }}>
-              <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 17, color: '#FFDF9B' }}>
-                Dobium
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 17, color: '#FFDF9B' }}>
+                  Dobium
+                </span>
+                <VerifiedBadge size={15} />
               </span>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: '#5C7391', marginTop: 5 }}>@DobiumHQ</div>
               <p style={{ color: '#8E9AB0', fontSize: 12, lineHeight: 1.7, margin: '12px 0 0' }}>
                 The next-generation intelligence exchange for cultural capital. Dobium provides
                 high-fidelity, real-time prediction markets for global entertainment, media, and cultural shifts.
@@ -204,7 +213,9 @@ function ConnectButton({ kind }) {
             <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15.5, color: '#F2F5FF' }}>
               Dobium
             </span>
+            <VerifiedBadge size={14} />
           </div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#4E5E7C', marginTop: 4 }}>@DobiumHQ</div>
           <p style={{ color: '#6E7E9C', fontSize: 12, lineHeight: 1.65, margin: '12px 0 0' }}>
             High-fidelity prediction protocols for a future that matters.
             Trade culture, entertainment, and tech with precision.

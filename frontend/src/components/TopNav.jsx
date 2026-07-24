@@ -27,6 +27,20 @@ export function WaveMark({ height = 22 }) {
   );
 }
 
+// Gold "verified" seal — same scalloped-badge shape as a verified social
+// account, recolored to the brand gold instead of platform blue.
+export function VerifiedBadge({ size = 15 }) {
+  return (
+    <svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" style={{ height: size, width: size, display: 'block', flexShrink: 0 }} aria-label="Verified">
+      <path
+        fill="#FFDF9B"
+        d="M11 0l2.09 1.36 2.47-.44 1.02 2.3 2.3 1.02-.44 2.47L20 8.8l-1.36 2.09L20 13.2l-1.56 1.89.44 2.47-2.3 1.02-1.02 2.3-2.47-.44L11 22l-2.09-1.36-2.47.44-1.02-2.3-2.3-1.02.44-2.47L2 13.2l1.36-2.09L2 8.8l1.56-1.89-.44-2.47 2.3-1.02L6.44.92l2.47.44z"
+      />
+      <path d="M6.7 11.1l2.7 2.7 5.4-5.9" fill="none" stroke="#0A1A33" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 // Shared dropdown item style
 const itemStyle = {
   display: 'block', width: '100%', textAlign: 'left',
@@ -173,6 +187,7 @@ export default function TopNav() {
         <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 27, background: 'linear-gradient(180deg,#FFDF9B,#F0C04A)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
           Dobium
         </span>
+        <VerifiedBadge size={16} />
       </div>
 
       {/* Nav links — active tab is white with an underline (mock style) */}
