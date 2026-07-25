@@ -1,10 +1,30 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
 import { useMarkets } from '../hooks/useMarkets';
 
 const RADAR_KEY = 'dobium-radar-9247';
 const STORAGE_KEY = 'dobium_radar_unlocked';
+
+// ── DOBIUM Market Exchange terminal palette (sampled from the reference) ───
+const T_PAGE = '#162536';      // field behind panels
+const T_RAIL = '#010F1F';      // sidebar / deepest insets
+const T_BAR = '#051424';       // top chrome band
+const T_PANEL = '#122131';     // panel surface
+const T_TILE = '#1C2B3C';      // inactive tile / input
+const T_TILE_ON = '#2A343C';   // active tile
+const T_ROW_ON = '#273647';    // active sidebar row
+const T_LINE = '#1D2A3A';      // hairlines
+const T_ASK = '#0E1726';       // order-book ask row
+const T_BID = '#051A24';       // order-book bid row
+const T_ANALYSIS = '#18232C';  // analysis panel
+const T_MAP = '#080E15';       // sentiment map well
+const GREEN = '#4ADE80';
+const SALMON = '#FFB4AB';
+const GOLD = '#FFDF9B';
+const MUTED = '#989081';       // warm gray label text
+const WHITE = '#FFFFFF';
+
+const tmono = (extra = {}) => ({ fontFamily: 'var(--mono)', fontWeight: 700, letterSpacing: '0.1em', ...extra });
 
 // A standalone, passphrase-gated review page for the Trending Radar.
 // Reachable only by URL (like /pulse) — sidesteps the Supabase-auth admin gate.
@@ -13,11 +33,11 @@ const STORAGE_KEY = 'dobium_radar_unlocked';
 export default function RadarPage() {
   const navigate = useNavigate();
   const { markets } = useMarkets();
-  const { openAuthModal } = useAuth();
   const [unlocked, setUnlocked] = useState(false);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
-  const [tab, setTab] = useState('trending'); // trending|hiphop|popculture|festivals|grammys | live
+  const [source, setSource] = useState('Reddit');
+  const [sector, setSector] = useState('MUSIC');
 
   useEffect(() => {
     if (sessionStorage.getItem(STORAGE_KEY) === RADAR_KEY) setUnlocked(true);
@@ -38,55 +58,109 @@ export default function RadarPage() {
   }
 
   return (
-    <div style={{ background: '#00132D', minHeight: '100%' }}>
-      <RadarTopBar tab={tab} setTab={setTab} onBrand={() => navigate('/')} />
-      <RadarVolTicker markets={markets} />
+    <div style={{ background: T_PAGE, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <ExchangeTopBar onBrand={() => navigate('/')} />
+      <ExchangeTicker markets={markets} />
 
-      {tab !== 'live' && (
-        <div className="max-w-7xl mx-auto" style={{ padding: '18px 20px 34px' }}>
-          <div className="dbm-radar-grid">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              <IntelFeed />
-            </div>
+      <div className="dbm-xch-shell" style={{ flex: 1, minHeight: 0 }}>
+        <SourceRail source={source} setSource={setSource} />
 
-            <RadarHero markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} />
+        <div className="dbm-xch-cols">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+            <SectorPicker sector={sector} setSector={setSector} />
+            <OrderBook markets={markets} />
+          </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              <TurbulenceIndex />
-              <HotMediaMarkets markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+            <MarketIndexHero markets={markets} />
+            <div className="dbm-xch-lower">
+              <ProbabilityMatrix markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} />
+              <SentimentMap sector={sector} />
             </div>
           </div>
 
-          <LiveMarketGrid markets={markets} genre={tab} onOpen={(id) => navigate(`/markets/${id}`)} />
-
-          <style>{`
-            .dbm-radar-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 18px; }
-            @media (min-width: 1024px) {
-              .dbm-radar-grid { grid-template-columns: 290px minmax(0,1fr) 300px; align-items: start; }
-            }
-          `}</style>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+            <MarketClock />
+            <TradeStream markets={markets} />
+            <AnalysisPanel />
+          </div>
         </div>
-      )}
+      </div>
 
-      {tab !== 'live' && (
-        <div style={{ background: '#000E24', borderTop: '1px solid #10203A', padding: '12px 26px' }}>
-          <div className="max-w-7xl mx-auto">
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ width: 6, height: 6, borderRadius: 999, background: RADAR_GOLD_DIM }} />
-              <span style={radarMono({ fontSize: 8.5, color: '#CFC5B5' })}>DOBIUM RADAR INTELLIGENCE NODE</span>
+      <ExchangeStatusBar markets={markets} />
+
+      <style>{`
+        .dbm-xch-shell { display: flex; align-items: stretch; }
+        .dbm-xch-cols {
+          flex: 1; min-width: 0; display: grid; gap: 12; padding: 12px;
+          grid-template-columns: minmax(0, 1fr); gap: 12px;
+        }
+        .dbm-xch-lower { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; }
+        @media (min-width: 1100px) {
+          .dbm-xch-cols { grid-template-columns: 250px minmax(0,1fr) 260px; align-items: start; }
+          .dbm-xch-lower { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+        }
+        @media (max-width: 899px) {
+          .dbm-xch-shell { flex-direction: column; }
+          .dbm-xch-shell > aside { width: 100% !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ── Top chrome: brand block, pipeline breadcrumb, search ───────────────────
+const PIPELINE = ['SOURCES', 'SIGNAL QUEUE', 'AI ANALYSIS', 'MARKET DRAFT', 'PUBLISH'];
+
+function ExchangeTopBar({ onBrand }) {
+  return (
+    <div style={{ background: T_BAR, borderBottom: `1px solid ${T_LINE}`, display: 'flex', alignItems: 'stretch', flexWrap: 'wrap' }}>
+      <div onClick={onBrand}
+        style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 16px', cursor: 'pointer', minWidth: 250, borderRight: `1px solid ${T_LINE}` }}>
+        <span style={{ width: 34, height: 34, borderRadius: 7, background: T_RAIL, border: `1px solid ${GOLD}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round">
+            <path d="M4 14v-4M8.5 18V6M13 15.5v-7M17.5 12.5v-1M21 16V8" />
+          </svg>
+        </span>
+        <span style={{ lineHeight: 1.15 }}>
+          <span style={{ display: 'block', fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15, color: WHITE }}>DOBIUM Market</span>
+          <span style={{ display: 'block', fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15, color: WHITE }}>Exchange</span>
+        </span>
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 16, padding: '0 16px', flexWrap: 'wrap' }}>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {PIPELINE.map((step, i) => (
+            <span key={step} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span style={tmono({ fontSize: 9.5, color: i === 0 ? GOLD : MUTED })}>{step}</span>
+              {i < PIPELINE.length - 1 && <span style={{ color: '#3A4A5C', fontSize: 10 }}>›</span>}
             </span>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.12em', color: RADAR_GOLD_DIM, marginTop: 5 }}>Data ingested</div>
-          </div>
-        </div>
-      )}
+          ))}
+        </nav>
 
-{tab === 'live' && (
-        <LiveMarketsBrowser
-          markets={markets}
-          onOpen={(id) => navigate(`/markets/${id}`)}
-        />
-      )}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: '#0D1C2D', border: `1px solid ${T_LINE}`, borderRadius: 4, padding: '6px 11px' }}>
+          <span style={{ width: 6, height: 6, borderRadius: 999, background: GREEN }} />
+          <span style={tmono({ fontSize: 9, color: GREEN })}>PIPELINE ACTIVE</span>
+        </span>
 
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: T_TILE, border: `1px solid ${T_LINE}`, borderRadius: 5, padding: '8px 13px', minWidth: 190, marginLeft: 'auto' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round">
+            <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" />
+          </svg>
+          <span style={tmono({ fontSize: 9.5, color: MUTED })}>CMD+K TO SEARCH</span>
+        </span>
+
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.9" strokeLinecap="round">
+            <path d="M4 6v12M9 4v16M14 8v8M19 5v14" />
+          </svg>
+          <span style={{ width: 30, height: 30, borderRadius: 5, background: T_TILE, border: `1px solid ${T_LINE}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C6D3E8" strokeWidth="1.9" strokeLinecap="round">
+              <circle cx="12" cy="8.5" r="3.5" /><path d="M5 20c1.2-3.6 3.8-5.2 7-5.2s5.8 1.6 7 5.2" />
+            </svg>
+          </span>
+        </span>
+      </div>
     </div>
   );
 }
@@ -234,702 +308,524 @@ function RadarGate({ input, setInput, tryUnlock, error }) {
 }
 
 
-// ── Unlocked "Music & Media Radar" dashboard pieces (terminal mock) ────────
-const RADAR_GOLD = '#FFDF9B';
-const RADAR_GOLD_DIM = '#E1C382';
-const RADAR_GREEN = '#4BE176';
-const RADAR_SALMON = '#FFB4AB';
-
-// Demo copy pinned to the reference mock
-const INTEL_FEED = [
-  { time: '14:02 UTC', chip: 'Score: 87%', body: 'Kendrick Lamar studio session leak confirmed by top-tier audio engineers in LA.', prob: 'YES prob: 78%', up: true },
-  { time: '13:45 UTC', chip: 'Verified', body: 'Ticketmaster updates backend API routes for SZA stadium tour locations.', prob: 'YES prob: 92%', up: true },
-  { time: '12:38 UTC', chip: 'Contested', body: 'Rumors of Frank Ocean Coachella headliner officially denied by Goldenvoice.', prob: 'YES prob: 12%', up: false },
-];
-const DEMO_TICKER_ITEMS = [
-  { label: 'BEYONCE ACT III', value: '$3.1M', dir: 1 },
-  { label: 'FRANK OCEAN', value: '$120k', dir: 0 },
-  { label: 'K.DOT DROP', value: '$4.2M', dir: 1 },
-  { label: 'SZA TOUR', value: '$1.8M', dir: 1 },
-  { label: 'OSCARS BP', value: '$890k', dir: -1 },
-];
-const DEMO_HOT = [
-  { id: null, title: 'Will Kendrick drop an album before Q3?', yes: 78, no: 22 },
-  { id: null, title: 'SZA Tour dates announced in May?', yes: 92, no: 8 },
-];
-const DEMO_NODES = [
-  { id: null, kind: 'ACTIVE NODE', name: 'SZA Global Tour', yes: 92, no: 8 },
-  { id: null, kind: 'TRENDING NODE', name: "Kendrick Drop '24", yes: 78, no: 22 },
-];
-const SPARK = '0,26 18,22 34,27 52,18 70,21 88,13 106,17 124,9 142,12 160,5';
-
-function radarMono(extra = {}) {
-  return { fontFamily: 'var(--mono)', fontWeight: 700, letterSpacing: '0.14em', color: '#CFC5B5', ...extra };
+// ── Shared helpers ─────────────────────────────────────────────────────────
+function activeMarkets(markets) {
+  return (markets || []).filter((m) => m.status === 'active');
+}
+function yesOf(m) {
+  return (m.outcomes || []).find((o) => (o.title || '').toLowerCase().startsWith('yes'));
+}
+function leaderOf(m) {
+  return [...(m.outcomes || [])].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
+}
+function pctDelta(m, outcome) {
+  const h = m?.price_history || [];
+  if (h.length >= 2 && outcome) {
+    const last = h[h.length - 1]?.prices?.[outcome.id];
+    const prev = h[h.length - 2]?.prices?.[outcome.id];
+    if (typeof last === 'number' && typeof prev === 'number') return last - prev;
+  }
+  return 0;
+}
+// Turn a market title into an exchange-style ticker symbol (KNDRK.V, MARS.L…).
+const SYMBOL_SUFFIX = ['.V', '.L', '.T', '.X', '.M'];
+function symbolFor(title, i = 0) {
+  const words = (title || '')
+    .replace(/^will\s+/i, '')
+    .replace(/[^A-Za-z0-9 ]/g, '')
+    .split(/\s+/)
+    .filter(Boolean);
+  const base = (words[0] || 'MKT').toUpperCase().replace(/[AEIOU]/g, (v, idx) => (idx === 0 ? v : '')).slice(0, 5)
+    || (words[0] || 'MKT').toUpperCase().slice(0, 5);
+  return base + SYMBOL_SUFFIX[i % SYMBOL_SUFFIX.length];
+}
+function compactMoney(v) {
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+  if (v >= 1e3) return `$${(v / 1e3).toFixed(1)}K`;
+  return `$${Math.round(v || 0)}`;
 }
 
-function shortTitle(t) {
-  return (t || '').replace(/^will\s+/i, '').replace(/\?+\s*$/, '');
-}
+// ── Under-nav quote tape ───────────────────────────────────────────────────
+const TICKER_DEMO = [
+  { label: 'NEURALINK TRIALS (2025)', value: '74.2%', dir: 1 },
+  { label: 'KENDRICK ALBUM VELOCITY', value: '+412.8%', dir: 1 },
+  { label: 'FED RATE CUT MAR', value: '12.5%', dir: -1 },
+  { label: "SPACEX MARS LANDING '29", value: '4.2%', dir: 0 },
+  { label: 'GTA VI DELAY RISK', value: '38.0%', dir: 1 },
+];
 
-function binaryTop(markets, n) {
-  return [...(markets || [])]
-    .filter((m) => m.status === 'active' && (m.outcomes || []).length === 2 && m.outcomes.some((o) => (o.title || '').toLowerCase().startsWith('yes')))
+function ExchangeTicker({ markets }) {
+  const live = activeMarkets(markets)
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
-    .slice(0, n)
+    .slice(0, 6)
     .map((m) => {
-      const yes = m.outcomes.find((o) => (o.title || '').toLowerCase().startsWith('yes'));
-      const yp = Math.round(yes?.probability ?? 50);
-      return { id: m.id, title: m.title, name: shortTitle(m.title), yes: yp, no: 100 - yp };
+      const lead = yesOf(m) || leaderOf(m);
+      const d = pctDelta(m, lead);
+      return {
+        label: (m.title || '').replace(/^will\s+/i, '').replace(/\?+\s*$/, '').slice(0, 26).toUpperCase(),
+        value: `${Math.round(lead?.probability || 0)}.0%`,
+        dir: Math.sign(d),
+      };
     });
-}
-
-export function RadarTopBar({ tab, setTab, onBrand }) {
-  const TABS = [
-    { id: 'trending', label: 'Trending' },
-  ];
-  return (
-    <div style={{ background: '#00132D', borderBottom: '1px solid #14223E' }}>
-      <div className="max-w-7xl mx-auto" style={{ display: 'flex', alignItems: 'center', gap: 30, padding: '0 20px', minHeight: 50, flexWrap: 'wrap' }}>
-        <span onClick={onBrand} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F2F6FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
-            <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
-          </svg>
-          <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15, color: '#F2F6FF' }}>Dobium Radar</span>
-        </span>
-        <nav style={{ display: 'flex', alignItems: 'stretch', gap: 2, flexWrap: 'wrap', flex: 1 }}>
-          {TABS.map((t) => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.1em',
-                padding: '17px 12px 15px',
-                color: tab === t.id ? RADAR_GOLD : '#D5E3FF',
-                borderBottom: tab === t.id ? `2px solid ${RADAR_GOLD}` : '2px solid transparent',
-              }}>
-              {t.label}
-            </button>
-          ))}
-        </nav>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-          <span style={{ width: 5, height: 5, borderRadius: 999, background: RADAR_GREEN }} />
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.14em', color: RADAR_GREEN }}>LIVE_FEED OK</span>
-        </span>
-      </div>
-    </div>
-  );
-}
-
-export function RadarVolTicker({ markets }) {
-  const live = [...(markets || [])]
-    .filter((m) => m.status === 'active')
-    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
-    .slice(0, 8)
-    .map((m) => {
-      const v = m.total_volume || 0;
-      const value = v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${Math.round(v / 1e3)}k` : `$${Math.round(v)}`;
-      const hist = m.price_history || [];
-      const lead = [...(m.outcomes || [])].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
-      let dir = 0;
-      if (lead && hist.length >= 2) {
-        const cur = hist[hist.length - 1]?.prices?.[lead.id];
-        const prev = hist[hist.length - 2]?.prices?.[lead.id];
-        if (typeof cur === 'number' && typeof prev === 'number') dir = Math.sign(cur - prev);
-      }
-      return { label: shortTitle(m.title).slice(0, 22).toUpperCase(), value, dir };
-    });
-  const items = live.length > 0 ? live : DEMO_TICKER_ITEMS;
+  const items = live.length >= 4 ? live : TICKER_DEMO;
   const loop = [...items, ...items, ...items];
-  const arrow = (dir) => dir > 0 ? { ch: '↗', color: RADAR_GREEN } : dir < 0 ? { ch: '↘', color: RADAR_SALMON } : { ch: '→', color: '#8E9AB0' };
+  const arrow = (d) => (d > 0 ? { ch: '↗', c: GREEN } : d < 0 ? { ch: '↘', c: SALMON } : { ch: '—', c: MUTED });
 
   return (
-    <div style={{ display: 'flex', alignItems: 'stretch', background: '#243550', borderBottom: '1px solid #14223E', overflow: 'hidden' }}>
-      <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', background: RADAR_GOLD, color: '#00132D', fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.14em', padding: '9px 14px', zIndex: 1 }}>
-        GLOBAL VOL
-      </span>
-      <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', flex: 1 }}>
-        <div className="dbm-radar-tape" style={{ display: 'inline-flex', alignItems: 'center', padding: '8px 0' }}>
-          {loop.map((it, i) => {
-            const a = arrow(it.dir);
-            return (
-              <span key={i} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, margin: '0 26px', fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.1em' }}>
-                <span style={{ color: '#CFC5B5' }}>{it.label}</span>
-                <span style={{ color: '#8E9AB0' }}>Vol:</span>
-                <span style={{ color: RADAR_GREEN }}>{it.value}</span>
-                <span style={{ color: a.color }}>{a.ch}</span>
-              </span>
-            );
-          })}
-        </div>
+    <div style={{ background: T_PAGE, borderBottom: `1px solid ${T_LINE}`, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+      <div className="dbm-xch-tape" style={{ display: 'inline-flex', alignItems: 'center', padding: '9px 0' }}>
+        {loop.map((it, i) => {
+          const a = arrow(it.dir);
+          return (
+            <span key={i} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 8, margin: '0 26px', ...tmono({ fontSize: 10 }) }}>
+              <span style={{ color: MUTED }}>{it.label}</span>
+              <span style={{ color: WHITE }}>{it.value}</span>
+              <span style={{ color: a.c }}>{a.ch}</span>
+            </span>
+          );
+        })}
       </div>
       <style>{`
-        .dbm-radar-tape { animation: dbm-radar-tape 44s linear infinite; }
-        .dbm-radar-tape:hover { animation-play-state: paused; }
-        @keyframes dbm-radar-tape { from { transform: translateX(0); } to { transform: translateX(-33.333%); } }
-        @media (prefers-reduced-motion: reduce) { .dbm-radar-tape { animation: none; } }
+        .dbm-xch-tape { animation: dbm-xch-tape 48s linear infinite; }
+        .dbm-xch-tape:hover { animation-play-state: paused; }
+        @keyframes dbm-xch-tape { from { transform: translateX(0); } to { transform: translateX(-33.333%); } }
+        @media (prefers-reduced-motion: reduce) { .dbm-xch-tape { animation: none; } }
       `}</style>
     </div>
   );
 }
 
-export function IntelFeed() {
+// ── Left rail: signal sources ──────────────────────────────────────────────
+const SOURCE_GROUPS = [
+  {
+    title: 'SOURCES',
+    items: [
+      { label: 'Home', icon: 'home' },
+      { label: 'News', icon: 'news' },
+      { label: 'X (Twitter)', icon: 'at' },
+      { label: 'Reddit', icon: 'chat' },
+      { label: 'YouTube', icon: 'play' },
+      { label: 'Google Trends', icon: 'trend' },
+    ],
+  },
+  {
+    title: 'SECONDARY',
+    items: [
+      { label: 'GitHub', icon: 'code' },
+      { label: 'Product Hunt', icon: 'cat' },
+      { label: 'Hacker News', icon: 'news' },
+    ],
+  },
+  {
+    title: 'PLATFORMS',
+    items: [
+      { label: 'Steam', icon: 'gamepad' },
+      { label: 'Spotify', icon: 'disc' },
+      { label: 'App Store', icon: 'phone' },
+    ],
+  },
+];
+
+function RailIcon({ kind, color }) {
+  const c = { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round', style: { flexShrink: 0 } };
+  switch (kind) {
+    case 'home': return <svg {...c}><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z" /></svg>;
+    case 'news': return <svg {...c}><rect x="3" y="5" width="18" height="15" rx="2" /><path d="M7 9h7M7 13h7M7 17h4M17 9v8" /></svg>;
+    case 'at': return <svg {...c}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3.4" /><path d="M15.4 12v2a2.4 2.4 0 004.1 1.4" /></svg>;
+    case 'chat': return <svg {...c}><path d="M4 5h16v11H9l-5 4z" /><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" /></svg>;
+    case 'play': return <svg {...c}><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M11 9.5l4 2.5-4 2.5z" fill={color} stroke="none" /></svg>;
+    case 'trend': return <svg {...c}><path d="M3 17l6-6 4 4 8-8M15 7h6v6" /></svg>;
+    case 'code': return <svg {...c}><path d="M9 8l-4 4 4 4M15 8l4 4-4 4" /></svg>;
+    case 'cat': return <svg {...c}><path d="M12 4c4.4 0 8 3.2 8 7.2 0 4.3-3.6 7.8-8 7.8s-8-3.5-8-7.8C4 7.2 7.6 4 12 4z" /><path d="M9.5 11h3a1.8 1.8 0 000-3.6h-3V15" /></svg>;
+    case 'gamepad': return <svg {...c}><rect x="2" y="8" width="20" height="9" rx="4" /><path d="M7 11v3M5.5 12.5h3M15.5 12.5h.01M18.5 11h.01" /></svg>;
+    case 'disc': return <svg {...c}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="2.6" /><path d="M8 8.5c2.6-1.4 5.4-1.4 8 0" /></svg>;
+    case 'phone': return <svg {...c}><rect x="6" y="3" width="12" height="18" rx="2.5" /><path d="M11 18h2" /></svg>;
+    default: return null;
+  }
+}
+
+function SourceRail({ source, setSource }) {
   return (
-    <div style={{ background: '#001F43', border: '1px solid #2F3A4A', borderRadius: 6, padding: '14px 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={RADAR_GOLD_DIM} strokeWidth="2" strokeLinecap="round">
-            <circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-          </svg>
-          <span style={radarMono({ fontSize: 9.5, color: RADAR_GOLD_DIM })}>INTELLIGENCE FEED</span>
-        </span>
-        <span style={{ width: 6, height: 6, borderRadius: 999, background: RADAR_GREEN }} />
+    <aside style={{ width: 250, flexShrink: 0, background: T_RAIL, borderRight: `1px solid ${T_LINE}`, display: 'flex', flexDirection: 'column', padding: '16px 0 0' }}>
+      {SOURCE_GROUPS.map((g) => (
+        <div key={g.title} style={{ marginBottom: 22 }}>
+          <div style={{ ...tmono({ fontSize: 8.5, letterSpacing: '0.18em', color: '#5C7391' }), padding: '0 18px 10px' }}>{g.title}</div>
+          {g.items.map((it) => {
+            const on = source === it.label;
+            return (
+              <button key={it.label} onClick={() => setSource(it.label)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left',
+                  background: on ? T_ROW_ON : 'transparent', border: 'none',
+                  borderLeft: on ? `2px solid ${GOLD}` : '2px solid transparent',
+                  padding: '10px 18px', cursor: 'pointer',
+                  color: on ? WHITE : '#8FA3BC', fontSize: 12.5, fontWeight: on ? 700 : 500,
+                }}>
+                <RailIcon kind={it.icon} color={on ? WHITE : '#8FA3BC'} />
+                {it.label}
+              </button>
+            );
+          })}
+        </div>
+      ))}
+
+      <div style={{ marginTop: 'auto', borderTop: `1px solid ${T_LINE}`, padding: '14px 18px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 }}>
+          <span style={tmono({ fontSize: 8.5, letterSpacing: '0.16em', color: '#5C7391' })}>ARCHITECTURE</span>
+          <span style={tmono({ fontSize: 9, color: GOLD })}>V3.4.1</span>
+        </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ width: 6, height: 6, borderRadius: 999, background: GREEN }} />
+          <span style={tmono({ fontSize: 9, color: GREEN })}>SYSTEM NOMINAL</span>
+        </div>
+        <div style={{ height: 3, background: '#0A1622', borderRadius: 2, marginTop: 10 }}>
+          <div style={{ width: '72%', height: '100%', background: GREEN, borderRadius: 2, opacity: 0.75 }} />
+        </div>
       </div>
-      {INTEL_FEED.slice(0, 2).map((e, i) => (
-        <div key={e.time} style={{ paddingTop: i === 0 ? 0 : 13, paddingBottom: 13, borderBottom: i === 0 ? '1px solid rgba(28,48,79,.6)' : 'none' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-            <span style={radarMono({ fontSize: 9 })}>{e.time}</span>
-            <span style={radarMono({ fontSize: 8.5, letterSpacing: '0.08em', color: '#8E9AB0' })}>{e.chip}</span>
+    </aside>
+  );
+}
+
+// ── Sector picker ──────────────────────────────────────────────────────────
+const SECTOR_TILES = [
+  { id: 'MUSIC', icon: 'note' },
+  { id: 'CINEMA', icon: 'film' },
+  { id: 'TECH', icon: 'chip' },
+  { id: 'FRONTIER', icon: 'rocket' },
+];
+
+function TileIcon({ kind, color }) {
+  const c = { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  switch (kind) {
+    case 'note': return <svg {...c}><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>;
+    case 'film': return <svg {...c}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 15h18M8 4v16M16 4v16" /></svg>;
+    case 'chip': return <svg {...c}><rect x="7" y="7" width="10" height="10" rx="1.5" /><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4" /></svg>;
+    case 'rocket': return <svg {...c}><path d="M12 3c2.6 1.9 4.2 5 4.2 8.4 0 1.7-.8 3.3-1.7 4.2l-2.5 1.7-2.5-1.7c-.9-.9-1.7-2.5-1.7-4.2C7.8 8 9.4 4.9 12 3z" /><circle cx="12" cy="10" r="1.4" fill={color} stroke="none" /><path d="M9.6 16l-1.6 3.4M14.4 16l1.6 3.4" /></svg>;
+    default: return null;
+  }
+}
+
+function SectorPicker({ sector, setSector }) {
+  return (
+    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
+        <span style={tmono({ fontSize: 9, letterSpacing: '0.16em', color: MUTED })}>SECTORS</span>
+        <span style={tmono({ fontSize: 9, color: GOLD })}>LIVE</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
+        {SECTOR_TILES.map((t) => {
+          const on = sector === t.id;
+          return (
+            <button key={t.id} onClick={() => setSector(t.id)}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 14,
+                background: on ? T_TILE_ON : T_TILE,
+                border: `1px solid ${on ? '#4A5560' : T_LINE}`,
+                borderRadius: 5, padding: '12px 12px 11px', cursor: 'pointer', textAlign: 'left',
+              }}>
+              <TileIcon kind={t.icon} color={on ? WHITE : '#8FA3BC'} />
+              <span style={tmono({ fontSize: 9.5, color: on ? WHITE : '#8FA3BC' })}>{t.id}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Order book ─────────────────────────────────────────────────────────────
+// Dobium is a paper prediction market with no resting limit orders, so this
+// ladder is an illustrative depth view around each market's live probability
+// rather than real book data.
+function OrderBook({ markets }) {
+  const top = activeMarkets(markets).sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))[0];
+  const lead = top ? (yesOf(top) || leaderOf(top)) : null;
+  const mid = lead ? (lead.probability || 50) / 100 : 0.838;
+  const sym = top ? symbolFor(top.title, 0) : 'KNDRK.V';
+
+  const asks = [3, 2, 1].map((step, i) => ({
+    px: (mid + step * 0.002).toFixed(3),
+    size: [12401, 42100, 8202][i],
+    deep: i === 1,
+  }));
+  const bids = [1, 3, 7].map((step, i) => ({
+    px: (mid - step * 0.001).toFixed(3),
+    size: [15900, 98000, 1440][i],
+    deep: i === 1,
+  }));
+
+  const Row = ({ px, size, side, deep }) => (
+    <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', padding: '6px 11px', background: side === 'ask' ? T_ASK : T_BID, ...tmono({ fontSize: 10.5, letterSpacing: '0.04em' }) }}>
+      {deep && <span style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 3, background: side === 'ask' ? SALMON : GREEN }} />}
+      <span style={{ color: side === 'ask' ? SALMON : GREEN }}>{px}</span>
+      <span style={{ color: '#C6D3E8' }}>{size.toLocaleString('en-US')}</span>
+    </div>
+  );
+
+  return (
+    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 12px' }}>
+        <span style={tmono({ fontSize: 9, letterSpacing: '0.16em', color: MUTED })}>ORDER BOOK</span>
+        <span style={tmono({ fontSize: 9.5, color: WHITE })}>{sym}</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {asks.map((a) => <Row key={a.px} {...a} side="ask" />)}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: T_TILE, margin: '4px 0', padding: '13px 12px' }}>
+        <span style={tmono({ fontSize: 9, letterSpacing: '0.14em', color: MUTED })}>SPREAD</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+          <span style={{ ...tmono({ fontSize: 17, letterSpacing: '0.02em' }), color: WHITE }}>{mid.toFixed(3)}</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="2" strokeLinecap="round">
+            <path d="M8 20V6M8 6L4.5 9.5M8 6l3.5 3.5M16 4v14M16 18l3.5-3.5M16 18l-3.5-3.5" />
+          </svg>
+        </span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 2 }}>
+        {bids.map((b) => <Row key={b.px} {...b} side="bid" />)}
+      </div>
+    </div>
+  );
+}
+
+// ── Center hero: aggregate index ───────────────────────────────────────────
+function MarketIndexHero({ markets }) {
+  const live = activeMarkets(markets);
+  const total = live.reduce((s, m) => s + (m.total_volume || 0), 0);
+  // Index level: scaled aggregate so it reads like a market index, not a raw sum.
+  const level = total > 0 ? (total / 100) + 14000 : 14291.5;
+  const vol = live.length ? Math.min(48, 4 + live.length * 0.9) : 12.4;
+
+  const pts = '0,58 26,44 52,50 78,30 104,36 130,18 156,26 182,8';
+  return (
+    <div style={{ position: 'relative', background: T_RAIL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '20px 22px 0', minHeight: 210, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 0 }}>
+          <h2 style={{ color: WHITE, fontWeight: 800, fontSize: 'clamp(20px,2.4vw,29px)', lineHeight: 1.15, margin: 0, letterSpacing: '-0.01em' }}>
+            MARKET INDEX : ALPHA
+          </h2>
+          <div style={{ ...tmono({ fontSize: 9.5, letterSpacing: '0.16em', color: MUTED }), marginTop: 9 }}>
+            GLOBAL SENTIMENT AGGREGATION
           </div>
-          <p style={{ color: '#E6EDF9', fontSize: 11.5, lineHeight: 1.55, margin: 0 }}>{e.body}</p>
+        </div>
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div style={{ ...tmono({ fontSize: 'clamp(20px,2.3vw,28px)', letterSpacing: '0.01em' }), color: GREEN }}>
+            ${level.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div style={{ ...tmono({ fontSize: 10, color: GREEN }), marginTop: 5 }}>+{vol.toFixed(1)}% VOLATILITY</div>
+        </div>
+      </div>
+
+      {/* ghost wordmark + index line, like the mock's watermarked chart */}
+      <span style={{ position: 'absolute', right: 26, top: 96, display: 'inline-flex', alignItems: 'center', gap: 8, opacity: 0.13, pointerEvents: 'none' }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={WHITE} strokeWidth="2" strokeLinecap="round">
+          <path d="M4 14v-4M8.5 18V6M13 15.5v-7M17.5 12.5v-1M21 16V8" />
+        </svg>
+        <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 25, color: WHITE }}>Dobium</span>
+      </span>
+      <svg viewBox="0 0 182 70" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, width: '100%', height: 86, display: 'block' }}>
+        <polyline points={pts} fill="none" stroke="#2C3F52" strokeWidth="1.4" />
+      </svg>
+    </div>
+  );
+}
+
+// ── Probability matrix ─────────────────────────────────────────────────────
+const MATRIX_DEMO = [
+  { title: 'Neuralink Human Trials Phase 3', pct: 68 },
+  { title: 'GPT-5 Public Announcement', pct: 92 },
+];
+
+function ProbabilityMatrix({ markets, onOpen }) {
+  const real = activeMarkets(markets)
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
+    .slice(0, 2)
+    .map((m) => {
+      const lead = yesOf(m) || leaderOf(m);
+      return { id: m.id, title: (m.title || '').replace(/^will\s+/i, '').replace(/\?+\s*$/, ''), pct: Math.round(lead?.probability || 50) };
+    });
+  const rows = real.length >= 2 ? real : MATRIX_DEMO;
+
+  return (
+    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '12px 14px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <span style={tmono({ fontSize: 9, letterSpacing: '0.16em', color: MUTED })}>PROBABILITY MATRIX</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round">
+          <path d="M4 19V9M10 19V5M16 19v-7M21 19H3" />
+        </svg>
+      </div>
+      {rows.map((r, i) => (
+        <div key={r.id || i} onClick={() => r.id && onOpen && onOpen(r.id)}
+          style={{ marginBottom: i === rows.length - 1 ? 0 : 16, cursor: r.id ? 'pointer' : 'default' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ color: '#D4E4FA', fontSize: 12.5, lineHeight: 1.4 }}>{r.title}</span>
+            <span style={{ ...tmono({ fontSize: 11 }), color: GOLD, flexShrink: 0 }}>{r.pct}%</span>
+          </div>
+          <div style={{ height: 3, background: '#0B1826', borderRadius: 2, marginTop: 9 }}>
+            <div style={{ width: `${r.pct}%`, height: '100%', background: GOLD, borderRadius: 2 }} />
+          </div>
         </div>
       ))}
     </div>
   );
 }
 
-function NodeCard({ node, onOpen, style }) {
+// ── Global sentiment map ───────────────────────────────────────────────────
+function SentimentMap({ sector }) {
   return (
-    <div
-      className="dbm-radar-node"
-      onClick={() => node.id && onOpen && onOpen(node.id)}
-      style={{ background: '#001E40', border: '1px solid #2A3F63', borderRadius: 6, padding: '10px 13px', minWidth: 170, maxWidth: 220, cursor: node.id ? 'pointer' : 'default', boxShadow: '0 8px 22px rgba(0,5,15,.35)', ...style }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 7 }}>
-        <span style={radarMono({ fontSize: 8, color: '#8E9AB0' })}>{node.kind}</span>
-        {node.kind === 'TRENDING NODE' ? (
-          <span style={{ width: 6, height: 6, borderRadius: 999, background: RADAR_GREEN, boxShadow: '0 0 0 3px rgba(75,225,118,.18)' }} />
-        ) : (
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8E9AB0" strokeWidth="2" strokeLinecap="round">
-            <rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 3v4M16 3v4M3 10h18" />
-          </svg>
-        )}
-      </div>
-      <div style={{ color: '#F2F6FF', fontWeight: 700, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{node.name}</div>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginTop: 7, fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em' }}>
-        <span style={{ color: RADAR_GREEN }}>YES {node.yes}¢</span>
-        <span style={{ color: '#8E9AB0' }}>NO {node.no}¢</span>
-      </div>
-    </div>
-  );
-}
-
-export function RadarHero({ markets, onOpen }) {
-  const real = binaryTop(markets, 1);
-  const node = real[0] || DEMO_NODES[1];
-  return (
-    <div style={{ position: 'relative', minHeight: 380, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '30px 10px', background: '#02152F', border: '1px solid #14263F', borderRadius: 6 }}>
-      <div style={{ textAlign: 'center' }}>
-        <h1 style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 'clamp(20px,2.4vw,27px)', letterSpacing: '0.22em', color: RADAR_GOLD, margin: 0 }}>
-          RADAR CORE
-        </h1>
-        <p style={{ ...radarMono({ fontSize: 9.5, letterSpacing: '0.18em', color: '#CFC5B5' }), margin: '13px 0 0' }}>
-          System Status: Active
-        </p>
-      </div>
-      <div
-        className="dbm-radar-node"
-        onClick={() => node.id && onOpen && onOpen(node.id)}
-        style={{ position: 'absolute', left: '6%', top: 34, background: '#001E41', border: '1px solid #2A3F63', borderRadius: 6, padding: '10px 13px', minWidth: 155, maxWidth: 210, cursor: node.id ? 'pointer' : 'default', boxShadow: '0 8px 22px rgba(0,5,15,.35)' }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 7 }}>
-          <span style={radarMono({ fontSize: 8, color: '#8E9AB0' })}>TRENDING</span>
-          <span style={{ width: 6, height: 6, borderRadius: 999, background: RADAR_GREEN, boxShadow: '0 0 0 3px rgba(75,225,118,.18)' }} />
-        </div>
-        <div style={{ color: '#F2F6FF', fontWeight: 700, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{node.name}</div>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginTop: 8, fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}>
-          <span style={{ color: RADAR_GREEN }}>{node.yes}%</span>
-          <span style={{ color: '#CFC5B5' }}>{node.no}%</span>
-        </div>
-      </div>
-      <style>{`
-        @media (max-width: 1023px) {
-          .dbm-radar-node { position: static !important; margin: 14px auto 0; }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-export function TurbulenceIndex() {
-  return (
-    <div style={{ background: '#001F43', border: '1px solid #2F3A4A', borderRadius: 6, padding: '14px 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={RADAR_GOLD_DIM} strokeWidth="2" strokeLinecap="round">
-          <circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 019 9h-9z" fill={RADAR_GOLD_DIM} stroke="none" opacity=".5" />
+    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '12px 14px 14px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <span style={tmono({ fontSize: 9, letterSpacing: '0.16em', color: MUTED })}>GLOBAL SENTIMENT MAP</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="1.8">
+          <circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.4 2.6 3.8 5.7 3.8 9s-1.4 6.4-3.8 9c-2.4-2.6-3.8-5.7-3.8-9S9.6 5.6 12 3z" />
         </svg>
-        <span style={radarMono({ fontSize: 9.5, color: RADAR_GOLD_DIM })}>CULTURE TURBULENCE</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-        <span style={{ color: '#FFFFFF', fontWeight: 800, fontSize: 38, lineHeight: 1 }}>84.2</span>
-        <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 800, color: RADAR_GOLD }}>↗+4.5</span>
-      </div>
-      <svg viewBox="0 0 160 30" style={{ width: '100%', height: 34, display: 'block', marginTop: 12 }}>
-        <polyline points={SPARK} fill="none" stroke={RADAR_GOLD_DIM} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </div>
-  );
-}
-
-export function HotMediaMarkets({ markets, onOpen }) {
-  const real = binaryTop(markets, 1);
-  const rows = real.length > 0 ? real : [{ id: null, title: 'Drake x Cole Tour?', yes: 64, no: 36 }];
-  return (
-    <div style={{ background: '#182A45', border: '1px solid #2F3A4A', borderRadius: 6, padding: '14px 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 13 }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={RADAR_GOLD_DIM} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 20V10M10 20V4M16 20v-7M21 20H3" />
+      <div style={{ flex: 1, minHeight: 92, background: T_MAP, borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
+        <svg viewBox="0 0 240 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+          {[18, 42, 66, 90].map((y) => <line key={y} x1="0" y1={y} x2="240" y2={y} stroke="#16202B" strokeWidth="0.7" />)}
+          {[40, 80, 120, 160, 200].map((x) => <line key={x} x1={x} y1="0" x2={x} y2="100" stroke="#16202B" strokeWidth="0.7" />)}
+          <circle cx="72" cy="40" r="4.5" fill={GREEN} opacity="0.85" />
+          <circle cx="72" cy="40" r="11" fill={GREEN} opacity="0.13" />
+          <circle cx="168" cy="58" r="3.4" fill={GOLD} opacity="0.8" />
+          <circle cx="168" cy="58" r="9" fill={GOLD} opacity="0.12" />
         </svg>
-        <span style={radarMono({ fontSize: 9.5, color: RADAR_GOLD_DIM })}>HOT ALERTS</span>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {rows.map((m, i) => (
-          <div key={m.id || i}
-            onClick={() => m.id && onOpen && onOpen(m.id)}
-            style={{ borderTop: '1px solid rgba(47,58,74,.7)', paddingTop: 11, cursor: m.id ? 'pointer' : 'default' }}>
-            <div style={{ color: '#F2F6FF', fontSize: 12, fontWeight: 600, lineHeight: 1.4 }}>{m.title}</div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 9 }}>
-              <span style={{ flex: 1, textAlign: 'center', background: '#224F4F', border: '1px solid rgba(75,225,118,.5)', borderRadius: 3, padding: '7px 4px', fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', color: RADAR_GREEN }}>
-                YES {m.yes}¢
-              </span>
-              <span style={{ flex: 1, textAlign: 'center', background: '#464659', border: '1px solid rgba(255,180,171,.4)', borderRadius: 3, padding: '7px 4px', fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', color: RADAR_SALMON }}>
-                NO {m.no}¢
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-
-// ── LIVE MARKET GRID (mock): five genre columns of real markets ────────────
-const GENRES = [
-  { id: 'trending', label: 'TRENDING' },
-  { id: 'hiphop', label: 'HIP HOP' },
-  { id: 'popculture', label: 'POP CULTURE' },
-  { id: 'festivals', label: 'FESTIVALS' },
-  { id: 'grammys', label: 'GRAMMYS' },
-];
-const GRID_DEMO = {
-  trending: [{ id: null, title: 'Will Kendrick Lamar headline Coachella 2025?', yes: 78, no: 22, vol: '$6.2M', dir: 1 }],
-  hiphop: [{ id: null, title: 'Drake to release "The Heart Part 6" response?', yes: 45, no: 55, vol: '$8.1M', dir: -1 }],
-  popculture: [{ id: null, title: "Taylor Swift to announce 'Reputation TV' in Q3?", yes: 61, no: 39, vol: '$12.5M', dir: 0 }],
-  festivals: [{ id: null, title: 'SZA 2026 Global Stadium Tour official dates in May?', yes: 92, no: 8, vol: '$1.8M', dir: 1 }],
-  grammys: [{ id: null, title: 'Will Kendrick Lamar win Best Rap Album?', yes: 66, no: 34, vol: '$3.4M', dir: 1 }],
-};
-const HIPHOP_RE = /kendrick|drake|carti|travis scott|kanye|\bye\b|21 savage|future|metro boomin|cardi b|nicki|ice spice|lil (uzi|baby|wayne)|gunna|yeat|megan thee|glorilla|latto|central cee|j\.? ?cole|young thug|a\$?ap|tyler|rap/i;
-const POP_RE = /taylor|viral|tiktok|netflix|hbo|show|\btv\b|movie|film|stream|billboard|hot 100|meme|instagram|youtube/i;
-const FEST_RE = /coachella|tour|festival|stadium|glastonbury|lollapalooza|rolling loud|bonnaroo|headlin|concert/i;
-const GRAMMY_RE = /grammy|award|aoty|album of the year|best new artist|song of the year|record of the year|best .{0,20}album/i;
-
-function genreOf(title) {
-  const t = title || '';
-  if (GRAMMY_RE.test(t)) return 'grammys';
-  if (FEST_RE.test(t)) return 'festivals';
-  if (HIPHOP_RE.test(t)) return 'hiphop';
-  if (POP_RE.test(t)) return 'popculture';
-  return null;
-}
-
-function gridVol(v) {
-  if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
-  if (v >= 1e3) return `$${(v / 1e3).toFixed(1).replace(/\.0$/, '')}K`;
-  return `$${Math.round(v || 0)}`;
-}
-
-export function LiveMarketGrid({ markets, genre, onOpen }) {
-  const binaries = [...(markets || [])]
-    .filter((m) => m.status === 'active' && (m.outcomes || []).length === 2 && m.outcomes.some((o) => (o.title || '').toLowerCase().startsWith('yes')))
-    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
-    .map((m) => {
-      const yes = m.outcomes.find((o) => (o.title || '').toLowerCase().startsWith('yes'));
-      const yp = Math.round(yes?.probability ?? 50);
-      const hist = m.price_history || [];
-      let dir = 0;
-      if (yes && hist.length >= 2) {
-        const cur = hist[hist.length - 1]?.prices?.[yes.id];
-        const prev = hist[hist.length - 2]?.prices?.[yes.id];
-        if (typeof cur === 'number' && typeof prev === 'number') dir = Math.sign(cur - prev);
-      }
-      return { id: m.id, title: m.title, yes: yp, no: 100 - yp, vol: gridVol(m.total_volume || 0), dir, g: genreOf(m.title) };
-    });
-
-  const colMarkets = (gid) => {
-    const pool = gid === 'trending' ? binaries : binaries.filter((m) => m.g === gid);
-    const rows = pool.slice(0, 2);
-    return rows.length > 0 ? rows : GRID_DEMO[gid];
-  };
-
-  const sync = new Date().toISOString().slice(11, 19);
-  const trendBits = (dir) => dir > 0
-    ? { text: 'Trend ↗', color: RADAR_GREEN }
-    : dir < 0 ? { text: 'Trend ↘', color: RADAR_SALMON } : { text: 'STABLE', color: '#CFC5B5' };
-
-  return (
-    <div style={{ marginTop: 26 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F2F6FF" strokeWidth="2" strokeLinecap="round">
-            <rect x="3" y="3" width="8" height="8" rx="1" /><rect x="13" y="3" width="8" height="8" rx="1" />
-            <rect x="3" y="13" width="8" height="8" rx="1" /><rect x="13" y="13" width="8" height="8" rx="1" />
-          </svg>
-          <span style={{ color: '#F2F6FF', fontWeight: 800, fontSize: 13 }}>LIVE MARKET GRID</span>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginTop: 12 }}>
+        <span>
+          <span style={{ display: 'block', ...tmono({ fontSize: 8.5, letterSpacing: '0.14em', color: MUTED }) }}>PEAK VOL</span>
+          <span style={{ display: 'block', ...tmono({ fontSize: 10.5, color: WHITE }), marginTop: 4 }}>TOKYO/NYC</span>
         </span>
-        <span style={radarMono({ fontSize: 7.5, letterSpacing: '0.12em', background: '#243550', borderRadius: 2, padding: '4px 8px' })}>ALL SYSTEMS GO</span>
-        <span style={radarMono({ fontSize: 7.5, letterSpacing: '0.12em', background: '#243550', borderRadius: 2, padding: '4px 8px' })}>SYNC: {sync} UTC</span>
-        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 12 }}>
-          <span style={radarMono({ fontSize: 8.5 })}>SORT BY VOL</span>
+        <span style={{ textAlign: 'right' }}>
+          <span style={{ display: 'block', ...tmono({ fontSize: 8.5, letterSpacing: '0.14em', color: MUTED }) }}>HOT ZONE</span>
+          <span style={{ display: 'block', ...tmono({ fontSize: 10.5, color: GREEN }), marginTop: 4 }}>{sector}</span>
         </span>
       </div>
-
-      <div className="dbm-radar-marketgrid">
-        {GENRES.map((g) => (
-          <div key={g.id}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 9 }}>
-              <span style={{ width: 3, height: 9, background: genre === g.id ? RADAR_GOLD : '#39465F', display: 'inline-block' }} />
-              <span style={radarMono({ fontSize: 8, color: genre === g.id ? RADAR_GOLD : '#CFC5B5' })}>
-                {g.label}{genre === g.id ? ' ▾' : ''}
-              </span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {colMarkets(g.id).map((m, i) => {
-                const t = trendBits(m.dir);
-                return (
-                  <div key={m.id || i}
-                    onClick={() => m.id && onOpen && onOpen(m.id)}
-                    style={{ background: '#081C36', border: '1px solid #22314A', borderRadius: 4, padding: '11px 11px 9px', cursor: m.id ? 'pointer' : 'default' }}>
-                    <div style={{ color: '#F2F6FF', fontSize: 10.5, fontWeight: 600, lineHeight: 1.45, minHeight: 30 }}>{m.title}</div>
-                    <div style={{ display: 'flex', gap: 6, marginTop: 9 }}>
-                      <span style={{ flex: 1, textAlign: 'center', background: '#224F4F', border: '1px solid rgba(75,225,118,.5)', borderRadius: 3, padding: '6px 2px', fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 800, letterSpacing: '0.08em', color: RADAR_GREEN }}>
-                        YES {m.yes}¢
-                      </span>
-                      <span style={{ flex: 1, textAlign: 'center', background: '#464659', border: '1px solid rgba(255,180,171,.4)', borderRadius: 3, padding: '6px 2px', fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 800, letterSpacing: '0.08em', color: RADAR_SALMON }}>
-                        NO {String(m.no).padStart(2, '0')}¢
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6, marginTop: 9 }}>
-                      <span style={radarMono({ fontSize: 7.5, letterSpacing: '0.08em' })}>▲ {m.vol} Vol</span>
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 7.5, fontWeight: 700, letterSpacing: '0.08em', color: t.color }}>{t.text}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-      <style>{`
-        .dbm-radar-marketgrid { display: grid; grid-template-columns: 1fr; gap: 12px; }
-        @media (min-width: 640px) { .dbm-radar-marketgrid { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 1024px) { .dbm-radar-marketgrid { grid-template-columns: repeat(5, 1fr); } }
-      `}</style>
     </div>
   );
 }
 
+// ── Right rail: clock, trade stream, analysis ──────────────────────────────
+function MarketClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
 
-// ── Live Markets browser (sector dashboard), matched to the reference mocks.
-// Sits inside the Radar shell (below RadarTopBar/RadarVolTicker). Admin
-// functions (resolve, scan/scout, waitlist, seeding, image regen) still all
-// live — they're one tap away behind Settings / Deploy Market / the "+"
-// button rather than being inlined here, so nothing that used to work here
-// stopped working; it just moved behind the drawer.
-const SECTORS = [
-  { id: 'trending', label: 'Trending', icon: 'trend' },
-  { id: 'music', label: 'Music', icon: 'note',
-    re: /kendrick|drake|sza|beyonc|taylor swift|billboard|album|tour(?!nament)|stream(ing)?|spotify|chart|single|mixtape|rapper|grammy nom/i },
-  { id: 'movies', label: 'Movies & TV', icon: 'film',
-    re: /movie|film|box office|netflix|hbo|disney|marvel|oscar|premiere|sequel|series|renewal|episode|season \d|trailer/i },
-  { id: 'gaming', label: 'Gaming', icon: 'gamepad',
-    re: /game|gta|esports|twitch|streamer|valorant|fortnite|minecraft|playstation|xbox|nintendo|steam|worlds \d|league of legends|call of duty|overwatch/i },
-  { id: 'festivals', label: 'Festivals', icon: 'stage',
-    re: /coachella|festival|tour dates|stadium|concert|headlin|glastonbury|lollapalooza|rolling loud|bonnaroo/i },
-  { id: 'awards', label: 'Awards', icon: 'trophy',
-    re: /grammy|oscar|award|aoty|emmy|vma|bet awards|album of the year|best new artist|song of the year|record of the year/i },
-  { id: 'social', label: 'Social Trends', icon: 'hash',
-    re: /tiktok|viral|meme|trending on|twitter|x\.com|instagram|influencer|challenge/i },
-  { id: 'news', label: 'News', icon: 'news', re: null },
-];
-
-const SECTOR_DEMO = {
-  music: [
-    { title: 'Kendrick Lamar New Album Drops Before Q4?', vol: '$4.2M', yes: 78, no: 22, status: 'PEAK' },
-    { title: "SZA 'Lana' to Debut at #1 Billboard?", vol: '$1.8M', yes: 64, no: 36, status: 'RISING' },
-    { title: 'Spotify Peak Stream Milestones for Mid-Year?', vol: '$850K', yes: 51, no: 49, status: 'STABLE' },
-  ],
-  movies: [
-    { title: 'Box Office: Joker 2 Opening Weekend > $120M?', vol: '$12.4M', yes: 42, no: 58, status: 'FALLING' },
-    { title: "Netflix Series: 'Beef' Season 2 Renewal?", vol: '$3.1M', yes: 88, no: 12, status: 'PEAK' },
-  ],
-  gaming: [
-    { title: 'GTA VI to be delayed to 2026?', vol: '$4.2M', yes: 22, no: 78, status: 'HOT' },
-    { title: 'Twitch: Kai Cenat to break peak viewership record?', vol: '$890K', yes: 64, no: 36, status: 'RISING' },
-    { title: 'E-sports: T1 to win Worlds 2024?', vol: '$1.5M', yes: 41, no: 59, status: 'STABLE' },
-  ],
-  festivals: [
-    { title: 'Coachella 2025 headliner announced by March?', vol: '$920K', yes: 71, no: 29, status: 'RISING' },
-    { title: 'Glastonbury 2025 sells out in under a day?', vol: '$410K', yes: 55, no: 45, status: 'STABLE' },
-  ],
-  awards: [
-    { title: 'Album of the Year goes to a female artist?', vol: '$2.1M', yes: 58, no: 42, status: 'RISING' },
-    { title: 'Best New Artist upset at the Grammys?', vol: '$630K', yes: 33, no: 67, status: 'FALLING' },
-  ],
-  social: [
-    { title: "New Drake track goes viral on TikTok this week?", vol: '$540K', yes: 62, no: 38, status: 'RISING' },
-    { title: 'A Coachella meme becomes a top-10 trend?', vol: '$210K', yes: 47, no: 53, status: 'STABLE' },
-  ],
-  news: [
-    { title: 'Major label M&A announced this quarter?', vol: '$380K', yes: 29, no: 71, status: 'STABLE' },
-    { title: 'Streaming payout rates change industry-wide?', vol: '$260K', yes: 44, no: 56, status: 'FALLING' },
-  ],
-};
-
-function SectorIcon({ kind, color }) {
-  const c = { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { flexShrink: 0 } };
-  switch (kind) {
-    case 'trend': return <svg {...c}><path d="M3 17l6-6 4 4 8-8M15 7h6v6" /></svg>;
-    case 'note': return <svg {...c}><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>;
-    case 'film': return <svg {...c}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 15h18M8 4v16M16 4v16" /></svg>;
-    case 'gamepad': return <svg {...c}><rect x="2" y="8" width="20" height="9" rx="4" /><path d="M7 11v3M5.5 12.5h3M15.5 12.5h.01M18.5 11h.01" /></svg>;
-    case 'stage': return <svg {...c}><path d="M3 21h18M4 18h16M6 18v-7M10 18v-7M14 18v-7M18 18v-7M3 9l9-6 9 6z" /></svg>;
-    case 'trophy': return <svg {...c}><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0zM7 6H4a2 2 0 002 4h1M17 6h3a2 2 0 01-2 4h-1" /></svg>;
-    case 'hash': return <svg {...c}><path d="M5 9h14M5 15h14M10 3L8 21M16 3l-2 18" /></svg>;
-    case 'news': return <svg {...c}><path d="M4 4h13a3 3 0 013 3v13H7a3 3 0 01-3-3z" /><path d="M4 4v13a3 3 0 003 3M9 9h7M9 13h7M9 17h4" /></svg>;
-    case 'gear': return <svg {...c}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3h0a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9v0a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z" /></svg>;
-    case 'life': return <svg {...c}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3.5" /><path d="M5.5 5.5l3.2 3.2M18.5 5.5l-3.2 3.2M5.5 18.5l3.2-3.2M18.5 18.5l-3.2-3.2" /></svg>;
-    default: return null;
-  }
-}
-
-function statusColor(status) {
-  if (status === 'FALLING') return RADAR_SALMON;
-  if (status === 'STABLE') return RADAR_GOLD_DIM;
-  return RADAR_GREEN; // PEAK / RISING / HOT
-}
-
-function MiniSpark({ status }) {
-  const shapes = {
-    PEAK: '0,20 10,15 20,17 30,9 40,11 50,4',
-    RISING: '0,22 10,18 20,19 30,12 40,9 50,5',
-    HOT: '0,18 10,20 20,10 30,14 40,6 50,3',
-    STABLE: '0,12 10,11 20,13 30,11 40,12 50,11',
-    FALLING: '0,4 10,9 20,7 30,14 40,13 50,20',
-  };
-  const color = statusColor(status);
   return (
-    <svg viewBox="0 0 50 24" style={{ width: 46, height: 20, display: 'block' }}>
-      <polyline points={shapes[status] || shapes.STABLE} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '12px 14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
+        <span style={tmono({ fontSize: 8.5, letterSpacing: '0.16em', color: MUTED })}>MARKET TIME</span>
+        <span style={{ ...tmono({ fontSize: 12 }), color: WHITE }}>{hh}:{mm}:{ss}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderTop: `1px solid ${T_LINE}`, paddingTop: 11 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+          <span style={{ width: 6, height: 6, borderRadius: 999, background: GREEN, flexShrink: 0 }} />
+          <span style={tmono({ fontSize: 8.5, color: GREEN })}>ORACLE FEED SYNCED</span>
+        </span>
+        <span style={tmono({ fontSize: 8.5, color: MUTED })}>L: <span style={{ color: WHITE }}>12ms</span></span>
+      </div>
+    </div>
   );
 }
 
-function deltaFor(m, outcome) {
-  const h = m?.price_history || [];
-  if (h.length >= 2 && outcome) {
-    const last = h[h.length - 1]?.prices?.[outcome.id];
-    const prev = h[h.length - 2]?.prices?.[outcome.id];
-    if (typeof last === 'number' && typeof prev === 'number') return Math.round(last - prev);
-  }
-  return 0;
-}
+const STREAM_DEMO = [
+  { sym: 'MARS.L', side: 'BUY', qty: 4800, px: '0.220', usd: '$1.84' },
+  { sym: 'KNDRK.V', side: 'BUY', qty: 500, px: '0.234', usd: '$860.35' },
+  { sym: 'KNDRK.V', side: 'BUY', qty: 2500, px: '0.775', usd: '$159.23' },
+  { sym: 'KNDRK.V', side: 'BUY', qty: 1000, px: '0.162', usd: '$198.34' },
+  { sym: 'BTC.2025', side: 'SELL', qty: 1300, px: '0.730', usd: '$696.68' },
+  { sym: 'ELON.T', side: 'BUY', qty: 400, px: '0.429', usd: '$417.57' },
+  { sym: 'GTAVI.X', side: 'SELL', qty: 3400, px: '0.364', usd: '$383.18' },
+  { sym: 'MARS.L', side: 'BUY', qty: 700, px: '0.719', usd: '$187.00' },
+];
 
-function classifySector(title) {
-  for (const s of SECTORS) {
-    if (s.re && s.re.test(title || '')) return s.id;
-  }
-  return null;
-}
-
-function sectorRows(markets, sectorId) {
-  const real = [...(markets || [])]
-    .filter((m) => m.status === 'active' && classifySector(m.title) === sectorId)
+function TradeStream({ markets }) {
+  const live = activeMarkets(markets)
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
+    .slice(0, 8)
     .map((m, i) => {
-      const yes = (m.outcomes || []).find((o) => (o.title || '').toLowerCase().startsWith('yes'));
-      const lead = yes || [...(m.outcomes || [])].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
-      const yesP = yes ? Math.round(yes.probability || 0) : Math.round(lead?.probability || 50);
-      const noP = yes ? 100 - yesP : 100 - yesP;
-      const vol = m.total_volume || 0;
-      const volLabel = vol >= 1e6 ? `$${(vol / 1e6).toFixed(1)}M` : vol >= 1e3 ? `$${(vol / 1e3).toFixed(1).replace(/\.0$/, '')}K` : `$${Math.round(vol)}`;
-      const delta = deltaFor(m, lead);
-      const status = i === 0 ? 'PEAK' : delta > 0 ? 'RISING' : delta < 0 ? 'FALLING' : (vol > 2e6 ? 'HOT' : 'STABLE');
-      return { id: m.id, title: m.title, vol: volLabel, yes: yesP, no: noP, status, image: m.image || m.event_image, _vol: vol };
+      const lead = yesOf(m) || leaderOf(m);
+      const p = (lead?.probability || 50) / 100;
+      const d = pctDelta(m, lead);
+      const qty = Math.max(100, Math.round((m.total_volume || 500) / 4) * 10);
+      return {
+        sym: symbolFor(m.title, i),
+        side: d < 0 ? 'SELL' : 'BUY',
+        qty,
+        px: p.toFixed(3),
+        usd: compactMoney(m.total_volume || 0).replace('$', '$'),
+      };
     });
-  const demo = SECTOR_DEMO[sectorId] || [];
-  const need = Math.max(0, Math.min(3, demo.length) - real.length);
-  return [...real.slice(0, 3), ...demo.slice(0, need)];
-}
-
-function LiveMarketCard({ m, onOpen }) {
-  return (
-    <div
-      onClick={() => m.id && onOpen && onOpen(m.id)}
-      style={{ background: '#0C203A', border: '1px solid #2F3A4A', borderRadius: 8, overflow: 'hidden', cursor: m.id ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', transition: 'border-color .15s ease' }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = RADAR_GOLD)}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#2F3A4A')}
-    >
-      <div style={{ position: 'relative', height: 78, background: 'linear-gradient(135deg,#122040 0%,#050A18 75%)' }}>
-        {m.image && /^https?:/.test(m.image) && (
-          <img src={m.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-        )}
-        <span style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,10,26,.85)', border: '1px solid #2A3F63', borderRadius: 2, padding: '3px 7px', fontFamily: 'var(--mono)', fontSize: 7.5, fontWeight: 800, letterSpacing: '0.12em', color: statusColor(m.status) }}>
-          {m.status}
-        </span>
-      </div>
-      <div style={{ padding: '11px 12px 12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <div style={{ color: '#F2F6FF', fontWeight: 700, fontSize: 11.5, lineHeight: 1.4, minHeight: 32 }}>{m.title}</div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8 }}>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, color: '#8E9AB0' }}>{m.vol} Vol</span>
-          <MiniSpark status={m.status} />
-        </div>
-        <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-          <span style={{ flex: 1, textAlign: 'center', background: '#224F4F', border: '1px solid rgba(75,225,118,.5)', borderRadius: 3, padding: '6px 2px', fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', color: RADAR_GREEN }}>
-            YES {m.yes}¢
-          </span>
-          <span style={{ flex: 1, textAlign: 'center', background: '#464659', border: '1px solid rgba(255,180,171,.4)', borderRadius: 3, padding: '6px 2px', fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', color: RADAR_SALMON }}>
-            NO {m.no}¢
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SectorSection({ sector, markets, onOpen, forwardRef }) {
-  const rows = sectorRows(markets, sector.id);
-  const descriptions = {
-    music: 'Tracking drops, charts, and tour performance.',
-    movies: 'Predicting box office, critics, and series renewals.',
-    gaming: 'Predicting releases, viewership, and tournament outcomes.',
-    festivals: 'Lineups, sellouts, and on-site surprises.',
-    awards: 'Ballots, upsets, and show-night predictions.',
-    social: 'What breaks out next, before it breaks out.',
-    news: 'Industry moves worth having a position on.',
-  };
-  return (
-    <div ref={forwardRef} style={{ marginBottom: 30, scrollMarginTop: 90 }}>
-      <div style={{ marginBottom: 4 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <SectorIcon kind={sector.icon} color={RADAR_GOLD_DIM} />
-          <span style={{ color: '#FFFFFF', fontWeight: 800, fontSize: 16 }}>{sector.label} Markets</span>
-        </span>
-        <p style={{ color: '#8E9AB0', fontSize: 11.5, margin: '5px 0 0 22px' }}>{descriptions[sector.id]}</p>
-      </div>
-      <div className="dbm-live-cards" style={{ marginTop: 14 }}>
-        {rows.map((m, i) => <LiveMarketCard key={m.id || `${sector.id}-${i}`} m={m} onOpen={onOpen} />)}
-      </div>
-    </div>
-  );
-}
-
-export function LiveMarketsBrowser({ markets, onOpen }) {
-  const navigate = useNavigate();
-  const [activeSector, setActiveSector] = useState('trending');
-  const refs = {};
-  const goTo = (id) => {
-    setActiveSector(id);
-    if (id !== 'trending' && refs[id]?.current) {
-      refs[id].current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else if (id === 'trending') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const active = markets.filter((m) => m.status === 'active');
-  const globalVol = active.reduce((sum, m) => sum + (m.total_volume || 0), 0);
-  const globalVolLabel = globalVol >= 1e6 ? `$${(globalVol / 1e6).toFixed(1)}M` : `$${Math.round(globalVol).toLocaleString('en-US')}`;
-
-  const sectorVols = {};
-  for (const m of active) {
-    const sid = classifySector(m.title);
-    if (sid) sectorVols[sid] = (sectorVols[sid] || 0) + (m.total_volume || 0);
-  }
-  const topSectorId = Object.keys(sectorVols).sort((a, b) => sectorVols[b] - sectorVols[a])[0] || 'music';
-  const topSectorLabel = (SECTORS.find((s) => s.id === topSectorId) || SECTORS[1]).label.toUpperCase();
-
-  const contentSectors = SECTORS.filter((s) => s.id !== 'trending' && s.id !== 'news').concat(SECTORS.filter((s) => s.id === 'news'));
-  contentSectors.forEach((s) => { refs[s.id] = refs[s.id] || { current: null }; });
+  const rows = live.length >= 5 ? live : STREAM_DEMO;
 
   return (
-    <div className="dbm-live-shell">
-      <aside style={{ borderRight: '1px solid #14223E', padding: '18px 14px', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', color: '#8E9AB0', marginBottom: 8 }}>LIVE MARKETS</div>
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.16em', color: '#CFC5B5', margin: '18px 0 10px' }}>SECTORS</div>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {SECTORS.map((s) => {
-            const isActive = activeSector === s.id;
-            return (
-              <button key={s.id} onClick={() => goTo(s.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 9, background: isActive ? '#182A45' : 'transparent',
-                  border: 'none', borderRadius: 5, padding: '9px 10px', cursor: 'pointer', textAlign: 'left',
-                  color: isActive ? '#FFFFFF' : '#8E9AB0', fontSize: 12.5, fontWeight: isActive ? 700 : 500,
-                }}>
-                <SectorIcon kind={s.icon} color={isActive ? RADAR_GOLD_DIM : '#8E9AB0'} />
-                {s.label}
-              </button>
-            );
-          })}
-        </nav>
-        <div style={{ borderTop: '1px solid #1C304F', marginTop: 20, paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', borderRadius: 5, padding: '9px 10px', cursor: 'default', textAlign: 'left', color: '#5C7391', fontSize: 12 }}>
-            <SectorIcon kind="life" color="#5C7391" /> Support
-          </button>
-        </div>
-        <button onClick={() => navigate('/explore')}
-          style={{ width: '100%', marginTop: 16, background: RADAR_GOLD, color: '#00132D', fontWeight: 800, fontSize: 12.5, border: 'none', borderRadius: 5, padding: '11px 0', cursor: 'pointer' }}>
-          Quick Trade
-        </button>
-      </aside>
-
-      <main style={{ flex: 1, minWidth: 0, padding: '16px 22px 44px' }}>
-        <div className="dbm-live-statbar" style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap', marginBottom: 22, paddingBottom: 14, borderBottom: '1px solid #14223E' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 6, height: 6, borderRadius: 999, background: RADAR_GREEN }} />
-            <span style={radarMono({ fontSize: 8.5 })}>ALL SYSTEMS GO</span>
-          </span>
-          <span style={radarMono({ fontSize: 8.5 })}>SYNC: <span style={{ color: '#FFFFFF' }}>LIVE 24/7</span></span>
-          <span style={radarMono({ fontSize: 8.5 })}>LATENCY: <span style={{ color: '#FFFFFF' }}>12ms</span></span>
-          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
-            <span style={radarMono({ fontSize: 8.5 })}>GLOBAL VOL: <span style={{ color: '#FFFFFF' }}>{globalVolLabel}</span></span>
-            <span style={radarMono({ fontSize: 8.5 })}>TOP SECTOR: <span style={{ color: RADAR_GREEN }}>{topSectorLabel} (+12.4%)</span></span>
-          </span>
-        </div>
-
-        {contentSectors.map((s) => (
-          <SectorSection key={s.id} sector={s} markets={markets} onOpen={onOpen} forwardRef={refs[s.id]} />
+    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '12px 14px 10px' }}>
+        <span style={tmono({ fontSize: 8.5, letterSpacing: '0.16em', color: MUTED })}>TRADE STREAM</span>
+      </div>
+      <div style={{ background: T_RAIL, maxHeight: 400, overflowY: 'auto' }}>
+        {rows.map((r, i) => (
+          <div key={i} style={{ position: 'relative', padding: '10px 13px', borderBottom: i < rows.length - 1 ? `1px solid ${T_LINE}` : 'none' }}>
+            <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2.5, background: r.side === 'SELL' ? SALMON : GREEN }} />
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+              <span style={{ ...tmono({ fontSize: 9.5 }), color: WHITE }}>{r.sym}</span>
+              <span style={{ ...tmono({ fontSize: 9 }), color: r.side === 'SELL' ? SALMON : GREEN }}>
+                {r.side} {r.qty.toLocaleString('en-US')} @ {r.px}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginTop: 5 }}>
+              <span style={tmono({ fontSize: 8, color: '#5C7391' })}>JUST NOW</span>
+              <span style={tmono({ fontSize: 8.5, color: MUTED })}>{r.usd}</span>
+            </div>
+          </div>
         ))}
-      </main>
-
-      <style>{`
-        .dbm-live-shell { display: flex; align-items: flex-start; }
-        .dbm-live-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-        @media (min-width: 640px) { .dbm-live-cards { grid-template-columns: repeat(3, 1fr); } }
-        @media (min-width: 1024px) { .dbm-live-cards { grid-template-columns: repeat(4, 1fr); } }
-        @media (max-width: 767px) {
-          .dbm-live-shell { flex-direction: column; }
-          .dbm-live-shell > aside { width: 100% !important; border-right: none !important; border-bottom: 1px solid #14223E; }
-        }
-        @media (min-width: 768px) { .dbm-live-shell > aside { width: 210px; } }
-      `}</style>
+      </div>
     </div>
   );
 }
 
-// ── Admin tools drawer: everything that used to live inline under the old
-// "Live Markets" tab (resolve queue, scan/scout, waitlist, curated seeding,
-// image regeneration) — now one tap away instead of taking over the tab.
-// ── Admin tooling (resolve queue, scan/scout, waitlist management, curated
-// seeding, image regeneration) has been removed from the Radar page per
-// Neel — deleted rather than hidden.
+function AnalysisPanel() {
+  return (
+    <div style={{ background: T_ANALYSIS, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '13px 14px 14px' }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 11 }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.9" strokeLinecap="round">
+          <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+        </svg>
+        <span style={tmono({ fontSize: 8.5, letterSpacing: '0.16em', color: GOLD })}>DOBIUM ANALYSIS</span>
+      </div>
+      <p style={{ color: '#C6D3E8', fontSize: 11.5, lineHeight: 1.65, margin: '0 0 13px' }}>
+        Unusual volume spike in <span style={{ color: GOLD }}>@Kendrick</span> volatility clusters.
+        Prediction engine suggesting a 12% probability shift in next 4 hours due to leaked metadata strings.
+      </p>
+      <button
+        style={{ width: '100%', background: GOLD, color: '#0A1A33', border: 'none', borderRadius: 4, padding: '10px 0', cursor: 'pointer', ...tmono({ fontSize: 9.5, letterSpacing: '0.14em' }) }}>
+        EXECUTE ANALYSIS
+      </button>
+    </div>
+  );
+}
+
+// ── Bottom status bar ──────────────────────────────────────────────────────
+function ExchangeStatusBar({ markets }) {
+  const count = activeMarkets(markets).length;
+  const tps = 18000 + count * 34;
+  return (
+    <div style={{ background: T_RAIL, borderTop: `1px solid ${T_LINE}`, padding: '9px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ width: 6, height: 6, borderRadius: 999, background: GREEN }} />
+          <span style={tmono({ fontSize: 8.5, color: MUTED })}>CONNECTED: <span style={{ color: '#C6D3E8' }}>DOB-NODE-04</span></span>
+        </span>
+        <span style={tmono({ fontSize: 8.5, color: MUTED })}>BANDWIDTH: <span style={{ color: '#C6D3E8' }}>4.8 GB/S</span></span>
+      </span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+        <span style={tmono({ fontSize: 8.5, color: MUTED })}>TPS: <span style={{ color: '#C6D3E8' }}>{tps.toLocaleString('en-US')}</span></span>
+        <span style={tmono({ fontSize: 8.5, color: GREEN })}>SECURE ENCLAVE ACTIVE</span>
+      </span>
+    </div>
+  );
+}
