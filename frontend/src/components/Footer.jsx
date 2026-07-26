@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom';
-import { WaveMark, VerifiedBadge } from './TopNav';
+import { WaveMark } from './TopNav';
 
 // Sitewide footer, route-aware per the approved mocks:
 // • Home ('/'): the simple band — wordmark + "High-stakes culture prediction"
@@ -49,7 +49,6 @@ export default function Footer() {
               <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 14.5, color: '#F2F5FF' }}>
                 Dobium
               </span>
-              <VerifiedBadge size={13} />
             </span>
             <span style={{ color: '#8E9AB0', fontSize: 11.5 }}>
               © 2024 Dobium Terminal. All market data is real-time.
@@ -87,7 +86,6 @@ export default function Footer() {
               <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15.5, color: '#F2F5FF' }}>
                 Dobium
               </span>
-              <VerifiedBadge size={14} />
             </div>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#5C7391', marginTop: 4 }}>@DobiumHQ</div>
             <p style={{ color: '#CFC5B5', fontSize: 11.5, lineHeight: 1.65, margin: '12px 0 0' }}>
@@ -152,7 +150,6 @@ function ConnectButton({ kind }) {
                 <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 17, color: '#FFDF9B' }}>
                   Dobium
                 </span>
-                <VerifiedBadge size={15} />
               </span>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: '#5C7391', marginTop: 5 }}>@DobiumHQ</div>
               <p style={{ color: '#8E9AB0', fontSize: 12, lineHeight: 1.7, margin: '12px 0 0' }}>
@@ -213,7 +210,6 @@ function ConnectButton({ kind }) {
             <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15.5, color: '#F2F5FF' }}>
               Dobium
             </span>
-            <VerifiedBadge size={14} />
           </div>
           <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#4E5E7C', marginTop: 4 }}>@DobiumHQ</div>
           <p style={{ color: '#6E7E9C', fontSize: 12, lineHeight: 1.65, margin: '12px 0 0' }}>
