@@ -66,12 +66,12 @@ export default function RadarPage() {
         <SourceRail source={source} setSource={setSource} />
 
         <div className="dbm-xch-cols">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
             <SectorPicker sector={sector} setSector={setSector} />
             <OrderBook markets={markets} />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
             <MarketIndexHero markets={markets} />
             <div className="dbm-xch-lower">
               <ProbabilityMatrix markets={markets} onOpen={(id) => navigate(`/markets/${id}`)} />
@@ -79,7 +79,7 @@ export default function RadarPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
             <MarketClock />
             <TradeStream markets={markets} />
             <AnalysisPanel />
@@ -90,14 +90,14 @@ export default function RadarPage() {
       <ExchangeStatusBar markets={markets} />
 
       <style>{`
-        .dbm-xch-shell { display: flex; align-items: stretch; }
+        .dbm-xch-shell { display: flex; align-items: stretch; max-width: 1440px; margin: 0 auto; width: 100%; }
         .dbm-xch-cols {
-          flex: 1; min-width: 0; display: grid; gap: 12; padding: 12px;
-          grid-template-columns: minmax(0, 1fr); gap: 12px;
+          flex: 1; min-width: 0; display: grid; padding: 20px;
+          grid-template-columns: minmax(0, 1fr); gap: 18px;
         }
-        .dbm-xch-lower { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; }
+        .dbm-xch-lower { display: grid; grid-template-columns: minmax(0,1fr); gap: 18px; }
         @media (min-width: 1100px) {
-          .dbm-xch-cols { grid-template-columns: 250px minmax(0,1fr) 260px; align-items: start; }
+          .dbm-xch-cols { grid-template-columns: 240px minmax(0,1fr) 250px; align-items: start; }
           .dbm-xch-lower { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
         }
         @media (max-width: 899px) {
@@ -449,7 +449,7 @@ function SourceRail({ source, setSource }) {
   return (
     <aside style={{ width: 250, flexShrink: 0, background: T_RAIL, borderRight: `1px solid ${T_LINE}`, display: 'flex', flexDirection: 'column', padding: '16px 0 0' }}>
       {SOURCE_GROUPS.map((g) => (
-        <div key={g.title} style={{ marginBottom: 22 }}>
+        <div key={g.title} style={{ marginBottom: 26 }}>
           <div style={{ ...tmono({ fontSize: 8.5, letterSpacing: '0.18em', color: '#5C7391' }), padding: '0 18px 10px' }}>{g.title}</div>
           {g.items.map((it) => {
             const on = source === it.label;
@@ -459,7 +459,7 @@ function SourceRail({ source, setSource }) {
                   display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left',
                   background: on ? T_ROW_ON : 'transparent', border: 'none',
                   borderLeft: on ? `2px solid ${GOLD}` : '2px solid transparent',
-                  padding: '10px 18px', cursor: 'pointer',
+                  padding: '11px 20px', cursor: 'pointer',
                   color: on ? WHITE : '#8FA3BC', fontSize: 12.5, fontWeight: on ? 700 : 500,
                 }}>
                 <RailIcon kind={it.icon} color={on ? WHITE : '#8FA3BC'} />
@@ -508,8 +508,8 @@ function TileIcon({ kind, color }) {
 
 function SectorPicker({ sector, setSector }) {
   return (
-    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
+    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <span style={tmono({ fontSize: 9, letterSpacing: '0.16em', color: MUTED })}>SECTORS</span>
         <span style={tmono({ fontSize: 9, color: GOLD })}>LIVE</span>
       </div>
@@ -556,7 +556,7 @@ function OrderBook({ markets }) {
   }));
 
   const Row = ({ px, size, side, deep }) => (
-    <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', padding: '6px 11px', background: side === 'ask' ? T_ASK : T_BID, ...tmono({ fontSize: 10.5, letterSpacing: '0.04em' }) }}>
+    <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', padding: '8px 15px', background: side === 'ask' ? T_ASK : T_BID, ...tmono({ fontSize: 10.5, letterSpacing: '0.04em' }) }}>
       {deep && <span style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 3, background: side === 'ask' ? SALMON : GREEN }} />}
       <span style={{ color: side === 'ask' ? SALMON : GREEN }}>{px}</span>
       <span style={{ color: '#C6D3E8' }}>{size.toLocaleString('en-US')}</span>
@@ -565,14 +565,14 @@ function OrderBook({ markets }) {
 
   return (
     <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 15px' }}>
         <span style={tmono({ fontSize: 9, letterSpacing: '0.16em', color: MUTED })}>ORDER BOOK</span>
         <span style={tmono({ fontSize: 9.5, color: WHITE })}>{sym}</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {asks.map((a) => <Row key={a.px} {...a} side="ask" />)}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: T_TILE, margin: '4px 0', padding: '13px 12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: T_TILE, margin: '5px 0', padding: '16px 15px' }}>
         <span style={tmono({ fontSize: 9, letterSpacing: '0.14em', color: MUTED })}>SPREAD</span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
           <span style={{ ...tmono({ fontSize: 17, letterSpacing: '0.02em' }), color: WHITE }}>{mid.toFixed(3)}</span>
@@ -598,7 +598,7 @@ function MarketIndexHero({ markets }) {
 
   const pts = '0,58 26,44 52,50 78,30 104,36 130,18 156,26 182,8';
   return (
-    <div style={{ position: 'relative', background: T_RAIL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '20px 22px 0', minHeight: 210, overflow: 'hidden' }}>
+    <div style={{ position: 'relative', background: T_RAIL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '24px 26px 0', minHeight: 220, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
           <h2 style={{ color: WHITE, fontWeight: 800, fontSize: 'clamp(20px,2.4vw,29px)', lineHeight: 1.15, margin: 0, letterSpacing: '-0.01em' }}>
@@ -647,8 +647,8 @@ function ProbabilityMatrix({ markets, onOpen }) {
   const rows = real.length >= 2 ? real : MATRIX_DEMO;
 
   return (
-    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '12px 14px 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '16px 18px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <span style={tmono({ fontSize: 9, letterSpacing: '0.16em', color: MUTED })}>PROBABILITY MATRIX</span>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round">
           <path d="M4 19V9M10 19V5M16 19v-7M21 19H3" />
@@ -673,8 +673,8 @@ function ProbabilityMatrix({ markets, onOpen }) {
 // ── Global sentiment map ───────────────────────────────────────────────────
 function SentimentMap({ sector }) {
   return (
-    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '12px 14px 14px', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '16px 18px 18px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <span style={tmono({ fontSize: 9, letterSpacing: '0.16em', color: MUTED })}>GLOBAL SENTIMENT MAP</span>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="1.8">
           <circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.4 2.6 3.8 5.7 3.8 9s-1.4 6.4-3.8 9c-2.4-2.6-3.8-5.7-3.8-9S9.6 5.6 12 3z" />
@@ -716,8 +716,8 @@ function MarketClock() {
   const ss = String(now.getSeconds()).padStart(2, '0');
 
   return (
-    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '12px 14px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
+    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '16px 18px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <span style={tmono({ fontSize: 8.5, letterSpacing: '0.16em', color: MUTED })}>MARKET TIME</span>
         <span style={{ ...tmono({ fontSize: 12 }), color: WHITE }}>{hh}:{mm}:{ss}</span>
       </div>
@@ -764,12 +764,12 @@ function TradeStream({ markets }) {
 
   return (
     <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '12px 14px 10px' }}>
+      <div style={{ padding: '16px 18px 12px' }}>
         <span style={tmono({ fontSize: 8.5, letterSpacing: '0.16em', color: MUTED })}>TRADE STREAM</span>
       </div>
       <div style={{ background: T_RAIL, maxHeight: 400, overflowY: 'auto' }}>
         {rows.map((r, i) => (
-          <div key={i} style={{ position: 'relative', padding: '10px 13px', borderBottom: i < rows.length - 1 ? `1px solid ${T_LINE}` : 'none' }}>
+          <div key={i} style={{ position: 'relative', padding: '12px 18px', borderBottom: i < rows.length - 1 ? `1px solid ${T_LINE}` : 'none' }}>
             <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2.5, background: r.side === 'SELL' ? SALMON : GREEN }} />
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
               <span style={{ ...tmono({ fontSize: 9.5 }), color: WHITE }}>{r.sym}</span>
@@ -790,7 +790,7 @@ function TradeStream({ markets }) {
 
 function AnalysisPanel() {
   return (
-    <div style={{ background: T_ANALYSIS, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '13px 14px 14px' }}>
+    <div style={{ background: T_ANALYSIS, border: `1px solid ${T_LINE}`, borderRadius: 6, padding: '16px 18px 18px' }}>
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 11 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.9" strokeLinecap="round">
           <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
