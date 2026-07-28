@@ -38,6 +38,7 @@ export default function RadarPage() {
   const [error, setError] = useState('');
   const [source, setSource] = useState('Reddit');
   const [sector, setSector] = useState('MUSIC');
+  const feed = useSignalFeed(markets);
 
   useEffect(() => {
     if (sessionStorage.getItem(STORAGE_KEY) === RADAR_KEY) setUnlocked(true);
@@ -68,7 +69,10 @@ export default function RadarPage() {
         <div className="dbm-xch-cols">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
             <SectorPicker sector={sector} setSector={setSector} />
-            <OrderBook markets={markets} />
+            <div style={{ position: 'relative' }}>
+              <OrderBook markets={markets} />
+              <SignalOverlay feed={feed} />
+            </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
@@ -82,6 +86,7 @@ export default function RadarPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
             <MarketClock />
             <TradeStream markets={markets} />
+            <MarketStream feed={feed} />
             <AnalysisPanel />
           </div>
         </div>
@@ -489,10 +494,16 @@ function SourceRail({ source, setSource }) {
 
 // ── Sector picker ──────────────────────────────────────────────────────────
 const SECTOR_TILES = [
+  { id: 'GLOBAL ATTENTION', icon: 'globe' },
   { id: 'MUSIC', icon: 'note' },
-  { id: 'CINEMA', icon: 'film' },
-  { id: 'TECH', icon: 'chip' },
+  { id: 'MOVIES & TV', icon: 'film' },
+  { id: 'FESTIVALS', icon: 'tent' },
+  { id: 'GAMING', icon: 'pad' },
+  { id: 'CREATORS & STREAMERS', icon: 'creator' },
+  { id: 'TECH STARTUPS & AI', icon: 'chip' },
   { id: 'FRONTIER', icon: 'rocket' },
+  { id: 'STREAMING', icon: 'play' },
+  { id: 'INTERNET TRENDS', icon: 'trend' },
 ];
 
 function TileIcon({ kind, color }) {
@@ -502,6 +513,12 @@ function TileIcon({ kind, color }) {
     case 'film': return <svg {...c}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 15h18M8 4v16M16 4v16" /></svg>;
     case 'chip': return <svg {...c}><rect x="7" y="7" width="10" height="10" rx="1.5" /><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4" /></svg>;
     case 'rocket': return <svg {...c}><path d="M12 3c2.6 1.9 4.2 5 4.2 8.4 0 1.7-.8 3.3-1.7 4.2l-2.5 1.7-2.5-1.7c-.9-.9-1.7-2.5-1.7-4.2C7.8 8 9.4 4.9 12 3z" /><circle cx="12" cy="10" r="1.4" fill={color} stroke="none" /><path d="M9.6 16l-1.6 3.4M14.4 16l1.6 3.4" /></svg>;
+    case 'globe': return <svg {...c}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.4 2.6 3.8 5.7 3.8 9s-1.4 6.4-3.8 9c-2.4-2.6-3.8-5.7-3.8-9S9.6 5.6 12 3z" /></svg>;
+    case 'tent': return <svg {...c}><path d="M3 20h18M12 4L4 20M12 4l8 16M12 4v16" /></svg>;
+    case 'pad': return <svg {...c}><rect x="2" y="7" width="20" height="10" rx="4" /><path d="M7 10v4M5 12h4M15.5 11.5h.01M18 13.5h.01" /></svg>;
+    case 'creator': return <svg {...c}><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="12" cy="10.5" r="2.4" /><path d="M7.5 17c.9-1.9 2.6-3 4.5-3s3.6 1.1 4.5 3" /></svg>;
+    case 'play': return <svg {...c}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M10.5 9.5l5 2.5-5 2.5z" /></svg>;
+    case 'trend': return <svg {...c}><path d="M3 17l6-6 4 4 8-8" /><path d="M15 7h6v6" /></svg>;
     default: return null;
   }
 }
@@ -864,6 +881,138 @@ function TradeStream({ markets }) {
         @media (prefers-reduced-motion: reduce) {
           .dbm-xch-print { animation: none; }
         }
+      `}</style>
+    </div>
+  );
+}
+
+// ── Signal discovery feed ──────────────────────────────────────────────────
+// Drives both the MARKET STREAM panel and the DISCOVERED overlay that floats
+// over the order book. Both read the same feed so a signal shows up in the
+// two places at once, the way the mock has it.
+const SIGNAL_BANK = [
+  { title: 'OPENAI GPT-5 RELEASE', via: 'REUTERS' },
+  { title: 'GTA VI PC DELAY', via: 'REDDIT' },
+  { title: 'SZA WORLD TOUR', via: 'X (TWITTER)' },
+  { title: 'APPLE AI INTEGRATION', via: 'NEWS' },
+  { title: 'NEURALINK TRIAL EXPANSION', via: 'NEWS' },
+  { title: 'KENDRICK SURPRISE DROP', via: 'X (TWITTER)' },
+  { title: 'STARSHIP LAUNCH WINDOW', via: 'REUTERS' },
+  { title: 'FED MINUTES LEAK', via: 'HACKER NEWS' },
+  { title: 'COACHELLA LINEUP TIER 1', via: 'GOOGLE TRENDS' },
+  { title: 'TWITCH PAYOUT SHAKEUP', via: 'YOUTUBE' },
+];
+
+const SIGNAL_MAX = 6;
+
+function makeSignal(pool, seq) {
+  const s = pool[Math.floor(Math.random() * pool.length)];
+  return {
+    id: seq,
+    title: s.title,
+    via: s.via,
+    score: Math.floor(Math.random() * 45) + 55,
+    at: Date.now(),
+  };
+}
+
+function useSignalFeed(markets) {
+  // Real market titles get folded into the bank when there are enough live.
+  const pool = useMemo(() => {
+    const real = activeMarkets(markets).slice(0, 6).map((m) => ({
+      title: (m.title || '').toUpperCase().slice(0, 34),
+      via: SIGNAL_BANK[Math.floor(Math.random() * SIGNAL_BANK.length)].via,
+    })).filter((r) => r.title.length > 3);
+    return real.length >= 3 ? [...real, ...SIGNAL_BANK.slice(0, 4)] : SIGNAL_BANK;
+  }, [markets]);
+
+  const seq = useRef(0);
+  const [signals, setSignals] = useState([]);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const seed = [];
+    for (let i = 0; i < 4; i += 1) {
+      const s = makeSignal(pool, seq.current++);
+      s.at = Date.now() - i * 190000; // JUST NOW, ~3M, ~6M, ~9M AGO
+      seed.push(s);
+    }
+    setSignals(seed);
+  }, [pool]);
+
+  useEffect(() => {
+    let timer;
+    const tick = () => {
+      setSignals((prev) => [makeSignal(pool, seq.current++), ...prev].slice(0, SIGNAL_MAX));
+      timer = setTimeout(tick, 9000 + Math.random() * 11000);
+    };
+    timer = setTimeout(tick, 7000 + Math.random() * 6000);
+    return () => clearTimeout(timer);
+  }, [pool]);
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  return { signals, now };
+}
+
+function MarketStream({ feed }) {
+  const { signals, now } = feed;
+  return (
+    <div style={{ background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 6, overflow: 'hidden' }}>
+      <div style={{ padding: '12px 14px 10px' }}>
+        <span style={tmono({ fontSize: 8.5, letterSpacing: '0.16em', color: MUTED })}>MARKET STREAM</span>
+      </div>
+      <div style={{ background: T_RAIL }}>
+        {signals.slice(0, 4).map((s, i) => (
+          <div key={s.id} className="dbm-xch-sig" style={{ position: 'relative', padding: '11px 13px', borderBottom: i < 3 ? `1px solid ${T_LINE}` : 'none' }}>
+            <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2.5, background: GOLD }} />
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+              <span style={{ ...tmono({ fontSize: 9.5 }), color: WHITE }}>{s.title}</span>
+              <span style={tmono({ fontSize: 8.5, color: GOLD })}>DISCOVERED</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginTop: 5 }}>
+              <span style={tmono({ fontSize: 8, color: '#5C7391' })}>VIA {s.via}</span>
+              <span style={tmono({ fontSize: 8, color: '#5C7391' })}>{ageLabel(s.at, now)}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: 6, marginTop: 4 }}>
+              <span style={tmono({ fontSize: 8, color: MUTED })}>V-SCORE:</span>
+              <span style={{ ...tmono({ fontSize: 9.5 }), color: GOLD }}>{s.score}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Floats the most recent discoveries over the order book ladder, per the mock.
+function SignalOverlay({ feed }) {
+  const { signals, now } = feed;
+  return (
+    <div style={{ position: 'absolute', top: 52, left: 8, right: 8, zIndex: 4, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {signals.slice(0, 4).map((s) => (
+        <div key={s.id} className="dbm-xch-sig" style={{ position: 'relative', background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 4, padding: '9px 11px 9px 13px', boxShadow: '0 6px 18px rgba(0,0,0,0.45)' }}>
+          <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2.5, background: GOLD, borderRadius: '4px 0 0 4px' }} />
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+            <span style={{ ...tmono({ fontSize: 9 }), color: WHITE }}>{s.title}</span>
+            <span style={tmono({ fontSize: 8, color: GOLD })}>DISCOVERED</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginTop: 4 }}>
+            <span style={tmono({ fontSize: 7.5, color: '#5C7391' })}>VIA {s.via}</span>
+            <span style={tmono({ fontSize: 7.5, color: '#5C7391' })}>{ageLabel(s.at, now)}</span>
+          </div>
+        </div>
+      ))}
+      <style>{`
+        @keyframes dbmSigIn {
+          0%   { opacity: 0; transform: translateY(-5px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .dbm-xch-sig { animation: dbmSigIn 550ms ease-out; }
+        @media (prefers-reduced-motion: reduce) { .dbm-xch-sig { animation: none; } }
       `}</style>
     </div>
   );
