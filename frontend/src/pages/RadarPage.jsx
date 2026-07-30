@@ -53,10 +53,7 @@ export default function RadarPage() {
         <div className="dbm-xch-cols">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
             <SectorPicker sector={sector} setSector={setSector} />
-            <div style={{ position: 'relative' }}>
-              <OrderBook markets={markets} />
-              <SignalOverlay feed={feed} />
-            </div>
+            <OrderBook markets={markets} />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
@@ -823,28 +820,6 @@ function MarketStream({ feed }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-// Floats the most recent discoveries over the order book ladder, per the mock.
-function SignalOverlay({ feed }) {
-  const { signals, now } = feed;
-  return (
-    <div style={{ position: 'absolute', top: 52, left: 8, right: 8, zIndex: 4, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {signals.slice(0, 4).map((s) => (
-        <div key={s.id} className="dbm-xch-sig" style={{ position: 'relative', background: T_PANEL, border: `1px solid ${T_LINE}`, borderRadius: 4, padding: '9px 11px 9px 13px', boxShadow: '0 6px 18px rgba(0,0,0,0.45)' }}>
-          <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2.5, background: GOLD, borderRadius: '4px 0 0 4px' }} />
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-            <span style={{ ...tmono({ fontSize: 9 }), color: WHITE }}>{s.title}</span>
-            <span style={tmono({ fontSize: 8, color: GOLD })}>DISCOVERED</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginTop: 4 }}>
-            <span style={tmono({ fontSize: 7.5, color: '#5C7391' })}>VIA {s.via}</span>
-            <span style={tmono({ fontSize: 7.5, color: '#5C7391' })}>{ageLabel(s.at, now)}</span>
-          </div>
-        </div>
-      ))}
       <style>{`
         @keyframes dbmSigIn {
           0%   { opacity: 0; transform: translateY(-5px); }

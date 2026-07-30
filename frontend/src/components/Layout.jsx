@@ -30,7 +30,7 @@ export default function Layout() {
       <PaperTradingDisclaimer />
       <div className="main-content" style={{ background: 'var(--bg)', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         {pathname === '/explore' && <ExploreStatBand />}
-        {pathname !== '/radar' && pathname !== '/terminal' && <TopNav />}
+        {pathname !== '/radar' && pathname !== '/terminal' && pathname !== '/market-maker' && <TopNav />}
         <div style={{ flex: 1 }}>
           <Outlet />
         </div>

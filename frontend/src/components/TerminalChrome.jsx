@@ -83,7 +83,7 @@ export const SOURCE_GROUPS = [
   {
     title: 'SOURCES',
     items: [
-      { label: 'Home', icon: 'home' },
+      { label: 'Home', icon: 'home', to: '/radar' },
       { label: 'Market Maker', icon: 'maker', to: '/market-maker' },
       { label: 'News', icon: 'news' },
       { label: 'X (Twitter)', icon: 'at' },
