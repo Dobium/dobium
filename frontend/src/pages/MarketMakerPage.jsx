@@ -80,6 +80,7 @@ export default function MarketMakerPage() {
   const { markets } = useMarkets();
   const [range, setRange] = useState('1H');
   const [side, setSide] = useState('YES');
+  const [source, setSource] = useState('Reddit');
   const [contracts, setContracts] = useState('1000');
 
   const m = useMemo(() => {
@@ -100,7 +101,7 @@ export default function MarketMakerPage() {
       <ExchangeTopBar onBrand={() => navigate('/')} />
 
       <div className="dbm-mm-shell" style={{ flex: 1, minHeight: 0 }}>
-        <SourceRail active="Market Maker" />
+        <SourceRail source={source} setSource={setSource} />
 
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <MarketHeader title={title} price={price} />

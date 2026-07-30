@@ -1,7 +1,7 @@
 // ── Shared DOBIUM Market Exchange terminal chrome ──────────────────────────
 // Palette, top bar and source rail, pulled out of RadarPage so the Market
 // Maker page reuses the same chrome instead of a drifting copy.
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export const T_PAGE = '#162536';      // field behind panels
 export const T_RAIL = '#010F1F';      // sidebar / deepest insets
@@ -131,15 +131,21 @@ export function RailIcon({ kind, color }) {
 
 export function SourceRail({ source, setSource, active }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   return (
     <aside style={{ width: 250, flexShrink: 0, background: T_RAIL, borderRight: `1px solid ${T_LINE}`, display: 'flex', flexDirection: 'column', padding: '16px 0 0' }}>
       {SOURCE_GROUPS.map((g) => (
         <div key={g.title} style={{ marginBottom: 22 }}>
           <div style={{ ...tmono({ fontSize: 8.5, letterSpacing: '0.18em', color: '#5C7391' }), padding: '0 18px 10px' }}>{g.title}</div>
           {g.items.map((it) => {
-            const on = active ? active === it.label : source === it.label;
+            // Routed items track the URL; filter items track the page's source state.
+            const on = it.to ? pathname === it.to : (active ? active === it.label : source === it.label);
+            const click = () => {
+              if (setSource) setSource(it.label);
+              if (it.to && it.to !== pathname) navigate(it.to);
+            };
             return (
-              <button key={it.label} onClick={() => (it.to ? navigate(it.to) : setSource && setSource(it.label))}
+              <button key={it.label} onClick={click}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left',
                   background: on ? T_ROW_ON : 'transparent', border: 'none',
