@@ -138,8 +138,8 @@ export function SourceRail({ source, setSource, active }) {
         <div key={g.title} style={{ marginBottom: 22 }}>
           <div style={{ ...tmono({ fontSize: 8.5, letterSpacing: '0.18em', color: '#5C7391' }), padding: '0 18px 10px' }}>{g.title}</div>
           {g.items.map((it) => {
-            // Routed items track the URL; filter items track the page's source state.
-            const on = it.to ? pathname === it.to : (active ? active === it.label : source === it.label);
+            // Exactly one row is ever selected: the page's own source state.
+            const on = active ? active === it.label : source === it.label;
             const click = () => {
               if (setSource) setSource(it.label);
               if (it.to && it.to !== pathname) navigate(it.to);

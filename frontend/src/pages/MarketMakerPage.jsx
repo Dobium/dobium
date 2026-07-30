@@ -80,7 +80,7 @@ export default function MarketMakerPage() {
   const { markets } = useMarkets();
   const [range, setRange] = useState('1H');
   const [side, setSide] = useState('YES');
-  const [source, setSource] = useState('Reddit');
+  const [source, setSource] = useState('Market Maker');
   const [contracts, setContracts] = useState('1000');
 
   const m = useMemo(() => {
