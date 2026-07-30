@@ -20,7 +20,7 @@ export default function RadarPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
-  const [source, setSource] = useState('Reddit');
+  const [source, setSource] = useState('Home');
   const [sector, setSector] = useState('MUSIC');
   const feed = useSignalFeed(markets);
 
