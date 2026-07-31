@@ -5,6 +5,7 @@ import Footer from './Footer';
 import PaperTradingDisclaimer from './PaperTradingDisclaimer';
 import AuthModal from './AuthModal';
 import ResolutionModal from './ResolutionModal';
+import { isTerminalPath } from './TerminalChrome';
 
 // Note: the old icon-rail Sidebar is intentionally not rendered here anymore.
 // TopNav is now the only navigation — that fixed-width left rail was what
@@ -30,7 +31,7 @@ export default function Layout() {
       <PaperTradingDisclaimer />
       <div className="main-content" style={{ background: 'var(--bg)', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         {pathname === '/explore' && <ExploreStatBand />}
-        {pathname !== '/radar' && pathname !== '/terminal' && pathname !== '/market-maker' && pathname !== '/news' && <TopNav />}
+        {!isTerminalPath(pathname) && <TopNav />}
         <div style={{ flex: 1 }}>
           <Outlet />
         </div>

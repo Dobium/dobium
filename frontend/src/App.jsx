@@ -8,6 +8,8 @@ import PulsePage from './pages/PulsePage';
 import RadarPage from './pages/RadarPage';
 import MarketMakerPage from './pages/MarketMakerPage';
 import NewsTerminalPage from './pages/NewsTerminalPage';
+import XTerminalPage from './pages/XTerminalPage';
+import XSignalPage from './pages/XSignalPage';
 import TerminalPage from './pages/TerminalPage';
 import MarketDetailPage from './pages/MarketDetailPage';
 import SettingsPage from './pages/SettingsPage';
@@ -46,6 +48,8 @@ function AppRoutes() {
           <Route path="/radar" element={<RadarPage />} />
           <Route path="/market-maker" element={<MarketMakerPage />} />
           <Route path="/news" element={<NewsTerminalPage />} />
+          <Route path="/x" element={<XTerminalPage />} />
+          <Route path="/x/:slug" element={<XSignalPage />} />
           <Route path="/terminal" element={<TerminalPage />} />
           <Route path="/markets/:id" element={<MarketDetailPage />} />
           <Route path="/leagues" element={<LeaguesPage />} />

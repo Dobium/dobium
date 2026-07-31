@@ -1,0 +1,133 @@
+// ── X terminal signal bank ─────────────────────────────────────────────────
+// Demo content. Dobium has no X/Twitter ingestion, so these are the values
+// from Neel's mocks rather than anything measured.
+export const X_SIGNALS = [
+  {
+    id: '001-TSLA',
+    slug: 'tesla-robotaxi',
+    badge: 'TRENDING',
+    tone: 'gold',
+    kicker: 'VERIFIED: REUTERS',
+    title: 'Tesla Robotaxi Launch',
+    velocity: 842,
+    posts: 12481,
+    tags: ['#TSLA', '#ROBOTAXI', '#AUTONOMOUS'],
+    priority: 'PRIORITY ALPHA',
+    summary: 'Aggregate intelligence report on Tesla autonomous fleet discourse. Detecting coordinated speculation around regulatory clearance timelines and depot buildout.',
+    sentiment: '0.71',
+    impact: '9.1/10',
+    reliability: 'High (94%)',
+    authority: [['TECHNICAL', 72], ['INSTITUTIONAL', 68], ['RETAIL', 41]],
+    semantic: ['ROBOTAXI', 'TESLA', 'FSD_V13', 'DEPOT_AUSTIN', 'ELON_MUSK', 'NHTSA'],
+    posts_feed: [
+      { name: 'Tesla', handle: '@Tesla', ago: '1h', body: 'Fleet learning compounds. Autonomy is a data problem before it is a hardware problem.', stats: ['2.1k', '1.4k', '22k'] },
+      { name: 'Elon Musk', handle: '@elonmusk', ago: '3h', body: 'unsupervised fsd wide release closer than most think', stats: ['9.2k', '31k', '140k'] },
+    ],
+    stream: [
+      { sym: 'TSLA', venue: 'NASDAQ', chg: -2.48, note: 'Recall headlines offsetting robotaxi optimism in near-dated options.' },
+      { sym: 'MOBL', venue: 'NASDAQ', chg: 1.86, note: 'Lidar supply names bid on fleet expansion chatter.' },
+      { sym: 'AIX Index', venue: '', chg: 0.44, note: 'Autonomy basket drifting up on verified-source amplification.' },
+    ],
+    hyp: [
+      { id: 'H-A', prob: 71, body: 'Regulatory clearance in at least one additional state before Q4. Impact: High for depot logistics names.' },
+      { id: 'H-B', prob: 58, body: 'Launch slips past initial guidance. Anticipate short-term volatility in TSLA weeklies.' },
+    ],
+  },
+  {
+    id: '003-MRBEAST',
+    slug: 'mrbeast',
+    badge: 'VIRAL',
+    tone: 'red',
+    kicker: 'SOCIAL SIGNAL',
+    title: 'MrBeast',
+    velocity: 615,
+    posts: 8291,
+    tags: ['#MRBEAST', '#CREATOR', '#YOUTUBE'],
+    priority: 'PRIORITY BETA',
+    summary: 'Aggregate intelligence report on creator-economy discourse. Detecting unusual cross-platform amplification and brand-partnership speculation.',
+    sentiment: '0.88',
+    impact: '7.4/10',
+    reliability: 'Medium (68%)',
+    authority: [['TECHNICAL', 18], ['INSTITUTIONAL', 34], ['RETAIL', 91]],
+    semantic: ['MRBEAST', 'CREATOR_ECON', 'FEASTABLES', 'YOUTUBE', 'BRAND_DEAL'],
+    posts_feed: [
+      { name: 'MrBeast', handle: '@MrBeast', ago: '2h', body: 'this next one nearly bankrupted us', stats: ['14k', '61k', '410k'] },
+      { name: 'Creator Wire', handle: '@creatorwire', ago: '5h', body: 'Retail sentiment on creator-adjacent tickers tracking video release cadence almost 1:1 this quarter.', stats: ['420', '900', '3.1k'] },
+    ],
+    stream: [
+      { sym: 'WBD', venue: 'NASDAQ', chg: 0.62, note: 'Streaming names marginally bid on attention-shift narratives.' },
+      { sym: 'GOOGL', venue: 'NASDAQ', chg: 0.31, note: 'YouTube ad-load commentary resurfacing in retail threads.' },
+      { sym: 'AIX Index', venue: '', chg: 0.12, note: 'Low institutional participation; signal is retail-dominant.' },
+    ],
+    hyp: [
+      { id: 'H-A', prob: 62, body: 'Attention spike decays within 72h absent a follow-on release. Low durable market impact.' },
+      { id: 'H-B', prob: 44, body: 'Brand-partnership announcement lands inside the window. Impact: Moderate for consumer names.' },
+    ],
+  },
+  {
+    id: '002-GPT6',
+    slug: 'openai-gpt-6',
+    badge: 'HOT',
+    tone: 'orange',
+    kicker: 'TECH SIGNAL',
+    title: 'OpenAI GPT-6',
+    velocity: 502,
+    posts: 14012,
+    tags: ['#GENAI', '#OPENAI', '#NASDAQ100'],
+    priority: 'PRIORITY ALPHA',
+    summary: 'Aggregate intelligence report on emerging GPT-6 discourse. Detecting significant deviations in compute allocation rumors and architectural speculation within high-authority technical clusters.',
+    sentiment: '0.84',
+    impact: '9.8/10',
+    reliability: 'High (92%)',
+    authority: [['TECHNICAL', 85], ['INSTITUTIONAL', 62], ['RETAIL', 24]],
+    semantic: ['GPT-6', 'OPENAI', 'AI MODEL', 'COMPUTE_CLUSTER_B', 'SAM_ALTMAN', 'STARGATE_DC'],
+    posts_feed: [
+      { name: 'OpenAI', handle: '@OpenAI', ago: '2h', body: 'Our commitment to scaling compute safely continues. Exploring new frontiers in reasoning and generalization. #FutureOfAI', stats: ['1.2k', '842', '14k'] },
+      { name: 'Sam Altman', handle: '@sama', ago: '4h', body: 'the curve is steeper than most people realize.', stats: ['4.8k', '12k', '52k'] },
+    ],
+    stream: [
+      { sym: 'MSFT', venue: 'NASDAQ', chg: -1.24, note: 'Short-term volatility detected in AI hardware futures. Correlation 0.88 with GPT-6 rumors.' },
+      { sym: 'NVDA', venue: 'NASDAQ', chg: 3.41, note: 'Increased demand for H100 clusters cited in supply chain leaks. Alpha opportunity rising.' },
+      { sym: 'AIX Index', venue: '', chg: 0.82, note: "General sector bullishness following Sama's tweet propagation." },
+    ],
+    hyp: [
+      { id: 'H-A', prob: 78, body: '"GPT-6 training completion estimated Q3 2024. Anticipate 40% surge in localized compute demand."' },
+      { id: 'H-B', prob: 64, body: '"Architecture shift to modular MoE likely. Impact: High for middleware optimization layers."' },
+    ],
+  },
+  {
+    id: '004-NINTENDO',
+    slug: 'nintendo-direct',
+    badge: 'RISING',
+    tone: 'green',
+    kicker: 'GAMING SIGNAL',
+    title: 'Nintendo Direct',
+    velocity: 311,
+    posts: 5612,
+    tags: ['#NINTENDO', '#GAMING', '#SWITCH2'],
+    priority: 'PRIORITY GAMMA',
+    summary: 'Aggregate intelligence report on Nintendo showcase discourse. Detecting hardware-reveal speculation concentrated in enthusiast clusters ahead of the broadcast window.',
+    sentiment: '0.79',
+    impact: '6.6/10',
+    reliability: 'Medium (74%)',
+    authority: [['TECHNICAL', 44], ['INSTITUTIONAL', 29], ['RETAIL', 83]],
+    semantic: ['NINTENDO', 'SWITCH2', 'DIRECT', 'FIRST_PARTY', 'HARDWARE_REVEAL'],
+    posts_feed: [
+      { name: 'Nintendo of America', handle: '@NintendoAmerica', ago: '6h', body: 'Tune in for a Nintendo Direct presentation featuring upcoming titles.', stats: ['3.4k', '18k', '96k'] },
+      { name: 'Direct Watch', handle: '@directwatch', ago: '7h', body: 'Runtime listed longer than the last three showcases combined. Draw your own conclusions.', stats: ['610', '2.2k', '9.8k'] },
+    ],
+    stream: [
+      { sym: 'NTDOY', venue: 'OTC', chg: 1.04, note: 'Enthusiast volume building ahead of the broadcast window.' },
+      { sym: 'SONY', venue: 'NYSE', chg: -0.18, note: 'Competitive-console narratives drawing modest rotation.' },
+      { sym: 'AIX Index', venue: '', chg: 0.06, note: 'Negligible cross-sector propagation so far.' },
+    ],
+    hyp: [
+      { id: 'H-A', prob: 66, body: 'Hardware reveal occurs during the showcase. Impact: High for component suppliers.' },
+      { id: 'H-B', prob: 39, body: 'Software-only showcase. Anticipate sentiment reversal within 24h of broadcast.' },
+    ],
+  },
+];
+
+export function findSignal(slug) {
+  return X_SIGNALS.find((s) => s.slug === slug) || null;
+}
