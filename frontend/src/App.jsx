@@ -12,6 +12,8 @@ import XTerminalPage from './pages/XTerminalPage';
 import XSignalPage from './pages/XSignalPage';
 import RedditTerminalPage from './pages/RedditTerminalPage';
 import RedditSubPage from './pages/RedditSubPage';
+import YouTubeTerminalPage from './pages/YouTubeTerminalPage';
+import YouTubeChannelPage from './pages/YouTubeChannelPage';
 import TerminalPage from './pages/TerminalPage';
 import MarketDetailPage from './pages/MarketDetailPage';
 import SettingsPage from './pages/SettingsPage';
@@ -54,6 +56,8 @@ function AppRoutes() {
           <Route path="/x/:slug" element={<XSignalPage />} />
           <Route path="/reddit" element={<RedditTerminalPage />} />
           <Route path="/reddit/:slug" element={<RedditSubPage />} />
+          <Route path="/youtube" element={<YouTubeTerminalPage />} />
+          <Route path="/youtube/:slug" element={<YouTubeChannelPage />} />
           <Route path="/terminal" element={<TerminalPage />} />
           <Route path="/markets/:id" element={<MarketDetailPage />} />
           <Route path="/leagues" element={<LeaguesPage />} />

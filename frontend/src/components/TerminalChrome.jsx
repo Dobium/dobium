@@ -88,7 +88,7 @@ export const SOURCE_GROUPS = [
       { label: 'News', icon: 'news', to: '/news' },
       { label: 'X (Twitter)', icon: 'at', to: '/x' },
       { label: 'Reddit', icon: 'chat', to: '/reddit' },
-      { label: 'YouTube', icon: 'play' },
+      { label: 'YouTube', icon: 'play', to: '/youtube' },
       { label: 'Google Trends', icon: 'trend' },
     ],
   },
@@ -181,8 +181,8 @@ export function SourceRail({ source, setSource, active }) {
 // Single place deciding which routes are full-screen terminals. Layout and
 // Footer both read this, so adding a terminal no longer means remembering to
 // update two unrelated files.
-export const TERMINAL_PATHS = ['/radar', '/terminal', '/market-maker', '/news', '/x', '/reddit'];
+export const TERMINAL_PATHS = ['/radar', '/terminal', '/market-maker', '/news', '/x', '/reddit', '/youtube'];
 
 export function isTerminalPath(pathname) {
-  return TERMINAL_PATHS.includes(pathname) || pathname.startsWith('/x/') || pathname.startsWith('/reddit/');
+  return TERMINAL_PATHS.includes(pathname) || pathname.startsWith('/x/') || pathname.startsWith('/reddit/') || pathname.startsWith('/youtube/');
 }
