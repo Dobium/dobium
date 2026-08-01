@@ -1291,11 +1291,11 @@ export default function LandingPage() {
             pickReal={globalAttentionMarkets}
             markets={markets}
             onOpen={(id) => navigate(`/markets/${id}`)}
-            onViewAll={() => navigate('/explore')}
+            onViewAll={() => navigate('/explore?filter=attention')}
             forwardRef={refs.attention}
           />
-          <MusicSection markets={markets} genre={musicGenre} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.music} />
-          <MoviesSection markets={markets} platform={moviesPlatform} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore')} forwardRef={refs.movies} />
+          <MusicSection markets={markets} genre={musicGenre} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore?filter=music')} forwardRef={refs.music} />
+          <MoviesSection markets={markets} platform={moviesPlatform} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore?filter=movies')} forwardRef={refs.movies} />
 
           <TwoCardSection
             sector={SECTORS.find((s) => s.id === 'celebrities')}
@@ -1305,7 +1305,7 @@ export default function LandingPage() {
             pickReal={creatorSub === 'All Creators' ? undefined : (m) => creatorSubMarkets(m, creatorSub)}
             markets={markets}
             onOpen={(id) => navigate(`/markets/${id}`)}
-            onViewAll={() => navigate('/explore')}
+            onViewAll={() => navigate('/explore?filter=celebrities')}
             forwardRef={refs.celebrities}
           />
           <TwoCardSection
@@ -1316,7 +1316,7 @@ export default function LandingPage() {
             pickReal={festivalSub === 'All Festivals' ? undefined : (m) => festivalSubMarkets(m, festivalSub)}
             markets={markets}
             onOpen={(id) => navigate(`/markets/${id}`)}
-            onViewAll={() => navigate('/explore')}
+            onViewAll={() => navigate('/explore?filter=festivals')}
             forwardRef={refs.festivals}
           />
           <TwoCardSection
@@ -1327,7 +1327,7 @@ export default function LandingPage() {
             pickReal={gamingSub === 'All Gaming' ? undefined : (m) => gamingSubMarkets(m, gamingSub)}
             markets={markets}
             onOpen={(id) => navigate(`/markets/${id}`)}
-            onViewAll={() => navigate('/explore')}
+            onViewAll={() => navigate('/explore?filter=gaming')}
             forwardRef={refs.gaming}
           />
           <TwoCardSection
@@ -1338,7 +1338,7 @@ export default function LandingPage() {
             pickReal={streamingSub === 'All Streaming' ? undefined : (m) => streamingSubMarkets(m, streamingSub)}
             markets={markets}
             onOpen={(id) => navigate(`/markets/${id}`)}
-            onViewAll={() => navigate('/explore')}
+            onViewAll={() => navigate('/explore?filter=streaming')}
             forwardRef={refs.streaming}
           />
           <div ref={refs.trends} style={{ scrollMarginTop: 90 }}>
@@ -1351,7 +1351,7 @@ export default function LandingPage() {
                   pickReal={viralChallengeMarkets}
                   markets={markets}
                   onOpen={(id) => navigate(`/markets/${id}`)}
-                  onViewAll={() => navigate('/explore')}
+                  onViewAll={() => navigate('/explore?filter=trends')}
                 />
                 <TwoCardSection
                   sector={{ id: 'trends', icon: 'bars', label: 'Creator Milestones' }}
@@ -1360,7 +1360,7 @@ export default function LandingPage() {
                   pickReal={creatorMilestoneMarkets}
                   markets={markets}
                   onOpen={(id) => navigate(`/markets/${id}`)}
-                  onViewAll={() => navigate('/explore')}
+                  onViewAll={() => navigate('/explore?filter=trends')}
                 />
               </>
             ) : (
@@ -1372,7 +1372,7 @@ export default function LandingPage() {
                 pickReal={(m) => trendsPlatformMarkets(m, trendsSub)}
                 markets={markets}
                 onOpen={(id) => navigate(`/markets/${id}`)}
-                onViewAll={() => navigate('/explore')}
+                onViewAll={() => navigate('/explore?filter=trends')}
               />
             )}
           </div>
@@ -1386,7 +1386,7 @@ export default function LandingPage() {
                   pickReal={aiBenchmarkMarkets}
                   markets={markets}
                   onOpen={(id) => navigate(`/markets/${id}`)}
-                  onViewAll={() => navigate('/explore')}
+                  onViewAll={() => navigate('/explore?filter=tech')}
                 />
                 <TwoCardSection
                   sector={{ id: 'tech', icon: 'rocket', label: 'Startup Funding & M&A' }}
@@ -1395,7 +1395,7 @@ export default function LandingPage() {
                   pickReal={startupFundingMarkets}
                   markets={markets}
                   onOpen={(id) => navigate(`/markets/${id}`)}
-                  onViewAll={() => navigate('/explore')}
+                  onViewAll={() => navigate('/explore?filter=tech')}
                 />
               </>
             ) : (
@@ -1407,7 +1407,7 @@ export default function LandingPage() {
                 pickReal={(m) => techSubMarkets(m, techSub)}
                 markets={markets}
                 onOpen={(id) => navigate(`/markets/${id}`)}
-                onViewAll={() => navigate('/explore')}
+                onViewAll={() => navigate('/explore?filter=tech')}
               />
             )}
           </div>

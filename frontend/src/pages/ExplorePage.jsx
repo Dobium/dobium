@@ -139,10 +139,17 @@ export default function ExplorePage() {
   }, [urlFilter]);
   const search = (urlQuery || '').trim();
 
+  // "Trending Attention & News" isn't a sector — it's the highest-volume
+  // active markets, same rule the landing section uses. Treated as its own
+  // mode so that section's View All lands somewhere that matches it.
+  const attentionMode = urlFilter === 'attention' && !category;
+
   const filtered = [...markets]
     .filter((m) => {
       const categoryMatch = !category
-        ? (urlFilter === 'awards' ? categoryBucket(m.category) === 'media' : true)
+        ? (urlFilter === 'awards' ? categoryBucket(m.category) === 'media'
+          : attentionMode ? m.status === 'active'
+          : true)
         : classifySector(m.title) === category;
       const searchMatch = !search || m.title?.toLowerCase().includes(search.toLowerCase());
       return categoryMatch && searchMatch;
@@ -163,10 +170,10 @@ export default function ExplorePage() {
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, padding: '28px 0 20px' }}>
         <div>
           <h1 style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 'clamp(30px,3.8vw,46px)', color: '#FFFFFF', margin: 0, lineHeight: 1.1, letterSpacing: '-0.01em' }}>
-            Explore Markets
+            {attentionMode ? 'Trending Attention & News' : 'Explore Markets'}
           </h1>
           <p style={{ color: '#CFC5B5', fontSize: 13, margin: '8px 0 0' }}>
-            High-fidelity data. Real-time predictions.
+            {attentionMode ? 'Highest-volume markets across every sector.' : 'High-fidelity data. Real-time predictions.'}
           </p>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
