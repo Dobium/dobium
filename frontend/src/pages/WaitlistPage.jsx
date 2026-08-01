@@ -146,11 +146,11 @@ export default function WaitlistPage() {
             <h1 style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 40, lineHeight: 1.18, margin: '16px 0 16px' }}>
               <span style={{ color: '#C9D4F2' }}>Secure Priority Access</span><br />
               <span style={{ color: GOLD }}>to Dobium Terminal &amp; Real</span><br />
-              <span style={{ color: GOLD }}>Money When it Drops</span>
+              <span style={{ color: GOLD }}>Capital When it Drops</span>
             </h1>
 
             <p style={{ color: INK, fontSize: 13.5, lineHeight: 1.65, margin: 0, maxWidth: 470 }}>
-              Join the next generation of cultural prediction. Watching information move markets is
+              Join the next generation of media prediction. Watching information move markets is
               addictive. Our terminal provides the data edge you've been waiting for.
             </p>
 
@@ -177,7 +177,7 @@ export default function WaitlistPage() {
                       type="email"
                       value={email}
                       onChange={(e) => { setEmail(e.target.value); if (status === 'error') setStatus('idle'); }}
-                      placeholder="ACCESS_REQUEST_SUBMIT"
+                      placeholder="ENTER_EMAIL_ADDRESS"
                       style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', fontFamily: 'var(--mono)', fontSize: 12, color: '#DCE1FF', letterSpacing: '0.04em' }}
                     />
                     <span className="wl-blink" style={{ color: GOLD, fontFamily: 'var(--mono)', fontSize: 13, flexShrink: 0 }}>▌</span>
