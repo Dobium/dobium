@@ -14,6 +14,8 @@ import RedditTerminalPage from './pages/RedditTerminalPage';
 import RedditSubPage from './pages/RedditSubPage';
 import YouTubeTerminalPage from './pages/YouTubeTerminalPage';
 import YouTubeChannelPage from './pages/YouTubeChannelPage';
+import TrendsTerminalPage from './pages/TrendsTerminalPage';
+import TrendsExplorerPage from './pages/TrendsExplorerPage';
 import TerminalPage from './pages/TerminalPage';
 import MarketDetailPage from './pages/MarketDetailPage';
 import SettingsPage from './pages/SettingsPage';
@@ -58,6 +60,8 @@ function AppRoutes() {
           <Route path="/reddit/:slug" element={<RedditSubPage />} />
           <Route path="/youtube" element={<YouTubeTerminalPage />} />
           <Route path="/youtube/:slug" element={<YouTubeChannelPage />} />
+          <Route path="/trends" element={<TrendsTerminalPage />} />
+          <Route path="/trends/:slug" element={<TrendsExplorerPage />} />
           <Route path="/terminal" element={<TerminalPage />} />
           <Route path="/markets/:id" element={<MarketDetailPage />} />
           <Route path="/leagues" element={<LeaguesPage />} />
