@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { DEMO_WAITLIST, WAITLIST_ALERTS } from '../lib/demoContent';
@@ -57,6 +57,25 @@ export default function WaitlistPage() {
   const [status, setStatus] = useState('idle'); // idle | saving | done | already | error
   const [message, setMessage] = useState('');
   const [position, setPosition] = useState(null);
+  const [signups, setSignups] = useState(null);
+
+  // Real waitlist size, so the rail isn't advertising an invented number to
+  // people being asked for their email. Falls back to the demo figure only if
+  // the endpoint fails.
+  useEffect(() => {
+    let live = true;
+    api.getWaitlistCount()
+      .then((r) => { if (live && typeof r?.count === 'number') setSignups(r.count); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, []);
+
+  // Early-access slots are a fixed allocation; capacity is how much of it has
+  // been claimed, so both figures move off the one real number.
+  const slotsTotal = 1204;
+  const claimed = signups == null ? null : Math.min(signups, slotsTotal);
+  const capacityPct = claimed == null ? null : Math.round((claimed / slotsTotal) * 100);
+  const slotsLeft = claimed == null ? null : slotsTotal - claimed;
 
   const focusEmail = () => emailRef.current?.focus();
 
@@ -236,19 +255,25 @@ export default function WaitlistPage() {
               </div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: '#7E88A6', marginBottom: 5 }}>TOTAL WAITLIST SIZE</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 26, fontWeight: 800, color: GOLD }}>{DEMO_WAITLIST.total}</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 26, fontWeight: 800, color: GOLD }}>
+                  {signups == null ? DEMO_WAITLIST.total : signups.toLocaleString('en-US')}
+                </span>
                 <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#3DDC84' }}>trending_up</span>
               </div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: '#7E88A6', margin: '16px 0 5px' }}>REMAINING EARLY ACCESS SLOTS</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 800, color: '#F0655B' }}>{DEMO_WAITLIST.slots}</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 800, color: '#F0655B' }}>
+                  {slotsLeft == null ? DEMO_WAITLIST.slots : slotsLeft.toLocaleString('en-US')}
+                </span>
                 <span className="material-symbols-outlined" style={{ fontSize: 15, color: '#F0655B' }}>warning</span>
               </div>
               <div style={{ marginTop: 16, height: 6, borderRadius: 999, background: '#1A2440', overflow: 'hidden' }}>
-                <div style={{ width: `${DEMO_WAITLIST.capacityPct}%`, height: '100%', background: GOLD, borderRadius: 999 }} />
+                <div style={{ width: `${capacityPct == null ? DEMO_WAITLIST.capacityPct : capacityPct}%`, height: '100%', background: GOLD, borderRadius: 999 }} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', color: '#7E88A6' }}>{DEMO_WAITLIST.capacityPct}% CAPACITY</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', color: '#7E88A6' }}>
+                  {capacityPct == null ? DEMO_WAITLIST.capacityPct : capacityPct}% CAPACITY
+                </span>
                 <span className="wl-blink" style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', color: '#C9CFE0' }}>SYNCING...</span>
               </div>
             </div>
