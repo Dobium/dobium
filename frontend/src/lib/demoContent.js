@@ -103,19 +103,19 @@ export const WAITLIST_ALERTS = [
   {
     time: '12:04:22 UTC',
     tag: 'CONFIRMED',
-    tagColor: '#3DDC84',
+    tagColor: '#4BE176',
     text: 'Warner Music leak suggests Q3 partnership with major LLM for procedural song generation.',
   },
   {
     time: '11:58:05 UTC',
     tag: 'PENDING',
-    tagColor: '#A8B0C8',
+    tagColor: '#A29E98',
     text: "Viral TikTok snippet 'Midnight Rain' ID'd as unreleased artist. Volume spike detected in predicted secondary markets.",
   },
   {
     time: '11:42:19 UTC',
     tag: 'VOLATILE',
-    tagColor: '#4AD8C4',
+    tagColor: '#7FD8B0',
     text: "Unexpected festival lineup change for 'Desert Bloom'. Intelligence points to health-related withdrawal.",
   },
 ];

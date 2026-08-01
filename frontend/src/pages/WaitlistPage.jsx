@@ -9,12 +9,22 @@ import { DEMO_WAITLIST, WAITLIST_ALERTS } from '../lib/demoContent';
 // (wired to the real waitlist API), queue/early-bird cards, and a rail with
 // NETWORK ACTIVITY, the INFORMATION ALPHA feed, and a terminal preview.
 
-const GOLD = '#F3C74F';
-const GOLD_BTN = '#F6D77E';
-const PANEL = '#0E1730';
-const BORDER = '#26304C';
-const INK = '#C3CBDE';
-const DIM = '#5E668A';
+// Sitewide Dobium palette — sampled from Neel's reference. This page had been
+// carrying its own private colours (#F3C74F gold, #0E1730 panels, #C3CBDE text)
+// that matched nothing else on the site.
+const GOLD = '#FFDF9B';
+const GOLD_BTN = '#FFDF9B';
+const PANEL = '#182A45';      // rail panels
+const CARD = '#0C203A';       // form panel
+const CARD_SOFT = '#081C36';  // feature cards
+const WELL = '#00132D';       // inset field background
+const BORDER = '#22314A';
+const LINE = '#1C293A';
+const INK = '#CFC5B5';        // warm mono label text
+const DIM = '#8A8375';
+const GREEN = '#4BE176';
+const SALMON = '#FFB4AB';
+const HEADLINE = '#D5E3FF';
 
 function MiniTerminalPreview() {
   // Faux terminal screenshot standing in for a real product shot — this
@@ -30,11 +40,11 @@ function MiniTerminalPreview() {
   ];
 
   return (
-    <div style={{ background: '#0B1222', border: '1px solid #1E2A44', borderRadius: 4, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderBottom: '1px solid #1E2A44' }}>
+    <div style={{ background: '#04162F', border: `1px solid ${LINE}`, borderRadius: 4, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderBottom: `1px solid ${LINE}` }}>
         <span style={{ fontFamily: 'var(--mono)', fontSize: 7.5, letterSpacing: '0.08em', color: DIM }}>DOBIUM — Terminal · Dark Mode</span>
         <span style={{ display: 'inline-flex', gap: 4 }}>
-          {[0, 1, 2].map((i) => <span key={i} style={{ width: 4, height: 4, borderRadius: 999, background: '#26304C' }} />)}
+          {[0, 1, 2].map((i) => <span key={i} style={{ width: 4, height: 4, borderRadius: 999, background: BORDER }} />)}
         </span>
       </div>
 
@@ -43,9 +53,9 @@ function MiniTerminalPreview() {
           <div style={{ fontFamily: 'var(--mono)', fontSize: 6.5, letterSpacing: '0.1em', color: DIM, marginBottom: 6 }}>SIGNAL WAVEFORM</div>
           <svg viewBox="0 0 250 120" style={{ width: '100%', height: 'auto', display: 'block' }}>
             {bars.map((h, i) => (
-              <rect key={i} x={4 + i * 8.2} y={62 - h / 2} width={3.4} height={h} rx={1.7} fill="#6F7BD9" opacity={0.55 + (i % 5) * 0.09} />
+              <rect key={i} x={4 + i * 8.2} y={62 - h / 2} width={3.4} height={h} rx={1.7} fill="#4E6A9B" opacity={0.55 + (i % 5) * 0.09} />
             ))}
-            <path d={line} fill="none" stroke="#3DDC84" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={line} fill="none" stroke={GREEN} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             {[30, 60, 90].map((y) => <line key={y} x1="0" y1={y} x2="250" y2={y} stroke="#161F36" strokeWidth="0.8" />)}
           </svg>
         </div>
@@ -56,7 +66,7 @@ function MiniTerminalPreview() {
             <div key={p.label} style={{ marginBottom: 9 }}>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 6, letterSpacing: '0.08em', color: DIM, marginBottom: 5 }}>{p.label}</div>
               {p.rows.map((w, i) => (
-                <div key={i} style={{ height: 4.5, width: `${w}px`, maxWidth: '100%', background: '#1A2440', borderRadius: 3, marginBottom: 4 }} />
+                <div key={i} style={{ height: 4.5, width: `${w}px`, maxWidth: '100%', background: '#243550', borderRadius: 3, marginBottom: 4 }} />
               ))}
             </div>
           ))}
@@ -144,18 +154,18 @@ export default function WaitlistPage() {
       `}</style>
 
       {/* ── Header: Dobium + BETA · centered links · gold Join Waitlist ── */}
-      <header style={{ borderBottom: '1px solid #17203A' }}>
+      <header style={{ borderBottom: `1px solid ${LINE}` }}>
         <div className="wl-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, padding: '12px 24px' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => navigate('/')}>
-            <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15.5, color: '#F2F5FF' }}>Dobium</span>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.12em', color: '#C9CFE0', border: '1px solid #4A5578', borderRadius: 3, padding: '2px 6px' }}>BETA</span>
+            <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15.5, color: '#FFFFFF' }}>Dobium</span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.12em', color: INK, border: `1px solid ${BORDER}`, borderRadius: 3, padding: '2px 6px' }}>BETA</span>
           </span>
           <nav className="wl-links">
             {navLinks.map((l) => (
               <button key={l.label} onClick={() => navigate(l.to)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#9AA3BC', fontSize: 12.5, fontWeight: 500 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#F2F5FF')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#9AA3BC')}>
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: DIM, fontSize: 12.5, fontWeight: 500 }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = DIM)}>
                 {l.label}
               </button>
             ))}
@@ -179,7 +189,7 @@ export default function WaitlistPage() {
             </div>
 
             <h1 style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 40, lineHeight: 1.18, margin: '16px 0 16px' }}>
-              <span style={{ color: '#C9D4F2' }}>Secure Priority Access</span><br />
+              <span style={{ color: HEADLINE }}>Secure Priority Access</span><br />
               <span style={{ color: GOLD }}>to Dobium Terminal &amp; Real</span><br />
               <span style={{ color: GOLD }}>Capital When it Drops</span>
             </h1>
@@ -190,14 +200,14 @@ export default function WaitlistPage() {
             </p>
 
             {/* Identification protocol — the real waitlist capture */}
-            <div style={{ background: '#10182E', border: `1px solid ${BORDER}`, borderRadius: 6, padding: '16px 18px 14px', position: 'relative', marginTop: 28 }}>
+            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 6, padding: '16px 18px 14px', position: 'relative', marginTop: 28 }}>
               <span className="material-symbols-outlined" style={{ position: 'absolute', top: 12, right: 14, fontSize: 16, color: DIM }}>shield</span>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: '#C9CFE0', marginBottom: 12 }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: INK, marginBottom: 12 }}>
                 IDENTIFICATION PROTOCOL
               </div>
 
               {joined ? (
-                <div style={{ background: '#0A101F', border: `1.5px solid ${GOLD}`, borderRadius: 4, padding: '14px 14px' }}>
+                <div style={{ background: WELL, border: `1.5px solid ${GOLD}`, borderRadius: 4, padding: '14px 14px' }}>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: GOLD, letterSpacing: '0.06em' }}>
                     &gt; {status === 'already' ? 'USER_ID ALREADY REGISTERED — POSITION HELD' : 'ACCESS_REQUEST CONFIRMED'}
                     {position != null ? ` — QUEUE POSITION #${position}` : ''}
@@ -205,7 +215,7 @@ export default function WaitlistPage() {
                 </div>
               ) : (
                 <form className="wl-form" onSubmit={submit}>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: '#0A101F', border: `1.5px solid ${GOLD}`, borderRadius: 4, padding: '12px 14px' }}>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: WELL, border: `1.5px solid ${GOLD}`, borderRadius: 4, padding: '12px 14px' }}>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: GOLD, flexShrink: 0 }}>USER_ID:</span>
                     <input
                       ref={emailRef}
@@ -213,7 +223,7 @@ export default function WaitlistPage() {
                       value={email}
                       onChange={(e) => { setEmail(e.target.value); if (status === 'error') setStatus('idle'); }}
                       placeholder="ENTER_EMAIL_ADDRESS"
-                      style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', fontFamily: 'var(--mono)', fontSize: 12, color: '#DCE1FF', letterSpacing: '0.04em' }}
+                      style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', fontFamily: 'var(--mono)', fontSize: 12, color: '#FFFFFF', letterSpacing: '0.04em' }}
                     />
                     <span className="wl-blink" style={{ color: GOLD, fontFamily: 'var(--mono)', fontSize: 13, flexShrink: 0 }}>▌</span>
                   </div>
@@ -226,7 +236,7 @@ export default function WaitlistPage() {
               )}
 
               {status === 'error' && (
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', color: '#F0655B', marginTop: 10 }}>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', color: SALMON, marginTop: 10 }}>
                   &gt; {message}
                 </div>
               )}
@@ -237,23 +247,23 @@ export default function WaitlistPage() {
 
             {/* Feature cards */}
             <div className="wl-cards" style={{ marginTop: 18 }}>
-              <div style={{ border: `1px solid ${BORDER}`, borderRadius: 6, padding: '14px 16px', background: 'rgba(16,24,46,.5)' }}>
+              <div style={{ border: `1px solid ${BORDER}`, borderRadius: 6, padding: '14px 16px', background: CARD_SOFT }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 16, color: GOLD }}>person_add</span>
-                  <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 13.5, color: '#F2F5FF' }}>Move up the Queue</span>
+                  <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 13.5, color: '#FFFFFF' }}>Move up the Queue</span>
                 </div>
-                <p style={{ margin: 0, fontSize: 11.8, lineHeight: 1.6, color: '#A9B2C9' }}>
+                <p style={{ margin: 0, fontSize: 11.8, lineHeight: 1.6, color: INK }}>
                   Share your unique link with fellow traders. Every successful
                   verification moves you <span style={{ color: GOLD, fontWeight: 700 }}>50 slots forward</span> in the priority
                   sequence.
                 </p>
               </div>
-              <div style={{ border: `1px solid ${BORDER}`, borderRadius: 6, padding: '14px 16px', background: 'rgba(16,24,46,.5)' }}>
+              <div style={{ border: `1px solid ${BORDER}`, borderRadius: 6, padding: '14px 16px', background: CARD_SOFT }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 16, color: GOLD }}>star</span>
-                  <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 13.5, color: '#F2F5FF' }}>Early Bird Assets</span>
+                  <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 13.5, color: '#FFFFFF' }}>Early Bird Assets</span>
                 </div>
-                <p style={{ margin: 0, fontSize: 11.8, lineHeight: 1.6, color: '#A9B2C9' }}>
+                <p style={{ margin: 0, fontSize: 11.8, lineHeight: 1.6, color: INK }}>
                   Top 100 participants gain permanent "Architect" status with
                   zero-fee trading for the first 12 months and exclusive token
                   airdrops.
@@ -266,31 +276,31 @@ export default function WaitlistPage() {
           <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Network activity */}
             <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 6, padding: 16 }}>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', color: '#C9CFE0', paddingBottom: 10, borderBottom: `1px solid ${BORDER}`, marginBottom: 14 }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', color: INK, paddingBottom: 10, borderBottom: `1px solid ${BORDER}`, marginBottom: 14 }}>
                 NETWORK ACTIVITY
               </div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: '#7E88A6', marginBottom: 5 }}>TOTAL WAITLIST SIZE</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: DIM, marginBottom: 5 }}>TOTAL WAITLIST SIZE</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 26, fontWeight: 800, color: GOLD }}>
                   {signups == null ? DEMO_WAITLIST.total : signups.toLocaleString('en-US')}
                 </span>
-                <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#3DDC84' }}>trending_up</span>
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: GREEN }}>trending_up</span>
               </div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: '#7E88A6', margin: '16px 0 5px' }}>REMAINING EARLY ACCESS SLOTS</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: DIM, margin: '16px 0 5px' }}>REMAINING EARLY ACCESS SLOTS</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 800, color: '#F0655B' }}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 800, color: SALMON }}>
                   {slotsLeft == null ? DEMO_WAITLIST.slots : slotsLeft.toLocaleString('en-US')}
                 </span>
-                <span className="material-symbols-outlined" style={{ fontSize: 15, color: '#F0655B' }}>warning</span>
+                <span className="material-symbols-outlined" style={{ fontSize: 15, color: SALMON }}>warning</span>
               </div>
-              <div style={{ marginTop: 16, height: 6, borderRadius: 999, background: '#1A2440', overflow: 'hidden' }}>
+              <div style={{ marginTop: 16, height: 6, borderRadius: 999, background: '#243550', overflow: 'hidden' }}>
                 <div style={{ width: `${capacityPct == null ? DEMO_WAITLIST.capacityPct : capacityPct}%`, height: '100%', background: GOLD, borderRadius: 999 }} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', color: '#7E88A6' }}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', color: DIM }}>
                   {capacityPct == null ? DEMO_WAITLIST.capacityPct : capacityPct}% CAPACITY
                 </span>
-                <span className="wl-blink" style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', color: '#C9CFE0' }}>SYNCING...</span>
+                <span className="wl-blink" style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', color: INK }}>SYNCING...</span>
               </div>
             </div>
 
@@ -298,14 +308,14 @@ export default function WaitlistPage() {
             <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 6, overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px 10px', borderBottom: `1px solid ${BORDER}` }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 999, background: '#3DDC84' }} />
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.1em', color: '#E8ECFF' }}>INFORMATION ALPHA</span>
+                  <span style={{ width: 7, height: 7, borderRadius: 999, background: GREEN }} />
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.1em', color: '#FFFFFF' }}>INFORMATION ALPHA</span>
                 </span>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.1em', color: DIM }}>LIVE_FEED</span>
               </div>
               <div style={{ padding: '2px 16px 6px' }}>
                 {WAITLIST_ALERTS.map((a, i) => (
-                  <div key={a.time} style={{ padding: '12px 0', borderBottom: i < WAITLIST_ALERTS.length - 1 ? '1px solid #1A2440' : 'none' }}>
+                  <div key={a.time} style={{ padding: '12px 0', borderBottom: i < WAITLIST_ALERTS.length - 1 ? `1px solid ${LINE}` : 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, color: GOLD }}>{a.time}</span>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: a.tagColor }}>{a.tag}</span>
@@ -315,7 +325,7 @@ export default function WaitlistPage() {
                 ))}
               </div>
               <button onClick={() => navigate('/terminal')}
-                style={{ display: 'block', width: '100%', background: '#1A2440', border: 'none', padding: '11px 0', cursor: 'pointer', fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: GOLD }}>
+                style={{ display: 'block', width: '100%', background: '#243550', border: 'none', padding: '11px 0', cursor: 'pointer', fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: GOLD }}>
                 VIEW ALL ALERTS
               </button>
             </div>
@@ -326,7 +336,7 @@ export default function WaitlistPage() {
               <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em', color: GOLD, margin: '10px 0 8px' }}>
                 PREVIEW: TERMINAL_v1.0.4
               </div>
-              <div style={{ height: 3, background: '#1A2440', borderRadius: 999, overflow: 'hidden' }}>
+              <div style={{ height: 3, background: '#243550', borderRadius: 999, overflow: 'hidden' }}>
                 <div style={{ width: '62%', height: '100%', background: GOLD }} />
               </div>
             </div>
@@ -335,10 +345,10 @@ export default function WaitlistPage() {
       </main>
 
       {/* ── Footer per the mock ── */}
-      <footer style={{ borderTop: '1px solid #17203A', marginTop: 56 }}>
+      <footer style={{ borderTop: `1px solid ${LINE}`, marginTop: 56 }}>
         <div className="wl-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, padding: '22px 24px' }}>
           <div>
-            <div style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 14, color: '#F2F5FF' }}>Dobium</div>
+            <div style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 14, color: '#FFFFFF' }}>Dobium</div>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.06em', color: DIM, marginTop: 7 }}>
               © 2024 Dobium Intelligence. All rights reserved.
             </div>
@@ -346,9 +356,9 @@ export default function WaitlistPage() {
           <nav style={{ display: 'flex', flexWrap: 'wrap', gap: 22 }}>
             {['Terms of Service', 'Privacy Policy', 'Risk Disclosure', 'API Documentation'].map((label) => (
               <a key={label} href="#" onClick={(e) => e.preventDefault()}
-                style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.06em', color: '#9AA3BC' }}
+                style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.06em', color: DIM }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = GOLD)}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#9AA3BC')}>
+                onMouseLeave={(e) => (e.currentTarget.style.color = DIM)}>
                 {label}
               </a>
             ))}
