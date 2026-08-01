@@ -17,32 +17,48 @@ const INK = '#C3CBDE';
 const DIM = '#5E668A';
 
 function MiniTerminalPreview() {
-  // Faux terminal screenshot: waveform + price line + skeleton side column.
-  const bars = [8, 18, 12, 26, 34, 22, 40, 30, 46, 36, 24, 42, 28, 16, 32, 20, 38, 26, 14, 22];
-  const line = 'M4,86 L26,80 L48,84 L70,70 L92,74 L114,58 L136,64 L158,44 L180,52 L202,34 L216,40';
+  // Faux terminal screenshot standing in for a real product shot — this
+  // environment has no image generation and the repo ships no capture.
+  // Denser and taller than the first pass, to match the reference.
+  const bars = [10, 22, 14, 30, 42, 26, 48, 34, 56, 40, 28, 52, 34, 20, 44, 24, 50, 32, 18, 38,
+    46, 28, 54, 36, 22, 48, 30, 42, 26, 34];
+  const line = 'M4,104 L20,99 L36,102 L52,92 L68,95 L84,84 L100,88 L116,74 L132,79 L148,66 L164,70 L180,58 L196,62 L212,48 L228,52 L244,40';
+  const panels = [
+    { label: 'TRENDING NOW', rows: [58, 44, 66] },
+    { label: 'RECENT TRANSACTIONS', rows: [50, 62, 40, 54] },
+    { label: 'WATCHLIST', rows: [46, 60] },
+  ];
+
   return (
     <div style={{ background: '#0B1222', border: '1px solid #1E2A44', borderRadius: 4, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderBottom: '1px solid #1E2A44' }}>
-        <span style={{ fontFamily: 'var(--mono)', fontSize: 8, letterSpacing: '0.08em', color: DIM }}>DOBIUM — Terminal · Dark Mode</span>
+        <span style={{ fontFamily: 'var(--mono)', fontSize: 7.5, letterSpacing: '0.08em', color: DIM }}>DOBIUM — Terminal · Dark Mode</span>
         <span style={{ display: 'inline-flex', gap: 4 }}>
-          {[0, 1, 2].map((i) => <span key={i} style={{ width: 5, height: 5, borderRadius: 999, background: '#26304C' }} />)}
+          {[0, 1, 2].map((i) => <span key={i} style={{ width: 4, height: 4, borderRadius: 999, background: '#26304C' }} />)}
         </span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 84px', gap: 10, padding: 10 }}>
-        <svg viewBox="0 0 220 100" style={{ width: '100%', height: 'auto', display: 'block' }}>
-          {bars.map((h, i) => (
-            <rect key={i} x={6 + i * 10.6} y={38 - h / 2} width={4} height={h} rx={2} fill="#6F7BD9" opacity="0.85" />
-          ))}
-          <path d={line} fill="none" stroke="#3DDC84" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 92px', gap: 9, padding: '10px 10px 12px' }}>
         <div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 7.5, fontWeight: 700, letterSpacing: '0.1em', color: GOLD, marginBottom: 7 }}>TRADING HUB</div>
-          {[52, 66, 40, 58].map((w, i) => (
-            <div key={i} style={{ height: 6, width: `${w}px`, maxWidth: '100%', background: '#1A2440', borderRadius: 3, marginBottom: 6 }} />
-          ))}
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 7, letterSpacing: '0.08em', color: DIM, margin: '8px 0 6px' }}>RECENT TXNS</div>
-          {[60, 44, 68].map((w, i) => (
-            <div key={i} style={{ height: 6, width: `${w}px`, maxWidth: '100%', background: '#1A2440', borderRadius: 3, marginBottom: 6 }} />
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 6.5, letterSpacing: '0.1em', color: DIM, marginBottom: 6 }}>SIGNAL WAVEFORM</div>
+          <svg viewBox="0 0 250 120" style={{ width: '100%', height: 'auto', display: 'block' }}>
+            {bars.map((h, i) => (
+              <rect key={i} x={4 + i * 8.2} y={62 - h / 2} width={3.4} height={h} rx={1.7} fill="#6F7BD9" opacity={0.55 + (i % 5) * 0.09} />
+            ))}
+            <path d={line} fill="none" stroke="#3DDC84" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            {[30, 60, 90].map((y) => <line key={y} x1="0" y1={y} x2="250" y2={y} stroke="#161F36" strokeWidth="0.8" />)}
+          </svg>
+        </div>
+
+        <div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 6.5, fontWeight: 700, letterSpacing: '0.1em', color: GOLD, marginBottom: 6 }}>TRADING HUB</div>
+          {panels.map((p) => (
+            <div key={p.label} style={{ marginBottom: 9 }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 6, letterSpacing: '0.08em', color: DIM, marginBottom: 5 }}>{p.label}</div>
+              {p.rows.map((w, i) => (
+                <div key={i} style={{ height: 4.5, width: `${w}px`, maxWidth: '100%', background: '#1A2440', borderRadius: 3, marginBottom: 4 }} />
+              ))}
+            </div>
           ))}
         </div>
       </div>
