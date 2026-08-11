@@ -2189,10 +2189,10 @@ app.post('/api/waitlist', async (req, res) => {
       sendEmail({
         to: email,
         subject: `You're #${position} on the Dobium waitlist`,
-        text: `You're #${position} in line for early access to Dobium — the entertainment prediction market.\n\nYou'll get priority onboarding and an initial allocation of paper credits when real-money trading opens. Refer friends to move up the queue: https://dobium.com\n\n— The Dobium Team`,
+        text: `You're #${position} in line for early access to Dobium — Trade the Moment.\n\nYou'll get priority onboarding and an initial allocation of paper credits when real-money trading opens. Refer friends to move up the queue: https://dobium.com\n\n— The Dobium Team`,
         html: `<div style="font-family:Arial,sans-serif;background:#0B1229;color:#DCE1FF;padding:32px;border-radius:8px;max-width:520px;margin:0 auto">
           <h2 style="color:#FFDF9B;margin:0 0 6px">Dobium</h2>
-          <p style="font-size:15px;line-height:1.6">You're <strong style="color:#FFDF9B">#${position}</strong> in line for early access to <strong>Dobium</strong> — the entertainment prediction market.</p>
+          <p style="font-size:15px;line-height:1.6">You're <strong style="color:#FFDF9B">#${position}</strong> in line for early access to <strong>Dobium</strong> — Trade the Moment.</p>
           <p style="font-size:13px;color:#D2C5AF;line-height:1.6">You'll get priority onboarding and an initial allocation of paper credits when real-money trading opens. Refer friends to move up the queue.</p>
           <p style="font-size:13px"><a href="https://dobium.com" style="color:#F0C04A">dobium.com</a></p>
         </div>`
