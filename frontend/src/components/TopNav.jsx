@@ -214,7 +214,7 @@ export default function TopNav() {
         <input
           name="q"
           type="text"
-          placeholder="Trade on Music and Entertainment"
+          placeholder="Trade the Moment"
           style={{
             width: '100%', background: '#00132D', border: '1px solid #22314A', borderRadius: 8,
             padding: '8px 12px 8px 34px', color: '#DCE1FF', fontSize: 13, outline: 'none',
