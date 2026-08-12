@@ -4,6 +4,7 @@ import { useMarkets } from '../hooks/useMarkets';
 import { api } from '../api/client';
 import { SECTORS as SHARED_SECTORS, classifySector } from '../lib/sectors';
 import FeaturedCarousel from '../components/FeaturedCarousel';
+import FeaturedRail from '../components/FeaturedRail';
 
 // ── Homepage rebuilt as a sector-based market dashboard, matched to Neel's
 // reference mocks (palette sampled from the screenshots): #00132D page,
@@ -1293,8 +1294,9 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div style={{ margin: '0 0 34px' }}>
+          <div className="dbm-featured-band" style={{ margin: '0 0 34px' }}>
             <FeaturedCarousel markets={markets} />
+            <FeaturedRail markets={markets} />
           </div>
 
           <TwoCardSection
