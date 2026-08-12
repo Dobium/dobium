@@ -5,6 +5,7 @@ import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 import ExplorePage from './pages/ExplorePage';
 import PulsePage from './pages/PulsePage';
+import ErrorBoundary from './components/ErrorBoundary';
 import RadarPage from './pages/RadarPage';
 import MarketMakerPage from './pages/MarketMakerPage';
 import NewsTerminalPage from './pages/NewsTerminalPage';
@@ -40,6 +41,7 @@ function AppRoutes() {
 
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <ErrorBoundary>
       <Routes>
         <Route path="/auth" element={<Navigate to="/explore" replace />} />
         <Route element={<Layout />}>
@@ -73,6 +75,7 @@ function AppRoutes() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

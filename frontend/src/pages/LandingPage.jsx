@@ -1120,8 +1120,17 @@ export default function LandingPage() {
   };
 
   const active = markets.filter((m) => m.status === 'active');
-  const globalVol = pulse ? pulse.paper_volume_traded : active.reduce((s, m) => s + (m.total_volume || 0), 0);
-  const activeTraders = pulse?.users != null ? pulse.users.toLocaleString('en-US') : '12,492';
+  // Fall back to summing live markets unless /pulse actually returns a usable
+  // number. Guarding on `pulse` alone isn't enough — an empty array or an
+  // object missing the field is truthy, which left globalVol undefined and
+  // took the whole homepage down on the .toLocaleString() below.
+  const marketVol = active.reduce((s, m) => s + (m.total_volume || 0), 0);
+  const globalVol = Number.isFinite(Number(pulse?.paper_volume_traded))
+    ? Number(pulse.paper_volume_traded)
+    : marketVol;
+  const activeTraders = Number.isFinite(Number(pulse?.users))
+    ? Number(pulse.users).toLocaleString('en-US')
+    : '12,492';
 
   return (
     <div style={{ background: PAGE_BG, minHeight: '100%' }}>
