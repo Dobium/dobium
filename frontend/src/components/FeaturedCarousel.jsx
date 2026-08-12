@@ -73,7 +73,7 @@ function MiniChart({ market, outcomes }) {
 
   return (
     <div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="xMidYMid meet" style={{ maxHeight: 230 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="xMidYMid meet" style={{ maxHeight: 300 }}>
         {/* Dobium watermark, like the mockup */}
         <text x={W - AXIS - 10} y={26} textAnchor="end" fontSize="15" fontWeight="700"
           fill="#DCE1FF" opacity="0.10" fontFamily="Hanken Grotesk, sans-serif">Dobium</text>
@@ -168,7 +168,7 @@ export default function FeaturedCarousel({ markets }) {
       style={{
         margin: '0 auto', textAlign: 'left', cursor: 'pointer',
         background: '#001F43', border: '1px solid #1C304F', borderRadius: 10,
-        padding: '28px 34px 32px', minHeight: 580,
+        padding: '34px 40px 38px', minHeight: 700,
       }}
     >
       {/* Header: tags left, pagination right */}
@@ -189,12 +189,12 @@ export default function FeaturedCarousel({ markets }) {
         )}
       </div>
 
-      <h3 style={{ color: '#FFFFFF', fontFamily: 'var(--wordmark)', fontSize: 'clamp(25px, 2.9vw, 38px)', fontWeight: 800, margin: '0 0 15px', lineHeight: 1.16 }}>
+      <h3 style={{ color: '#FFFFFF', fontFamily: 'var(--wordmark)', fontSize: 'clamp(28px, 3.2vw, 44px)', fontWeight: 800, margin: '0 0 17px', lineHeight: 1.14 }}>
         {market.title}
       </h3>
 
       {/* Status line */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 26, fontFamily: 'var(--mono)', fontSize: 13.5 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 30, fontFamily: 'var(--mono)', fontSize: 14.5 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: '#FF8A8A' }}>
           <span style={{ width: 7, height: 7, borderRadius: 999, background: '#FF8A8A' }} />LIVE
         </span>
@@ -210,7 +210,7 @@ export default function FeaturedCarousel({ markets }) {
             const mult = p > 0 ? (100 / p).toFixed(2) : null;
             const lead = p >= leaderProb && p > 0;
             return (
-              <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 0' }}>
+              <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '18px 0' }}>
                 <span style={{
                   width: 50, height: 50, borderRadius: 999, flexShrink: 0,
                   background: `linear-gradient(145deg, ${AVATAR_TINTS[i % AVATAR_TINTS.length][0]}, ${AVATAR_TINTS[i % AVATAR_TINTS.length][1]})`,
