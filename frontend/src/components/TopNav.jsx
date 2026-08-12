@@ -155,7 +155,7 @@ export default function TopNav() {
         onClick={() => navigate('/')}
         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}
       >
-        <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 27, background: 'linear-gradient(180deg,#FFDF9B,#F0C04A)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
+        <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 27, background: 'linear-gradient(180deg,#FFDF9B,#F0C04A)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1.15, display: 'block' }}>
           Dobium
         </span>
       </div>
