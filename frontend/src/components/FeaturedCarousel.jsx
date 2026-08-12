@@ -115,20 +115,15 @@ export default function FeaturedCarousel({ markets }) {
     return () => clearInterval(timer.current);
   }, [count]);
 
-  if (count === 0) return null;
-
-  const market = featured[Math.min(idx, count - 1)];
-  const { rows, hidden, binary } = topOutcomes(market);
-  const chartOutcomes = rows.slice(0, 2);
-
-  const go = (dir) => {
-    setIdx((i) => (i + dir + count) % count);
-    if (timer.current) { clearInterval(timer.current); timer.current = setInterval(() => setIdx((i2) => (i2 + 1) % count), 10000); }
-  };
+  // NOTE: every hook must run before the `count === 0` early return below.
+  // markets arrives empty on first paint and populates after the fetch, so a
+  // hook placed after that return runs 4 hooks then 5 — React throws
+  // "Rendered more hooks than during the previous render" and unmounts.
+  const market = count > 0 ? featured[Math.min(idx, count - 1)] : null;
 
   // Fetch one real headline per slide (cached per market for the session)
   useEffect(() => {
-    if (!market?.id || newsByMarket[market.id] !== undefined) return;
+    if (!market?.id || newsByMarket[market.id] !== undefined) return undefined;
     let alive = true;
     api.getMarketNews(market.id)
       .then((r) => { if (alive) setNewsByMarket((prev) => ({ ...prev, [market.id]: (r?.items || [])[0] || null })); })
@@ -136,6 +131,16 @@ export default function FeaturedCarousel({ markets }) {
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [market?.id]);
+
+  if (count === 0 || !market) return null;
+
+  const { rows, hidden, binary } = topOutcomes(market);
+  const chartOutcomes = rows.slice(0, 2);
+
+  const go = (dir) => {
+    setIdx((i) => (i + dir + count) % count);
+    if (timer.current) { clearInterval(timer.current); timer.current = setInterval(() => setIdx((i2) => (i2 + 1) % count), 10000); }
+  };
 
   const headline = newsByMarket[market.id];
   const blurb = headline
