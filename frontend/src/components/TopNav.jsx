@@ -149,7 +149,7 @@ export default function TopNav() {
         borderBottom: '1px solid #14223E',
       }}
     >
-      <div className="dbm-navwrap" style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
+      <div className="dbm-navwrap" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
       {/* Logo — gold wordmark */}
       <div
         onClick={() => navigate('/')}
@@ -191,7 +191,7 @@ export default function TopNav() {
           const q = e.currentTarget.q.value.trim();
           navigate(q ? `/explore?q=${encodeURIComponent(q)}` : '/explore');
         }}
-        style={{ position: 'relative', flex: '1 1 240px', maxWidth: 200, minWidth: 130, marginLeft: 'auto' }}
+        style={{ position: 'relative', flex: '1 1 260px', maxWidth: 340, minWidth: 140, margin: '0 auto' }}
       >
         <span className="material-symbols-outlined" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 17, color: '#8E94AF', pointerEvents: 'none' }}>
           search
@@ -201,8 +201,8 @@ export default function TopNav() {
           type="text"
           placeholder="Trade the Moment"
           style={{
-            width: '100%', background: '#00132D', border: '1px solid #22314A', borderRadius: 8,
-            padding: '8px 12px 8px 34px', color: '#DCE1FF', fontSize: 13, outline: 'none',
+            width: '100%', background: '#00132D', border: '1px solid #22314A', borderRadius: 999,
+            padding: '9px 14px 9px 36px', color: '#DCE1FF', fontSize: 13, outline: 'none',
           }}
         />
       </form>
