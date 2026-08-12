@@ -114,9 +114,20 @@ export default function FeaturedCarousel({ markets }) {
   const timer = useRef(null);
 
   // Newest first — the carousel is the "what's happening right now" surface
+  // Rank by what makes a slide worth looking at, not just recency. Sorting by
+  // created_at alone surfaced brand-new markets with a single outcome, $0
+  // volume and a flat 50% line — which is what the carousel was showing.
+  // Traded markets come first, then richer multi-outcome ones, then recency as
+  // the tie-break so a quiet catalogue still fills all seven slides.
   const featured = [...markets]
     .filter((m) => m.status === 'active' && (m.outcomes || []).length > 0)
-    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+    .sort((a, b) => {
+      const vol = (Number(b.total_volume) || 0) - (Number(a.total_volume) || 0);
+      if (vol !== 0) return vol;
+      const outs = (b.outcomes || []).length - (a.outcomes || []).length;
+      if (outs !== 0) return outs;
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    })
     .slice(0, 7);
 
   const count = featured.length;
