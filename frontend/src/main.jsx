@@ -13,6 +13,11 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.jsx';
 
+// Lets us confirm which commit a browser is actually running, so "nothing
+// changed" can be diagnosed as a stale deploy or cache rather than guessed at.
+// eslint-disable-next-line no-undef
+console.log(`Dobium build ${__BUILD_SHA__} — ${__BUILD_TIME__}`);
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />
