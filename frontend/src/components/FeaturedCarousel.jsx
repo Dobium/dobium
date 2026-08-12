@@ -49,7 +49,7 @@ const AVATAR_TINTS = [
 ];
 
 function MiniChart({ market, outcomes }) {
-  const W = 520; const H = 320; const PAD = 8; const AXIS = 44;
+  const W = 420; const H = 260; const PAD = 8; const AXIS = 40;
   const series = outcomes.map((o, i) => ({
     id: o.id,
     color: LINE_COLORS[i % LINE_COLORS.length],
@@ -168,7 +168,7 @@ export default function FeaturedCarousel({ markets }) {
       style={{
         margin: '0 auto', textAlign: 'left', cursor: 'pointer',
         background: '#001F43', border: '1px solid #1C304F', borderRadius: 10,
-        padding: '28px 34px 32px', minHeight: 580,
+        padding: '22px 26px 26px', minHeight: 470,
       }}
     >
       {/* Header: tags left, pagination right */}
@@ -189,12 +189,12 @@ export default function FeaturedCarousel({ markets }) {
         )}
       </div>
 
-      <h3 style={{ color: '#FFFFFF', fontFamily: 'var(--wordmark)', fontSize: 'clamp(25px, 2.9vw, 38px)', fontWeight: 800, margin: '0 0 15px', lineHeight: 1.16 }}>
+      <h3 style={{ color: '#FFFFFF', fontFamily: 'var(--wordmark)', fontSize: 'clamp(21px, 2.4vw, 30px)', fontWeight: 800, margin: '0 0 12px', lineHeight: 1.18 }}>
         {market.title}
       </h3>
 
       {/* Status line */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 26, fontFamily: 'var(--mono)', fontSize: 13.5 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap', marginBottom: 22, fontFamily: 'var(--mono)', fontSize: 12.5 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: '#FF8A8A' }}>
           <span style={{ width: 7, height: 7, borderRadius: 999, background: '#FF8A8A' }} />LIVE
         </span>
@@ -202,23 +202,23 @@ export default function FeaturedCarousel({ markets }) {
         <span style={{ color: '#C3CBDE' }}>${(market.total_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} vol</span>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 36 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 30 }}>
         {/* Left: outcome rows + news blurb */}
-        <div style={{ flex: '1 1 380px', minWidth: 320, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: '1 1 330px', minWidth: 290, display: 'flex', flexDirection: 'column' }}>
           {rows.map((o, i) => {
             const p = Number(o.probability) || 0;
             const mult = p > 0 ? (100 / p).toFixed(2) : null;
             const lead = p >= leaderProb && p > 0;
             return (
-              <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 0' }}>
+              <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 0' }}>
                 <span style={{
-                  width: 50, height: 50, borderRadius: 999, flexShrink: 0,
+                  width: 42, height: 42, borderRadius: 999, flexShrink: 0,
                   background: `linear-gradient(145deg, ${AVATAR_TINTS[i % AVATAR_TINTS.length][0]}, ${AVATAR_TINTS[i % AVATAR_TINTS.length][1]})`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 18, color: 'rgba(255,255,255,.85)',
+                  fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15, color: 'rgba(255,255,255,.85)',
                 }}>{(o.title || '?').trim().charAt(0).toUpperCase()}</span>
 
-                <span style={{ flex: 1, minWidth: 0, color: '#FFFFFF', fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 17.5, lineHeight: 1.3 }}>
+                <span style={{ flex: 1, minWidth: 0, color: '#FFFFFF', fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 15.5, lineHeight: 1.3 }}>
                   {o.title}
                 </span>
 
@@ -228,10 +228,10 @@ export default function FeaturedCarousel({ markets }) {
 
                 <span style={{
                   flexShrink: 0, minWidth: 62, textAlign: 'center',
-                  fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 17,
+                  fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 15,
                   color: lead ? '#4BE176' : '#DCE1FF',
                   border: `1px solid ${lead ? 'rgba(75,225,118,.55)' : '#2A3A57'}`,
-                  borderRadius: 999, padding: '9px 17px',
+                  borderRadius: 999, padding: '7px 14px',
                 }}>{Math.round(p)}%</span>
               </div>
             );
@@ -244,7 +244,7 @@ export default function FeaturedCarousel({ markets }) {
           )}
 
           {blurb && (
-            <p style={{ margin: '22px 0 0', paddingTop: 18, borderTop: '1px solid rgba(45,52,76,.6)', fontSize: 14.5, lineHeight: 1.7, color: '#8E94AF' }}>
+            <p style={{ margin: '22px 0 0', paddingTop: 18, borderTop: '1px solid rgba(45,52,76,.6)', fontSize: 13.5, lineHeight: 1.7, color: '#8E94AF' }}>
               <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 13.5, marginRight: 7, color: '#FFFFFF' }}>{blurbLabel === 'NEWS' ? 'News' : 'About'}</span>
               · {blurb.length > 190 ? `${blurb.slice(0, 190)}…` : blurb}
             </p>
@@ -255,7 +255,7 @@ export default function FeaturedCarousel({ markets }) {
         <div style={{ flex: '1.15 1 360px', minWidth: 300 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px', marginBottom: 14 }}>
             {chartOutcomes.map((o, i) => (
-              <span key={o.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--wordmark)', fontSize: 14, color: '#DCE1FF' }}>
+              <span key={o.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--wordmark)', fontSize: 13, color: '#DCE1FF' }}>
                 <span style={{ width: 8, height: 8, borderRadius: 999, background: LINE_COLORS[i % LINE_COLORS.length], display: 'inline-block' }} />
                 <span style={{ maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.title}</span>
                 <span style={{ color: LINE_COLORS[i % LINE_COLORS.length], fontWeight: 800 }}>{(o.probability || 0).toFixed(1)}%</span>
