@@ -205,6 +205,19 @@ export default function FeaturedCarousel({ markets }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 30 }}>
         {/* Left: outcome rows + news blurb */}
         <div style={{ flex: '1 1 330px', minWidth: 290, display: 'flex', flexDirection: 'column' }}>
+          {/* Column headers, per the Kalshi reference — the multiplier and
+              percentage columns were previously unlabelled. */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 14, padding: '0 0 9px',
+            borderBottom: '1px solid rgba(42,58,87,.55)',
+            fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.06em', color: '#8E94AF',
+          }}>
+            <span style={{ width: 42, flexShrink: 0 }} aria-hidden="true" />
+            <span style={{ flex: 1, minWidth: 0 }}>Market</span>
+            <span style={{ flexShrink: 0 }}>Pays out</span>
+            <span style={{ flexShrink: 0, minWidth: 62, textAlign: 'center' }}>Odds</span>
+          </div>
+
           {rows.map((o, i) => {
             const p = Number(o.probability) || 0;
             const mult = p > 0 ? (100 / p).toFixed(2) : null;
