@@ -200,7 +200,7 @@ export default function FeaturedCarousel({ markets }) {
         )}
       </div>
 
-      <h3 style={{ color: '#FFFFFF', fontFamily: 'var(--wordmark)', fontSize: 'clamp(17px, 1.8vw, 23px)', fontWeight: 800, margin: '0 0 9px', lineHeight: 1.2 }}>
+      <h3 style={{ color: '#FFFFFF', fontFamily: 'var(--wordmark)', fontSize: 'clamp(18px, 2vw, 24px)', fontWeight: 800, margin: '0 0 9px', lineHeight: 1.2 }}>
         {market.title}
       </h3>
 
@@ -215,7 +215,7 @@ export default function FeaturedCarousel({ markets }) {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 22 }}>
         {/* Left: outcome rows + news blurb */}
-        <div style={{ flex: '1 1 330px', minWidth: 290, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: '1 1 280px', minWidth: 230, display: 'flex', flexDirection: 'column' }}>
           {/* Column headers, per the Kalshi reference — the multiplier and
               percentage columns were previously unlabelled. */}
           <div style={{
@@ -276,7 +276,7 @@ export default function FeaturedCarousel({ markets }) {
         </div>
 
         {/* Right: legend + chart */}
-        <div style={{ flex: '1.15 1 360px', minWidth: 300 }}>
+        <div style={{ flex: '1 1 290px', minWidth: 240 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', marginBottom: 10 }}>
             {chartOutcomes.map((o, i) => (
               <span key={o.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--wordmark)', fontSize: 11.5, color: '#DCE1FF' }}>
