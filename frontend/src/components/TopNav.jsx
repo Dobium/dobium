@@ -149,7 +149,9 @@ export default function TopNav() {
         borderBottom: '1px solid #14223E',
       }}
     >
-      <div className="dbm-navwrap" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+      <div className="dbm-navwrap dbm-navgrid">
+      {/* Left group: logo + nav links */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 24, minWidth: 0 }}>
       {/* Logo — gold wordmark */}
       <div
         onClick={() => navigate('/')}
@@ -183,15 +185,17 @@ export default function TopNav() {
           );
         })}
       </div>
+      </div>
 
-      {/* Site-wide search */}
+      {/* Centre: search sits in the auto column between two equal 1fr columns,
+          so it lands on the bar's true midpoint regardless of side-group widths. */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
           const q = e.currentTarget.q.value.trim();
           navigate(q ? `/explore?q=${encodeURIComponent(q)}` : '/explore');
         }}
-        style={{ position: 'relative', flex: '1 1 260px', maxWidth: 340, minWidth: 140, margin: '0 auto' }}
+        style={{ position: 'relative', width: 'clamp(140px, 26vw, 340px)', justifySelf: 'center' }}
       >
         <span className="material-symbols-outlined" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 17, color: '#8E94AF', pointerEvents: 'none' }}>
           search
@@ -207,7 +211,8 @@ export default function TopNav() {
         />
       </form>
 
-      {/* Right: PORTFOLIO stack + gold button */}
+      {/* Right group */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', minWidth: 0 }}>
       {session ? (
         <PortfolioBlock
           balance={balance}
@@ -221,6 +226,7 @@ export default function TopNav() {
           menuItems={guestMenu}
         />
       )}
+      </div>
       </div>
     </div>
   );

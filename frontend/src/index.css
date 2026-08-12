@@ -880,6 +880,16 @@ a,
    grids cannot break via purge/config changes. Page content is capped at
    1440px and centered — the reference design's canvas width. */
 .dbm-shell, .dbm-navwrap, .dbm-footwrap { max-width: 1440px; margin: 0 auto; width: 100%; }
+
+/* Header layout. Equal 1fr side columns put the auto centre column on the
+   bar's true midpoint, so the search is centred regardless of how wide the
+   logo/nav group or the portfolio group happen to be. Below 900px that would
+   crush the nav, so it falls back to a plain row. */
+.dbm-navgrid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 20px; }
+@media (max-width: 899px) {
+  .dbm-navgrid { display: flex; flex-wrap: wrap; gap: 14px; }
+  .dbm-navgrid > form { width: 100% !important; order: 3; }
+}
 .dbm-side { display: none; }
 .dbm-chips { display: flex; flex-wrap: wrap; }
 .dbm-mobile-only { display: block; }
