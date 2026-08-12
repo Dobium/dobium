@@ -36,8 +36,20 @@ function historyFor(market, outcome) {
   return [p, p];
 }
 
+const navBtn = {
+  width: 30, height: 30, borderRadius: 999, background: 'transparent',
+  border: '1px solid #2A3A57', color: '#C3CBDE', cursor: 'pointer',
+  fontSize: 16, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+
+// No outcome artwork exists in the repo, so avatars are tinted monogram discs.
+const AVATAR_TINTS = [
+  ['#2E4A6B', '#4B7BA8'], ['#4B3A6B', '#6E5AA8'], ['#6B4A2E', '#A87B4B'],
+  ['#2E6B55', '#4BA882'], ['#6B2E45', '#A84B6E'],
+];
+
 function MiniChart({ market, outcomes }) {
-  const W = 420; const H = 210; const PAD = 8; const AXIS = 40;
+  const W = 420; const H = 260; const PAD = 8; const AXIS = 40;
   const series = outcomes.map((o, i) => ({
     id: o.id,
     color: LINE_COLORS[i % LINE_COLORS.length],
@@ -148,97 +160,109 @@ export default function FeaturedCarousel({ markets }) {
     : (market.description || '').replace(/\s+/g, ' ').trim();
   const blurbLabel = headline ? 'NEWS' : 'ABOUT';
 
+  const leaderProb = Math.max(...rows.map((o) => Number(o.probability) || 0), 0);
+
   return (
     <div
       onClick={() => navigate(`/markets/${market.id}`)}
       style={{
         margin: '0 auto', textAlign: 'left', cursor: 'pointer',
-        background: '#001F43', border: '1px solid #1C304F', borderRadius: 8,
-        padding: '26px 30px 24px', minHeight: 330,
+        background: '#001F43', border: '1px solid #1C304F', borderRadius: 10,
+        padding: '22px 26px 26px', minHeight: 470,
       }}
     >
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 34 }}>
-        {/* Left: tag, title, outcomes table, volume */}
-        <div style={{ flex: '1.05 1 340px', minWidth: 300, display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#D2C5AF', background: '#12294A', borderRadius: 3, padding: '4px 9px' }}>
-            {bucketLabel(market.category)}
-          </span>
-          <h3 style={{ color: '#DCE1FF', fontSize: 19, fontWeight: 600, margin: '14px 0 18px', lineHeight: 1.4 }}>
-            {market.title}
-          </h3>
+      {/* Header: tags left, pagination right */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+        <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 13, color: '#FFFFFF', background: '#2C5CE0', borderRadius: 5, padding: '5px 11px' }}>
+          Trending Attention &amp; News
+        </span>
+        <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', color: '#2A1F00', background: '#FFDF9B', borderRadius: 5, padding: '5px 10px' }}>
+          SECTOR: {bucketLabel(market.category).toUpperCase()}
+        </span>
 
-          {/* Outcomes mini-table */}
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 12.5 }}>
-            <div style={{ display: 'flex', color: '#948D87', fontSize: 10, paddingBottom: 7, borderBottom: '1px solid rgba(45,52,76,.7)' }}>
-              <span style={{ flex: 2.1 }}>{binary ? 'Outcome' : 'Market'}</span>
-              <span style={{ flex: 0.8, textAlign: 'center' }}>Yes</span>
-              <span style={{ flex: 0.8, textAlign: 'center' }}>No</span>
-              <span style={{ flex: 1.1, textAlign: 'right' }} />
-            </div>
-            {rows.map((o) => {
-              const p = Math.round(o.probability || 0);
-              return (
-                <div key={o.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid rgba(45,52,76,.35)' }}>
-                  <span style={{ flex: 2.1, color: '#DCE1FF', fontFamily: 'var(--wordmark)', fontSize: 13.5, paddingRight: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {o.title}
-                  </span>
-                  <span style={{ flex: 0.8, textAlign: 'center' }}>
-                    <span style={{ background: '#1D323D', color: '#48D773', borderRadius: 3, padding: '3px 8px' }}>{p}¢</span>
-                  </span>
-                  <span style={{ flex: 0.8, textAlign: 'center' }}>
-                    <span style={{ background: '#2A1620', color: '#CF9290', borderRadius: 3, padding: '3px 8px' }}>{100 - p}¢</span>
-                  </span>
-                  <span style={{ flex: 1.1, textAlign: 'right', color: '#948D87', fontSize: 10.5 }}>{(o.probability || 0).toFixed(1)}% prob</span>
-                </div>
-              );
-            })}
+        {count > 1 && (
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => go(-1)} aria-label="Previous market" style={navBtn}>‹</button>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: '#C3CBDE' }}>{Math.min(idx, count - 1) + 1} of {count}</span>
+            <button onClick={() => go(1)} aria-label="Next market" style={navBtn}>›</button>
           </div>
+        )}
+      </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 16 }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: '#9D968D' }}>
-              ${(market.total_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} vol
-            </span>
-            {hidden > 0 && (
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#B7A77E' }}>+{hidden} more →</span>
-            )}
-          </div>
-        </div>
+      <h3 style={{ color: '#FFFFFF', fontFamily: 'var(--wordmark)', fontSize: 'clamp(21px, 2.4vw, 30px)', fontWeight: 800, margin: '0 0 12px', lineHeight: 1.18 }}>
+        {market.title}
+      </h3>
 
-        {/* Right: legend + chart + carousel controls */}
-        <div style={{ flex: '1 1 340px', minWidth: 300 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              {chartOutcomes.map((o, i) => (
-                <span key={o.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--mono)', fontSize: 10.5, color: '#D2C5AF' }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 2, background: LINE_COLORS[i % LINE_COLORS.length], display: 'inline-block' }} />
-                  <span style={{ maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.title}</span>
-                  <span style={{ color: LINE_COLORS[i % LINE_COLORS.length], fontWeight: 700 }}>{(o.probability || 0).toFixed(1)}%</span>
+      {/* Status line */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap', marginBottom: 22, fontFamily: 'var(--mono)', fontSize: 12.5 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: '#FF8A8A' }}>
+          <span style={{ width: 7, height: 7, borderRadius: 999, background: '#FF8A8A' }} />LIVE
+        </span>
+        <span style={{ color: '#C3CBDE' }}>{rows.length + hidden} outcome{rows.length + hidden === 1 ? '' : 's'}</span>
+        <span style={{ color: '#C3CBDE' }}>${(market.total_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} vol</span>
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 30 }}>
+        {/* Left: outcome rows + news blurb */}
+        <div style={{ flex: '1 1 330px', minWidth: 290, display: 'flex', flexDirection: 'column' }}>
+          {rows.map((o, i) => {
+            const p = Number(o.probability) || 0;
+            const mult = p > 0 ? (100 / p).toFixed(2) : null;
+            const lead = p >= leaderProb && p > 0;
+            return (
+              <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 0' }}>
+                <span style={{
+                  width: 42, height: 42, borderRadius: 999, flexShrink: 0,
+                  background: `linear-gradient(145deg, ${AVATAR_TINTS[i % AVATAR_TINTS.length][0]}, ${AVATAR_TINTS[i % AVATAR_TINTS.length][1]})`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15, color: 'rgba(255,255,255,.85)',
+                }}>{(o.title || '?').trim().charAt(0).toUpperCase()}</span>
+
+                <span style={{ flex: 1, minWidth: 0, color: '#FFFFFF', fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 15.5, lineHeight: 1.3 }}>
+                  {o.title}
                 </span>
-              ))}
-            </div>
-            {count > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                <button onClick={() => go(-1)} aria-label="Previous market"
-                  style={{ width: 24, height: 24, borderRadius: 4, background: '#00132D', border: '1px solid #1C304F', color: '#D2C5AF', cursor: 'pointer', fontSize: 11, lineHeight: 1 }}>
-                  ◀
-                </button>
-                <button onClick={() => go(1)} aria-label="Next market"
-                  style={{ width: 24, height: 24, borderRadius: 4, background: '#00132D', border: '1px solid #1C304F', color: '#D2C5AF', cursor: 'pointer', fontSize: 11, lineHeight: 1 }}>
-                  ▶
-                </button>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#8E94AF' }}>{Math.min(idx, count - 1) + 1} of {count}</span>
-              </div>
-            )}
-          </div>
-          <MiniChart market={market} outcomes={chartOutcomes} />
 
-          {/* Context blurb sits under the chart, mockup-style */}
+                {mult && (
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, color: '#8E94AF', flexShrink: 0 }}>{mult}x</span>
+                )}
+
+                <span style={{
+                  flexShrink: 0, minWidth: 62, textAlign: 'center',
+                  fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 15,
+                  color: lead ? '#4BE176' : '#DCE1FF',
+                  border: `1px solid ${lead ? 'rgba(75,225,118,.55)' : '#2A3A57'}`,
+                  borderRadius: 999, padding: '7px 14px',
+                }}>{Math.round(p)}%</span>
+              </div>
+            );
+          })}
+
+          {hidden > 0 && (
+            <div style={{ textAlign: 'right', marginTop: 4 }}>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: '#8E94AF' }}>{hidden} more</span>
+            </div>
+          )}
+
           {blurb && (
-            <p style={{ margin: '14px 0 0', paddingTop: 13, borderTop: '1px solid rgba(45,52,76,.6)', fontSize: 12, lineHeight: 1.65, color: '#B7A77E' }}>
-              <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10.5, letterSpacing: '0.06em', marginRight: 8, color: '#FFDF9B' }}>{blurbLabel}</span>
-              {blurb.length > 170 ? `${blurb.slice(0, 170)}…` : blurb}
+            <p style={{ margin: '22px 0 0', paddingTop: 18, borderTop: '1px solid rgba(45,52,76,.6)', fontSize: 13.5, lineHeight: 1.7, color: '#8E94AF' }}>
+              <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 13.5, marginRight: 7, color: '#FFFFFF' }}>{blurbLabel === 'NEWS' ? 'News' : 'About'}</span>
+              · {blurb.length > 190 ? `${blurb.slice(0, 190)}…` : blurb}
             </p>
           )}
+        </div>
+
+        {/* Right: legend + chart */}
+        <div style={{ flex: '1.15 1 360px', minWidth: 300 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px', marginBottom: 14 }}>
+            {chartOutcomes.map((o, i) => (
+              <span key={o.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--wordmark)', fontSize: 13, color: '#DCE1FF' }}>
+                <span style={{ width: 8, height: 8, borderRadius: 999, background: LINE_COLORS[i % LINE_COLORS.length], display: 'inline-block' }} />
+                <span style={{ maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.title}</span>
+                <span style={{ color: LINE_COLORS[i % LINE_COLORS.length], fontWeight: 800 }}>{(o.probability || 0).toFixed(1)}%</span>
+              </span>
+            ))}
+          </div>
+          <MiniChart market={market} outcomes={chartOutcomes} />
         </div>
       </div>
 
