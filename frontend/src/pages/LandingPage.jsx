@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMarkets } from '../hooks/useMarkets';
 import { api } from '../api/client';
 import { SECTORS as SHARED_SECTORS, classifySector } from '../lib/sectors';
+import FeaturedCarousel from '../components/FeaturedCarousel';
 
 // ── Homepage rebuilt as a sector-based market dashboard, matched to Neel's
 // reference mocks (palette sampled from the screenshots): #00132D page,
@@ -1281,6 +1282,10 @@ export default function LandingPage() {
               <div style={{ ...mono({ fontSize: 9, letterSpacing: '0.1em', color: WARM }) }}>ACTIVE TRADERS</div>
               <div style={{ ...mono({ fontSize: 19, color: GREEN, letterSpacing: '0.01em' }), marginTop: 6 }}>{activeTraders}</div>
             </div>
+          </div>
+
+          <div style={{ margin: '0 0 34px' }}>
+            <FeaturedCarousel markets={markets} />
           </div>
 
           <TwoCardSection
