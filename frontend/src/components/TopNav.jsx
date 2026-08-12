@@ -13,20 +13,6 @@ const LINKS = [
 ];
 
 // Gold waveform mark — the reference mock's logo (audio bars).
-export function WaveMark({ height = 22 }) {
-  return (
-    <svg viewBox="0 0 28 26" xmlns="http://www.w3.org/2000/svg" style={{ height, width: 'auto', display: 'block' }} aria-hidden="true">
-      <g fill="#F3C74F">
-        <rect x="0" y="10" width="3.2" height="6" rx="1.6" />
-        <rect x="6" y="5" width="3.2" height="16" rx="1.6" />
-        <rect x="12" y="1" width="3.2" height="24" rx="1.6" />
-        <rect x="18" y="6.5" width="3.2" height="13" rx="1.6" />
-        <rect x="24" y="10" width="3.2" height="6" rx="1.6" />
-      </g>
-    </svg>
-  );
-}
-
 // Shared dropdown item style
 const itemStyle = {
   display: 'block', width: '100%', textAlign: 'left',
@@ -164,12 +150,11 @@ export default function TopNav() {
       }}
     >
       <div className="dbm-navwrap" style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
-      {/* Logo — gold waveform mark + gold wordmark */}
+      {/* Logo — gold wordmark */}
       <div
         onClick={() => navigate('/')}
-        style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', flexShrink: 0 }}
+        style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}
       >
-        <WaveMark height={22} />
         <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 27, background: 'linear-gradient(180deg,#FFDF9B,#F0C04A)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', lineHeight: 1 }}>
           Dobium
         </span>

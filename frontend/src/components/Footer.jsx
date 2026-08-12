@@ -1,6 +1,6 @@
 import { isTerminalPath } from './TerminalChrome';
 import { useLocation } from 'react-router-dom';
-import { WaveMark } from './TopNav';
+
 
 // Sitewide footer, route-aware per the approved mocks:
 // • Home ('/'): the simple band — wordmark + "High-stakes culture prediction"
@@ -82,8 +82,7 @@ export default function Footer() {
           }}
         >
           <div style={{ maxWidth: 250 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <WaveMark height={15} />
+            <div>
               <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15.5, color: '#F2F5FF' }}>
                 Dobium
               </span>
@@ -206,8 +205,7 @@ function ConnectButton({ kind }) {
         }}
       >
         <div style={{ maxWidth: 300 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <WaveMark height={15} />
+          <div>
             <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15.5, color: '#F2F5FF' }}>
               Dobium
             </span>
