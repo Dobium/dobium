@@ -144,16 +144,28 @@ export default function FeaturedCarousel({ markets }) {
   // "Rendered more hooks than during the previous render" and unmounts.
   const market = count > 0 ? featured[Math.min(idx, count - 1)] : null;
 
-  // Fetch one real headline per slide (cached per market for the session)
+  // Prefetch every slide's headline up front. Fetching on arrival meant each
+  // flip rendered the fallback description first and swapped to the real
+  // headline a few hundred ms later — a visible text flash, and a height
+  // change, on every single slide change.
+  const featuredIds = featured.map((m) => m.id).join(',');
   useEffect(() => {
-    if (!market?.id || newsByMarket[market.id] !== undefined) return undefined;
+    if (!featuredIds) return undefined;
     let alive = true;
-    api.getMarketNews(market.id)
-      .then((r) => { if (alive) setNewsByMarket((prev) => ({ ...prev, [market.id]: (r?.items || [])[0] || null })); })
-      .catch(() => { if (alive) setNewsByMarket((prev) => ({ ...prev, [market.id]: null })); });
+    featuredIds.split(',').forEach((id) => {
+      api.getMarketNews(id)
+        .then((r) => {
+          if (!alive) return;
+          setNewsByMarket((prev) => (prev[id] !== undefined ? prev : { ...prev, [id]: (r?.items || [])[0] || null }));
+        })
+        .catch(() => {
+          if (!alive) return;
+          setNewsByMarket((prev) => (prev[id] !== undefined ? prev : { ...prev, [id]: null }));
+        });
+    });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [market?.id]);
+  }, [featuredIds]);
 
   if (count === 0 || !market) return null;
 
@@ -263,18 +275,22 @@ export default function FeaturedCarousel({ markets }) {
           })}
 
           </div>
+          <div style={{ textAlign: 'right', marginTop: 4, minHeight: 17 }}>
           {hidden > 0 && (
-            <div style={{ textAlign: 'right', marginTop: 4 }}>
+            <div>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: '#8E94AF' }}>{hidden} more</span>
             </div>
           )}
+          </div>
 
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(45,52,76,.6)', minHeight: 58 }}>
           {blurb && (
-            <p style={{ margin: '14px 0 0', paddingTop: 12, borderTop: '1px solid rgba(45,52,76,.6)', fontSize: 11.5, lineHeight: 1.65, color: '#8E94AF', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 56 }}>
+            <p style={{ margin: 0, paddingTop: 0, borderTop: '1px solid rgba(45,52,76,.6)', fontSize: 11.5, lineHeight: 1.65, color: '#8E94AF', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 56 }}>
               <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 13.5, marginRight: 7, color: '#FFFFFF' }}>{blurbLabel === 'NEWS' ? 'News' : 'About'}</span>
               · {blurb.length > 190 ? `${blurb.slice(0, 190)}…` : blurb}
             </p>
           )}
+          </div>
         </div>
 
         {/* Right: legend + chart */}
