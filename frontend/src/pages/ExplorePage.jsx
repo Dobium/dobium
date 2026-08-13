@@ -4,7 +4,6 @@ import ExploreCard from '../components/ExploreCard';
 import { MarketGridSkeleton } from '../components/MarketCardSkeleton';
 import { useMarkets } from '../hooks/useMarkets';
 import { api } from '../api/client';
-import { categoryBucket } from '../lib/categories';
 import { SECTORS, classifySector } from '../lib/sectors';
 import { EXPLORE_FLASH, MARKET_INTEL } from '../lib/demoContent';
 
@@ -146,10 +145,11 @@ export default function ExplorePage() {
 
   const filtered = [...markets]
     .filter((m) => {
+      // 'awards' used to be handled here as a pseudo-filter (any media-bucket
+      // market) because it wasn't a real sector. It is one now, so it resolves
+      // through the normal classifySector path like every other category.
       const categoryMatch = !category
-        ? (urlFilter === 'awards' ? categoryBucket(m.category) === 'media'
-          : attentionMode ? m.status === 'active'
-          : true)
+        ? (attentionMode ? m.status === 'active' : true)
         : classifySector(m.title) === category;
       const searchMatch = !search || m.title?.toLowerCase().includes(search.toLowerCase());
       return categoryMatch && searchMatch;

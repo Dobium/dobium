@@ -340,6 +340,7 @@ const SECTOR_TILES = [
   { id: 'CREATORS & STREAMERS', icon: 'creator' },
   { id: 'FRONTIER', icon: 'rocket' },
   { id: 'STREAMING', icon: 'play' },
+  { id: 'AWARDS', icon: 'trophy' },
 ];
 
 function TileIcon({ kind, color }) {
@@ -355,6 +356,7 @@ function TileIcon({ kind, color }) {
     case 'creator': return <svg {...c}><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="12" cy="10.5" r="2.4" /><path d="M7.5 17c.9-1.9 2.6-3 4.5-3s3.6 1.1 4.5 3" /></svg>;
     case 'play': return <svg {...c}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M10.5 9.5l5 2.5-5 2.5z" /></svg>;
     case 'trend': return <svg {...c}><path d="M3 17l6-6 4 4 8-8" /><path d="M15 7h6v6" /></svg>;
+    case 'trophy': return <svg {...c}><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0zM7 6H4a2 2 0 002 4h1M17 6h3a2 2 0 01-2 4h-1" /></svg>;
     default: return null;
   }
 }

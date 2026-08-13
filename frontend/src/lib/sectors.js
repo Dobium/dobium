@@ -19,6 +19,8 @@ export const SECTORS = [
     re: /\bgame\b|\bgta\b|esports|twitch|streamer|valorant|fortnite|minecraft|playstation|xbox|nintendo|steam|worlds \d|league of legends|call of duty|overwatch/i },
   { id: 'streaming', label: 'Streaming',
     re: /netflix|hulu|hbo max|disney\+|paramount\+|peacock|apple tv|prime video|renewal|viewership|weekly views/i },
+  { id: 'awards', label: 'Awards',
+    re: /oscar|academy award|grammy|\bemmy\b|golden globe|\bbafta\b|tony award|brit award|\bvmas?\b|best picture|best actor|best actress|best director|album of the year|record of the year|song of the year|\bnominations?\b/i },
 ];
 
 // Display order (the SECTORS array) and match order are deliberately separate.
@@ -26,7 +28,7 @@ export const SECTORS = [
 // and "ai" appear in plenty of music and gaming titles — so matching it first
 // would silently reclassify existing markets. Matching keeps the original
 // narrow-to-broad precedence with tech last.
-const MATCH_ORDER = ['music', 'movies', 'celebrities', 'festivals', 'gaming', 'streaming', 'trends', 'tech'];
+const MATCH_ORDER = ['awards', 'music', 'movies', 'celebrities', 'festivals', 'gaming', 'streaming', 'trends', 'tech'];
 
 export function classifySector(title) {
   for (const id of MATCH_ORDER) {

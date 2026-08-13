@@ -453,6 +453,10 @@ function sportsMarkets(markets) {
     .filter((m) => m.status === 'active' && SPORTS_RE.test(m.title || ''))
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
+const AWARDS_DEMO = [
+  { title: 'Best Picture winner at the next Academy Awards?', vol: '$0', yes: 50, no: 50, tag: 'AWARDS' },
+  { title: 'Album of the Year at the next Grammys?', vol: '$0', yes: 50, no: 50, tag: 'AWARDS' },
+];
 const GLOBAL_ATTENTION_DEMO = [
   { title: 'Will Kendrick Lamar drop a surprise album this week?', vol: '$4.2M', yes: 58, no: 42, tag: 'BREAKING' },
   { title: 'GTA VI release date to be confirmed before Q4?', vol: '$6.1M', yes: 44, no: 56, tag: 'TOP STORY' },
@@ -899,7 +903,7 @@ export default function LandingPage() {
   const refs = {
     attention: useRef(null), music: useRef(null), movies: useRef(null), celebrities: useRef(null),
     festivals: useRef(null), gaming: useRef(null), streaming: useRef(null),
-    trends: useRef(null), tech: useRef(null),
+    trends: useRef(null), tech: useRef(null), awards: useRef(null),
   };
 
   const goTo = (id) => {
@@ -1446,6 +1450,15 @@ export default function LandingPage() {
             onOpen={(id) => navigate(`/markets/${id}`)}
             onViewAll={() => navigate('/explore?filter=streaming')}
             forwardRef={refs.streaming}
+          />
+
+          <TwoCardSection
+            sector={SECTORS.find((s) => s.id === 'awards')}
+            markets={markets}
+            demo={AWARDS_DEMO}
+            onOpen={(id) => navigate(`/markets/${id}`)}
+            onViewAll={() => navigate('/explore?filter=awards')}
+            forwardRef={refs.awards}
           />
         </div>
         </main>

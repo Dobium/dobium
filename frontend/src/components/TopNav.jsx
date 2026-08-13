@@ -7,7 +7,6 @@ const LINKS = [
   { label: 'Markets', to: '/' },
   { label: 'Explore', to: '/explore' },
   { label: 'Paper Portfolio', to: '/portfolio' },
-  { label: 'Awards', to: '/explore?filter=awards' },
   { label: 'Terminal', to: '/terminal' },
   { label: 'Waitlist', to: '/waitlist' },
 ];
