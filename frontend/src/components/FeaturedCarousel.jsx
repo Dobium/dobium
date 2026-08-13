@@ -73,10 +73,10 @@ function MiniChart({ market, outcomes }) {
 
   return (
     <div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="xMidYMid meet" style={{ maxHeight: 168 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ display: 'block', width: '100%', height: 'auto' }}>
         {/* Dobium watermark, like the mockup */}
-        <text x={W - AXIS - 10} y={26} textAnchor="end" fontSize="15" fontWeight="700"
-          fill="#DCE1FF" opacity="0.10" fontFamily="Hanken Grotesk, sans-serif">Dobium</text>
+        <text x={W - AXIS - 10} y={28} textAnchor="end" fontSize="17" fontWeight="800" letterSpacing="1.5"
+          fill="#3B4954" fontFamily="Hanken Grotesk, sans-serif">DOBIUM</text>
         {[0, 0.25, 0.5, 0.75, 1].map((r) => (
           <g key={r}>
             <line x1={PAD} x2={PAD + plotW} y1={PAD + r * (H - PAD * 2)} y2={PAD + r * (H - PAD * 2)}
