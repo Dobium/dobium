@@ -348,9 +348,9 @@ function trendsPlatformMarkets(markets, sub) {
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
 
-const TECH_SUBS = ['All Tech', 'Trending AI Companies', 'AI Models', 'Big Tech', 'Startup Raises and Funding', 'Open Source AI & Github Repos', 'Startup Acquisitions', 'Space Tech'];
+const TECH_SUBS = ['All Tech', 'Trending AI Companies', 'Prediction Markets', 'AI Models', 'Big Tech', 'Startup Raises and Funding', 'Open Source AI & Github Repos', 'Startup Acquisitions', 'Space Tech'];
 const TECH_SUB_ICONS = {
-  'All Tech': 'grid', 'Trending AI Companies': 'hardware', 'AI Models': 'robot', 'Big Tech': 'building',
+  'All Tech': 'grid', 'Trending AI Companies': 'hardware', 'Prediction Markets': 'bars', 'AI Models': 'robot', 'Big Tech': 'building',
   'Startup Raises and Funding': 'briefcase', 'Open Source AI & Github Repos': 'terminal',
   'Startup Acquisitions': 'layers', 'Space Tech': 'rocket',
 };
@@ -378,6 +378,10 @@ function startupFundingMarkets(markets) {
 }
 
 const TECH_SUB_DEMO = {
+  'Prediction Markets': [
+    { title: 'Will Kalshi pass Polymarket in monthly web visits this quarter?', vol: '$0', yes: 50, no: 50, tag: 'KALSHI' },
+    { title: 'Will Polymarket remain the top prediction market by volume?', vol: '$0', yes: 50, no: 50, tag: 'POLYMARKET' },
+  ],
   'Trending AI Companies': [
     { title: 'OpenAI to surpass $150B valuation in 2025?', vol: '$88.2M', yes: 61, no: 39, tag: 'OPENAI' },
     { title: 'Anthropic to raise a new round above $30B valuation?', vol: '$42.6M', yes: 57, no: 43, tag: 'ANTHROPIC' },
@@ -411,6 +415,7 @@ const TECH_SUB_DEMO = {
 // per-market company/category metadata exists yet.
 const TECH_SUB_RE = {
   'Trending AI Companies': /openai|anthropic|\bxai\b|mistral|cohere|perplexity|deepmind|stability ai/i,
+  'Prediction Markets': /kalshi|polymarket|manifold|prediction market|event contract|\bcftc\b|designated contract market/i,
   'AI Models': /\bgpt\b|\bllm\b|\bclaude\b|gemini|llama|model release|benchmark|leaderboard/i,
   'Big Tech': /\bapple\b|\bgoogle\b|\bmeta\b|\bmicrosoft\b|\bamazon\b|\bnvidia\b|big tech/i,
   'Startup Raises and Funding': /\braise\b|funding round|series [a-e]\b|seed round|valuation/i,
