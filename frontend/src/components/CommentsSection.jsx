@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
 
-// Terminal-mock palette (shared with MarketDetailPage)
-const PANEL_BG = '#001F43';
-const PANEL_LINE = '#1C304F';
-const INSET_BG = '#00132D';
+// Terminal-mock palette (shared with MarketDetailPage). Kept in step with that
+// page: the panel sits at the page colour so comments read as embedded in the
+// market, and inner boxes are the lighter fill so they still read as inset.
+const PANEL_BG = '#00132D';
+const PANEL_LINE = '#13294A';
+const INSET_BG = '#001F43';
 const INPUT_LINE = '#394666';
 const LABEL = '#6B82A6';
 const GOLD = '#FFDF9B';

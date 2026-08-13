@@ -11,6 +11,7 @@ import { bucketLabel } from '../lib/categories';
 import MarketTicker from '../components/MarketTicker';
 
 // ── Terminal-mock palette (sampled from the reference screenshots) ──────────
+const COLLAPSED_OUTCOMES = 8;   // rows shown before "See more markets"
 const PAGE_BG = '#00132D';      // page field
 // Cards sit at the page colour so the market reads as embedded in the site
 // rather than as a lighter slab floating on it — the treatment Polymarket and
@@ -387,6 +388,7 @@ export default function MarketDetailPage() {
   const [sellLoading, setSellLoading] = useState(false);
   const [sellMsg, setSellMsg] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAllOutcomes, setShowAllOutcomes] = useState(false);
   const { balance: buyingPower, loading: buyingPowerLoading, refetch: refetchWallet } = useWallet();
 
   const [selectedIds, setSelectedIds] = useState([]);
@@ -1494,9 +1496,35 @@ export default function MarketDetailPage() {
               if (yesO && noO && outcomesToRender.length === 2) {
                 return <div>{renderPairRow(yesO, noO, market.title)}</div>;
               }
-              // Multi-outcome without pairs
+              // Multi-outcome without pairs. Long lists collapse to the first
+              // COLLAPSED_OUTCOMES rows with a toggle, rather than running on
+              // for dozens of rows — Kalshi's "More markets" behaviour.
               const filteredOutcomes = outcomesToRender.filter(o => o.title.toLowerCase().includes(searchQuery.toLowerCase()));
-              return <div>{filteredOutcomes.map((o, i) => renderOutcome(o, null, i))}</div>;
+              const collapsible = !searchQuery && filteredOutcomes.length > COLLAPSED_OUTCOMES;
+              const visible = collapsible && !showAllOutcomes
+                ? filteredOutcomes.slice(0, COLLAPSED_OUTCOMES)
+                : filteredOutcomes;
+              return (
+                <div>
+                  {visible.map((o, i) => renderOutcome(o, null, i))}
+                  {collapsible && (
+                    <button
+                      onClick={() => setShowAllOutcomes(v => !v)}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        borderTop: `1px solid ${PANEL_LINE}`,
+                        padding: '14px 8px 4px', color: LABEL,
+                        fontSize: 13.5, fontWeight: 600,
+                      }}
+                    >
+                      {showAllOutcomes
+                        ? 'See less markets'
+                        : `See more markets (${filteredOutcomes.length - COLLAPSED_OUTCOMES})`}
+                    </button>
+                  )}
+                </div>
+              );
             };
 
             const unresolvedOutcomesList = outcomes.filter(o => !isOutcomeResolved(o.id));
