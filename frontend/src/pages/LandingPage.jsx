@@ -348,7 +348,7 @@ function trendsPlatformMarkets(markets, sub) {
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
 
-const TECH_SUBS = ['All Tech', 'Trending AI Companies', 'Prediction Markets', 'AI Models', 'Big Tech', 'Startup Raises and Funding', 'Open Source AI & Github Repos', 'Startup Acquisitions', 'Space Tech'];
+const TECH_SUBS = ['All Tech', 'Prediction Markets', 'Trending AI Companies', 'AI Models', 'Big Tech', 'Startup Raises and Funding', 'Open Source AI & Github Repos', 'Startup Acquisitions', 'Space Tech'];
 const TECH_SUB_ICONS = {
   'All Tech': 'grid', 'Trending AI Companies': 'hardware', 'Prediction Markets': 'bars', 'AI Models': 'robot', 'Big Tech': 'building',
   'Startup Raises and Funding': 'briefcase', 'Open Source AI & Github Repos': 'terminal',
