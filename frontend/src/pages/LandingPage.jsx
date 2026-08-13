@@ -436,7 +436,23 @@ function techSubMarkets(markets, sub) {
 // keyword classifier it just pulls the platform's top markets by volume
 // regardless of sector. Kept out of the shared sectors.js taxonomy for that
 // reason (Explore's dropdown expects mutually-exclusive categories).
-const ATTENTION_SUBS = ['Trending Attention & News'];
+const ATTENTION_SUBS = ['Trending Attention & News', 'Sports'];
+const ATTENTION_SUB_ICONS = { 'Trending Attention & News': 'globe', 'Sports': 'trophy' };
+
+// Sports lives here rather than as its own sector: individual events are
+// short-lived, so a permanent nav slot would sit empty between them, while
+// this surface is already the "what's happening now" view. Title heuristic,
+// same caveat as every other sub-filter — no sport metadata per market yet.
+const SPORTS_RE = /world cup|\bufc\b|\bnfl\b|\bnba\b|\bmlb\b|\bnhl\b|super bowl|premier league|champions league|olympic|\bfifa\b|march madness|college football|playoff|grand slam|wimbledon|\bf1\b|formula 1|boxing|heavyweight|\bgoal\b|\bmatch\b|semifinal|quarterfinal/i;
+const SPORTS_DEMO = [
+  { title: 'World Cup Winner?', vol: '$0', yes: 50, no: 50, tag: 'SPORTS' },
+  { title: 'Will the underdog cover the spread on Sunday?', vol: '$0', yes: 50, no: 50, tag: 'SPORTS' },
+];
+function sportsMarkets(markets) {
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && SPORTS_RE.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
 const GLOBAL_ATTENTION_DEMO = [
   { title: 'Will Kendrick Lamar drop a surprise album this week?', vol: '$4.2M', yes: 58, no: 42, tag: 'BREAKING' },
   { title: 'GTA VI release date to be confirmed before Q4?', vol: '$6.1M', yes: 44, no: 56, tag: 'TOP STORY' },
@@ -1177,7 +1193,7 @@ export default function LandingPage() {
                           padding: '7px 11px 7px 38px', fontSize: 12.5,
                           color: genreActive ? GOLD_DIM : WARM, fontWeight: genreActive ? 700 : 500,
                         }}>
-                        <span style={{ width: 5, height: 5, borderRadius: 999, background: genreActive ? GOLD_DIM : 'transparent', flexShrink: 0 }} />
+                        <SectorIcon kind={ATTENTION_SUB_ICONS[g] || 'globe'} color={genreActive ? GOLD_DIM : WARM} />
                         {g}
                       </button>
                     );
@@ -1305,11 +1321,11 @@ export default function LandingPage() {
           </div>
 
           <TwoCardSection
-            sector={{ id: 'attention', icon: 'globe', label: 'Global Attention' }}
-            demo={GLOBAL_ATTENTION_DEMO}
+            sector={{ id: 'attention', icon: attentionSub === 'Sports' ? 'trophy' : 'globe', label: 'Global Attention' }}
+            demo={attentionSub === 'Sports' ? SPORTS_DEMO : GLOBAL_ATTENTION_DEMO}
             max={4}
-            title="Trending Attention & News"
-            pickReal={globalAttentionMarkets}
+            title={attentionSub === 'Sports' ? 'Sports' : 'Trending Attention & News'}
+            pickReal={attentionSub === 'Sports' ? sportsMarkets : globalAttentionMarkets}
             markets={markets}
             onOpen={(id) => navigate(`/markets/${id}`)}
             onViewAll={() => navigate('/explore?filter=attention')}
