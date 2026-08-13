@@ -920,7 +920,6 @@ export default function MarketDetailPage() {
             );
           })()}
 
-          {market && <CommentsSection marketId={market.id} />}
         </div>
 
         {/* Right Column: Outcomes — scrolls independently */}
@@ -1115,7 +1114,7 @@ export default function MarketDetailPage() {
           </div>)}
           {(() => {
             if (isBinaryMkt) return null;
-            const renderOutcome = (o, displayTitleOverride = null) => {
+            const renderOutcome = (o, displayTitleOverride = null, i = 0) => {
               const displayTitle = displayTitleOverride || o.title;
               const isYes = displayTitle?.toLowerCase() === 'yes' || o.title?.toLowerCase().endsWith('(yes)');
               const isNo = displayTitle?.toLowerCase() === 'no' || o.title?.toLowerCase().endsWith('(no)');
@@ -1160,12 +1159,16 @@ export default function MarketDetailPage() {
 
               return (
                 <div key={o.id}>
-                  {/* Outcome row – Polymarket-style */}
+                  {/* Outcome row — flat, hairline-separated, like Kalshi. Each
+                      row used to be a rounded bordered card on its own fill,
+                      which stacked into a column of chunky boxes. */}
                   <div
-                    className={`flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border transition-all cursor-pointer
-                      ${isResolvedOutcome
-                        ? isWinner ? 'border-green-500/40 bg-green-500/5' : 'border-slate-800 opacity-60'
-                        : 'border-slate-700/60 hover:border-slate-600 bg-slate-900/40 hover:bg-slate-800/40'}`}
+                    className={`flex items-center justify-between gap-3 px-2 py-3.5 transition-colors cursor-pointer
+                      ${isResolvedOutcome && !isWinner ? 'opacity-60' : ''}`}
+                    style={{
+                      borderTop: i === 0 ? 'none' : `1px solid ${PANEL_LINE}`,
+                      background: isSelected ? 'rgba(107,254,143,.05)' : 'transparent',
+                    }}
                     onClick={() => market.status === 'active' && !isResolvedOutcome && setSelectedOutcome(isSelected ? null : o)}
                   >
                     {/* Left: title + badges */}
@@ -1431,7 +1434,7 @@ export default function MarketDetailPage() {
                 return null;
               })();
               return (
-                <div key={yes.id} className="rounded-xl border border-slate-700/60 bg-slate-900/40 overflow-hidden">
+                <div key={yes.id} style={{ borderTop: `1px solid ${PANEL_LINE}` }}>
                   <div className="flex items-center gap-3 px-4 py-3.5">
                     {imageUrl && (
                       <img src={imageUrl} alt={rowTitle} className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-700/50 bg-slate-900" />
@@ -1472,7 +1475,7 @@ export default function MarketDetailPage() {
               // Multi-binary: each question has a _yes / _no pair
               if (isMultiMultiple && hasYesNoPairs) {
                 return (
-                  <div className="space-y-2">
+                  <div>
                     {outcomesToRender.filter(o => o.id.endsWith('_yes')).filter(yes => {
                       const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
                       return baseTitle.toLowerCase().includes(searchQuery.toLowerCase());
@@ -1489,11 +1492,11 @@ export default function MarketDetailPage() {
               const yesO = outcomesToRender.find(o => o.title && o.title.toLowerCase() === 'yes');
               const noO = outcomesToRender.find(o => o.title && o.title.toLowerCase() === 'no');
               if (yesO && noO && outcomesToRender.length === 2) {
-                return <div className="space-y-2">{renderPairRow(yesO, noO, market.title)}</div>;
+                return <div>{renderPairRow(yesO, noO, market.title)}</div>;
               }
               // Multi-outcome without pairs
               const filteredOutcomes = outcomesToRender.filter(o => o.title.toLowerCase().includes(searchQuery.toLowerCase()));
-              return <div className="space-y-2">{filteredOutcomes.map(o => renderOutcome(o))}</div>;
+              return <div>{filteredOutcomes.map((o, i) => renderOutcome(o, null, i))}</div>;
             };
 
             const unresolvedOutcomesList = outcomes.filter(o => !isOutcomeResolved(o.id));
@@ -1516,6 +1519,14 @@ export default function MarketDetailPage() {
               </div>
             );
           })()}
+          </div>
+        )}
+
+        {/* Comments sit below the outcomes, as on Kalshi — reading the market
+            and placing a trade come first, discussion after. */}
+        {market && (
+          <div className="mt-6">
+            <CommentsSection marketId={market.id} />
           </div>
         )}
       </div>
