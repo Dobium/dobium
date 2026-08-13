@@ -3,6 +3,8 @@
 // sector dashboard (LandingPage) and Explore's "All Categories" dropdown so
 // both present the exact same seven sectors and agree on what belongs where.
 export const SECTORS = [
+  { id: 'tech', label: 'Tech & AI',
+    re: /\bai\b|\bgpt\b|\bllm\b|openai|anthropic|\bclaude\b|startup|venture capital|\bvc\b|\bipo\b|spacex|nvidia|silicon valley|y combinator|artificial intelligence|kalshi|polymarket|prediction market/i },
   { id: 'music', label: 'Music',
     re: /kendrick|drake|sza|beyonc|taylor swift|billboard|album|tour(?!nament)|stream(ing)?|spotify|chart|single|mixtape|rapper|grammy nom/i },
   { id: 'movies', label: 'Movies & TV',
@@ -17,11 +19,19 @@ export const SECTORS = [
     re: /netflix|hulu|hbo max|disney\+|paramount\+|peacock|apple tv|prime video|renewal|viewership|weekly views/i },
   { id: 'trends', label: 'Internet Trends',
     re: /tiktok|viral|meme|trending on|twitter|\bx\.com\b|instagram|influencer|challenge/i },
-  { id: 'tech', label: 'Tech Startups & AI',
-    re: /\bai\b|\bgpt\b|\bllm\b|openai|anthropic|\bclaude\b|startup|venture capital|\bvc\b|\bipo\b|spacex|nvidia|silicon valley|y combinator|artificial intelligence/i },
 ];
 
+// Display order (the SECTORS array) and match order are deliberately separate.
+// Tech & AI now leads the nav, but its pattern is broad — "streaming", "ipo"
+// and "ai" appear in plenty of music and gaming titles — so matching it first
+// would silently reclassify existing markets. Matching keeps the original
+// narrow-to-broad precedence with tech last.
+const MATCH_ORDER = ['music', 'movies', 'celebrities', 'festivals', 'gaming', 'streaming', 'trends', 'tech'];
+
 export function classifySector(title) {
-  for (const s of SECTORS) if (s.re.test(title || '')) return s.id;
+  for (const id of MATCH_ORDER) {
+    const s = SECTORS.find((x) => x.id === id);
+    if (s && s.re.test(title || '')) return s.id;
+  }
   return null;
 }

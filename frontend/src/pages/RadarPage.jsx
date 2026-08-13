@@ -331,12 +331,12 @@ function ExchangeTicker({ markets }) {
 // ── Sector picker ──────────────────────────────────────────────────────────
 const SECTOR_TILES = [
   { id: 'GLOBAL ATTENTION', icon: 'globe' },
+  { id: 'TECH & AI', icon: 'chip' },
   { id: 'MUSIC', icon: 'note' },
   { id: 'MOVIES & TV', icon: 'film' },
   { id: 'FESTIVALS', icon: 'tent' },
   { id: 'GAMING', icon: 'pad' },
   { id: 'CREATORS & STREAMERS', icon: 'creator' },
-  { id: 'TECH STARTUPS & AI', icon: 'chip' },
   { id: 'FRONTIER', icon: 'rocket' },
   { id: 'STREAMING', icon: 'play' },
   { id: 'INTERNET TRENDS', icon: 'trend' },

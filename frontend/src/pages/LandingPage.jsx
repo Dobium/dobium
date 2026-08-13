@@ -1419,7 +1419,7 @@ export default function LandingPage() {
                 sector={SECTORS.find((s) => s.id === 'tech')}
                 demo={TECH_SUB_DEMO[techSub] || AI_BENCHMARKS_DEMO}
                 max={4}
-                title={`Tech Startups & AI · ${techSub}`}
+                title={`Tech & AI · ${techSub}`}
                 pickReal={(m) => techSubMarkets(m, techSub)}
                 markets={markets}
                 onOpen={(id) => navigate(`/markets/${id}`)}
