@@ -7,6 +7,8 @@ export const SECTORS = [
     re: /\bai\b|\bgpt\b|\bllm\b|openai|anthropic|\bclaude\b|startup|venture capital|\bvc\b|\bipo\b|spacex|nvidia|silicon valley|y combinator|artificial intelligence|kalshi|polymarket|prediction market/i },
   { id: 'music', label: 'Music',
     re: /kendrick|drake|sza|beyonc|taylor swift|billboard|album|tour(?!nament)|stream(ing)?|spotify|chart|single|mixtape|rapper|grammy nom/i },
+  { id: 'trends', label: 'Internet Trends',
+    re: /tiktok|viral|meme|trending on|twitter|\bx\.com\b|instagram|influencer|challenge/i },
   { id: 'movies', label: 'Movies & TV',
     re: /movie|film|box office|netflix|hbo|disney|marvel|oscar|premiere|sequel|\bseries\b|renewal|episode|season \d|trailer|rotten tomatoes/i },
   { id: 'celebrities', label: 'Creators & Streamers',
@@ -17,8 +19,6 @@ export const SECTORS = [
     re: /\bgame\b|\bgta\b|esports|twitch|streamer|valorant|fortnite|minecraft|playstation|xbox|nintendo|steam|worlds \d|league of legends|call of duty|overwatch/i },
   { id: 'streaming', label: 'Streaming',
     re: /netflix|hulu|hbo max|disney\+|paramount\+|peacock|apple tv|prime video|renewal|viewership|weekly views/i },
-  { id: 'trends', label: 'Internet Trends',
-    re: /tiktok|viral|meme|trending on|twitter|\bx\.com\b|instagram|influencer|challenge/i },
 ];
 
 // Display order (the SECTORS array) and match order are deliberately separate.
