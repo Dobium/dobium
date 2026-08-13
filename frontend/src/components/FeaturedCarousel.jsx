@@ -178,16 +178,16 @@ export default function FeaturedCarousel({ markets }) {
       onClick={() => navigate(`/markets/${market.id}`)}
       style={{
         margin: '0 auto', textAlign: 'left', cursor: 'pointer',
-        background: '#001F43', border: '1px solid #1C304F', borderRadius: 10,
+        background: '#0A2342', border: '1px solid #0A2342', borderRadius: 10,
         padding: '16px 20px 18px',
       }}
     >
       {/* Header: tags left, pagination right */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 11 }}>
-        <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 11.5, color: '#FFFFFF', background: '#2C5CE0', borderRadius: 5, padding: '4px 9px' }}>
+        <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 10, color: '#FFFFFF', background: '#2563EB', borderRadius: 5, padding: '4px 9px' }}>
           Trending Attention &amp; News
         </span>
-        <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', color: '#2A1F00', background: '#FFDF9B', borderRadius: 5, padding: '4px 9px' }}>
+        <span style={{ fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.06em', color: '#2A1F00', background: '#FFDF9B', borderRadius: 5, padding: '4px 9px' }}>
           SECTOR: {bucketLabel(market.category).toUpperCase()}
         </span>
 
@@ -200,12 +200,12 @@ export default function FeaturedCarousel({ markets }) {
         )}
       </div>
 
-      <h3 style={{ color: '#FFFFFF', fontFamily: 'var(--wordmark)', fontSize: 'clamp(18px, 2vw, 24px)', fontWeight: 800, margin: '0 0 9px', lineHeight: 1.2 }}>
+      <h3 style={{ color: '#FFFFFF', fontFamily: 'var(--wordmark)', fontSize: 'clamp(15px, 1.55vw, 20px)', fontWeight: 800, margin: '0 0 8px', lineHeight: 1.2 }}>
         {market.title}
       </h3>
 
       {/* Status line */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 13, fontFamily: 'var(--mono)', fontSize: 11 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12, fontFamily: 'var(--mono)', fontSize: 10 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: '#FF8A8A' }}>
           <span style={{ width: 7, height: 7, borderRadius: 999, background: '#FF8A8A' }} />LIVE
         </span>
@@ -213,9 +213,9 @@ export default function FeaturedCarousel({ markets }) {
         <span style={{ color: '#C3CBDE' }}>${(market.total_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} vol</span>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 22 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18 }}>
         {/* Left: outcome rows + news blurb */}
-        <div style={{ flex: '1 1 280px', minWidth: 230, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: '1 1 200px', minWidth: 190, display: 'flex', flexDirection: 'column' }}>
           {/* Column headers, per the Kalshi reference — the multiplier and
               percentage columns were previously unlabelled. */}
           <div style={{
@@ -242,20 +242,20 @@ export default function FeaturedCarousel({ markets }) {
                   fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 11, color: 'rgba(255,255,255,.85)',
                 }}>{(o.title || '?').trim().charAt(0).toUpperCase()}</span>
 
-                <span style={{ flex: 1, minWidth: 0, color: '#FFFFFF', fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 13.5, lineHeight: 1.3 }}>
+                <span style={{ flex: 1, minWidth: 0, color: '#FFFFFF', fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 11.5, lineHeight: 1.3 }}>
                   {o.title}
                 </span>
 
                 {mult && (
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#8E94AF', flexShrink: 0 }}>{mult}x</span>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#8E94AF', flexShrink: 0 }}>{mult}x</span>
                 )}
 
                 <span style={{
-                  flexShrink: 0, minWidth: 54, textAlign: 'center',
-                  fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 12.5,
+                  flexShrink: 0, minWidth: 48, textAlign: 'center',
+                  fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 11,
                   color: lead ? '#4BE176' : '#DCE1FF',
                   border: `1px solid ${lead ? 'rgba(75,225,118,.55)' : '#2A3A57'}`,
-                  borderRadius: 999, padding: '5px 11px',
+                  borderRadius: 999, padding: '4px 9px',
                 }}>{Math.round(p)}%</span>
               </div>
             );
@@ -268,7 +268,7 @@ export default function FeaturedCarousel({ markets }) {
           )}
 
           {blurb && (
-            <p style={{ margin: '14px 0 0', paddingTop: 12, borderTop: '1px solid rgba(45,52,76,.6)', fontSize: 12, lineHeight: 1.6, color: '#8E94AF' }}>
+            <p style={{ margin: '14px 0 0', paddingTop: 12, borderTop: '1px solid rgba(45,52,76,.6)', fontSize: 10.5, lineHeight: 1.6, color: '#8E94AF' }}>
               <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 13.5, marginRight: 7, color: '#FFFFFF' }}>{blurbLabel === 'NEWS' ? 'News' : 'About'}</span>
               · {blurb.length > 190 ? `${blurb.slice(0, 190)}…` : blurb}
             </p>
@@ -276,10 +276,10 @@ export default function FeaturedCarousel({ markets }) {
         </div>
 
         {/* Right: legend + chart */}
-        <div style={{ flex: '1 1 290px', minWidth: 240 }}>
+        <div style={{ flex: '1.5 1 260px', minWidth: 215 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', marginBottom: 10 }}>
             {chartOutcomes.map((o, i) => (
-              <span key={o.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--wordmark)', fontSize: 11.5, color: '#DCE1FF' }}>
+              <span key={o.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--wordmark)', fontSize: 10, color: '#DCE1FF' }}>
                 <span style={{ width: 8, height: 8, borderRadius: 999, background: LINE_COLORS[i % LINE_COLORS.length], display: 'inline-block' }} />
                 <span style={{ maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.title}</span>
                 <span style={{ color: LINE_COLORS[i % LINE_COLORS.length], fontWeight: 800 }}>{(o.probability || 0).toFixed(1)}%</span>

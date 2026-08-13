@@ -48,7 +48,7 @@ export default function FeaturedRail({ markets = [] }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
       {showPromo && (
         <div style={{
-          position: 'relative', background: '#0C203A', border: '1px solid #22314A',
+          position: 'relative', background: '#0A2342', border: '1px solid #0A2342',
           borderRadius: 8, padding: '26px 24px 24px', textAlign: 'center',
         }}>
           <button
@@ -85,7 +85,7 @@ export default function FeaturedRail({ markets = [] }) {
         </div>
       )}
 
-      <div style={{ background: '#0C203A', border: '1px solid #22314A', borderRadius: 8, padding: '20px 22px 18px' }}>
+      <div style={{ background: '#0A2342', border: '1px solid #0A2342', borderRadius: 8, padding: '20px 22px 18px' }}>
         <button
           onClick={() => navigate('/explore?filter=attention')}
           style={{
