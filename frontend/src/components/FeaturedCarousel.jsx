@@ -229,6 +229,7 @@ export default function FeaturedCarousel({ markets }) {
             <span style={{ flexShrink: 0, minWidth: 54, textAlign: 'center' }}>Odds</span>
           </div>
 
+          <div style={{ minHeight: 132 }}>
           {rows.map((o, i) => {
             const p = Number(o.probability) || 0;
             const mult = p > 0 ? (100 / p).toFixed(2) : null;
@@ -261,6 +262,7 @@ export default function FeaturedCarousel({ markets }) {
             );
           })}
 
+          </div>
           {hidden > 0 && (
             <div style={{ textAlign: 'right', marginTop: 4 }}>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: '#8E94AF' }}>{hidden} more</span>
@@ -268,7 +270,7 @@ export default function FeaturedCarousel({ markets }) {
           )}
 
           {blurb && (
-            <p style={{ margin: '14px 0 0', paddingTop: 12, borderTop: '1px solid rgba(45,52,76,.6)', fontSize: 11.5, lineHeight: 1.65, color: '#8E94AF' }}>
+            <p style={{ margin: '14px 0 0', paddingTop: 12, borderTop: '1px solid rgba(45,52,76,.6)', fontSize: 11.5, lineHeight: 1.65, color: '#8E94AF', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 56 }}>
               <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 13.5, marginRight: 7, color: '#FFFFFF' }}>{blurbLabel === 'NEWS' ? 'News' : 'About'}</span>
               · {blurb.length > 190 ? `${blurb.slice(0, 190)}…` : blurb}
             </p>

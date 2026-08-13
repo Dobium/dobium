@@ -12,9 +12,12 @@ import MarketTicker from '../components/MarketTicker';
 
 // ── Terminal-mock palette (sampled from the reference screenshots) ──────────
 const PAGE_BG = '#00132D';      // page field
-const PANEL_BG = '#001F43';     // card surfaces
-const PANEL_LINE = '#1C304F';   // card borders / dividers
-const INSET_BG = '#00132D';     // boxes inside cards (inputs, notices, tabs)
+// Cards sit at the page colour so the market reads as embedded in the site
+// rather than as a lighter slab floating on it — the treatment Polymarket and
+// Kalshi both use. Separation comes from the border, not a fill change.
+const PANEL_BG = '#00132D';     // card surfaces — matches the page
+const PANEL_LINE = '#13294A';   // card borders / dividers
+const INSET_BG = '#001F43';     // boxes inside cards read as slightly raised
 const INSET_LINE = '#2A3F63';   // inset borders
 const INPUT_LINE = '#394666';   // input borders
 const BAND_BG = '#000E24';      // nav/ticker/footer band
