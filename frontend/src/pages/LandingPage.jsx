@@ -436,21 +436,37 @@ function techSubMarkets(markets, sub) {
 // keyword classifier it just pulls the platform's top markets by volume
 // regardless of sector. Kept out of the shared sectors.js taxonomy for that
 // reason (Explore's dropdown expects mutually-exclusive categories).
-const ATTENTION_SUBS = ['Trending Attention & News', 'Sports'];
-const ATTENTION_SUB_ICONS = { 'Trending Attention & News': 'globe', 'Sports': 'trophy' };
+const ATTENTION_SUBS = ['Trending Attention & News', 'Sports', 'College Football'];
+const ATTENTION_SUB_ICONS = { 'Trending Attention & News': 'globe', 'Sports': 'trophy', 'College Football': 'trophy' };
+// College Football nests one level under Sports; the sidebar indents by depth.
+const ATTENTION_SUB_DEPTH = { 'College Football': 1 };
 
 // Sports lives here rather than as its own sector: individual events are
 // short-lived, so a permanent nav slot would sit empty between them, while
 // this surface is already the "what's happening now" view. Title heuristic,
 // same caveat as every other sub-filter — no sport metadata per market yet.
 const SPORTS_RE = /world cup|\bufc\b|\bnfl\b|\bnba\b|\bmlb\b|\bnhl\b|super bowl|premier league|champions league|olympic|\bfifa\b|march madness|college football|playoff|grand slam|wimbledon|\bf1\b|formula 1|boxing|heavyweight|\bgoal\b|\bmatch\b|semifinal|quarterfinal/i;
+const CFB_RE = /college football|\bcfb\b|\bncaa\b|heisman|bowl game|rose bowl|sugar bowl|orange bowl|cotton bowl|\bsec\b|big ten|big 12|\bacc\b|pac.?12|national championship/i;
+const CFB_DEMO = [
+  { title: 'Who wins the College Football Playoff?', vol: '$0', yes: 50, no: 50, tag: 'COLLEGE FOOTBALL' },
+  { title: 'Will the Heisman favourite win outright?', vol: '$0', yes: 50, no: 50, tag: 'COLLEGE FOOTBALL' },
+];
+function collegeFootballMarkets(markets) {
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && CFB_RE.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
+
 const SPORTS_DEMO = [
   { title: 'World Cup Winner?', vol: '$0', yes: 50, no: 50, tag: 'SPORTS' },
   { title: 'Will the underdog cover the spread on Sunday?', vol: '$0', yes: 50, no: 50, tag: 'SPORTS' },
 ];
+// Sports is the parent of College Football, so it must match everything the
+// child does — otherwise a Heisman market would show under College Football
+// but be missing from Sports above it.
 function sportsMarkets(markets) {
   return [...(markets || [])]
-    .filter((m) => m.status === 'active' && SPORTS_RE.test(m.title || ''))
+    .filter((m) => m.status === 'active' && (SPORTS_RE.test(m.title || '') || CFB_RE.test(m.title || '')))
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
 const GLOBAL_ATTENTION_DEMO = [
@@ -1190,7 +1206,7 @@ export default function LandingPage() {
                         style={{
                           display: 'flex', alignItems: 'center', gap: 8,
                           background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
-                          padding: '7px 11px 7px 38px', fontSize: 12.5,
+                          padding: `7px 11px 7px ${38 + (ATTENTION_SUB_DEPTH[g] || 0) * 16}px`, fontSize: 12.5,
                           color: genreActive ? GOLD_DIM : WARM, fontWeight: genreActive ? 700 : 500,
                         }}>
                         <SectorIcon kind={ATTENTION_SUB_ICONS[g] || 'globe'} color={genreActive ? GOLD_DIM : WARM} />
@@ -1321,11 +1337,11 @@ export default function LandingPage() {
           </div>
 
           <TwoCardSection
-            sector={{ id: 'attention', icon: attentionSub === 'Sports' ? 'trophy' : 'globe', label: 'Global Attention' }}
-            demo={attentionSub === 'Sports' ? SPORTS_DEMO : GLOBAL_ATTENTION_DEMO}
+            sector={{ id: 'attention', icon: ATTENTION_SUB_ICONS[attentionSub] || 'globe', label: 'Global Attention' }}
+            demo={attentionSub === 'College Football' ? CFB_DEMO : attentionSub === 'Sports' ? SPORTS_DEMO : GLOBAL_ATTENTION_DEMO}
             max={4}
-            title={attentionSub === 'Sports' ? 'Sports' : 'Trending Attention & News'}
-            pickReal={attentionSub === 'Sports' ? sportsMarkets : globalAttentionMarkets}
+            title={attentionSub === 'Trending Attention & News' ? 'Trending Attention & News' : attentionSub}
+            pickReal={attentionSub === 'College Football' ? collegeFootballMarkets : attentionSub === 'Sports' ? sportsMarkets : globalAttentionMarkets}
             markets={markets}
             onOpen={(id) => navigate(`/markets/${id}`)}
             onViewAll={() => navigate('/explore?filter=attention')}
