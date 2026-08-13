@@ -1310,7 +1310,76 @@ export default function LandingPage() {
             onViewAll={() => navigate('/explore?filter=attention')}
             forwardRef={refs.attention}
           />
-          <MusicSection markets={markets} genre={musicGenre} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore?filter=music')} forwardRef={refs.music} />
+          <div ref={refs.tech} style={{ scrollMarginTop: 90 }}>
+            {techSub === 'All Tech' ? (
+              <>
+                <TwoCardSection
+                  sector={{ id: 'tech', icon: 'hardware', label: 'AI Model Benchmarks' }}
+                  demo={AI_BENCHMARKS_DEMO}
+                  max={2}
+                  pickReal={aiBenchmarkMarkets}
+                  markets={markets}
+                  onOpen={(id) => navigate(`/markets/${id}`)}
+                  onViewAll={() => navigate('/explore?filter=tech')}
+                />
+                <TwoCardSection
+                  sector={{ id: 'tech', icon: 'rocket', label: 'Startup Funding & M&A' }}
+                  demo={STARTUP_FUNDING_DEMO}
+                  max={2}
+                  pickReal={startupFundingMarkets}
+                  markets={markets}
+                  onOpen={(id) => navigate(`/markets/${id}`)}
+                  onViewAll={() => navigate('/explore?filter=tech')}
+                />
+              </>
+            ) : (
+              <TwoCardSection
+                sector={SECTORS.find((s) => s.id === 'tech')}
+                demo={TECH_SUB_DEMO[techSub] || AI_BENCHMARKS_DEMO}
+                max={4}
+                title={`Tech & AI · ${techSub}`}
+                pickReal={(m) => techSubMarkets(m, techSub)}
+                markets={markets}
+                onOpen={(id) => navigate(`/markets/${id}`)}
+                onViewAll={() => navigate('/explore?filter=tech')}
+              />
+            )}
+            <MusicSection markets={markets} genre={musicGenre} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore?filter=music')} forwardRef={refs.music} />
+          <div ref={refs.trends} style={{ scrollMarginTop: 90 }}>
+            {trendsSub === 'Google Trends' ? (
+              <>
+                <TwoCardSection
+                  sector={{ id: 'trends', icon: 'trend', label: 'Viral Challenges' }}
+                  demo={VIRAL_CHALLENGES_DEMO}
+                  max={2}
+                  pickReal={viralChallengeMarkets}
+                  markets={markets}
+                  onOpen={(id) => navigate(`/markets/${id}`)}
+                  onViewAll={() => navigate('/explore?filter=trends')}
+                />
+                <TwoCardSection
+                  sector={{ id: 'trends', icon: 'bars', label: 'Creator Milestones' }}
+                  demo={CREATOR_MILESTONES_DEMO}
+                  max={2}
+                  pickReal={creatorMilestoneMarkets}
+                  markets={markets}
+                  onOpen={(id) => navigate(`/markets/${id}`)}
+                  onViewAll={() => navigate('/explore?filter=trends')}
+                />
+              </>
+            ) : (
+              <TwoCardSection
+                sector={SECTORS.find((s) => s.id === 'trends')}
+                demo={TRENDS_PLATFORM_DEMO[trendsSub] || VIRAL_CHALLENGES_DEMO}
+                max={4}
+                title={`Internet Trends · ${trendsSub}`}
+                pickReal={(m) => trendsPlatformMarkets(m, trendsSub)}
+                markets={markets}
+                onOpen={(id) => navigate(`/markets/${id}`)}
+                onViewAll={() => navigate('/explore?filter=trends')}
+              />
+            )}
+          </div>
           <MoviesSection markets={markets} platform={moviesPlatform} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore?filter=movies')} forwardRef={refs.movies} />
 
           <TwoCardSection
@@ -1357,76 +1426,7 @@ export default function LandingPage() {
             onViewAll={() => navigate('/explore?filter=streaming')}
             forwardRef={refs.streaming}
           />
-          <div ref={refs.trends} style={{ scrollMarginTop: 90 }}>
-            {trendsSub === 'Google Trends' ? (
-              <>
-                <TwoCardSection
-                  sector={{ id: 'trends', icon: 'trend', label: 'Viral Challenges' }}
-                  demo={VIRAL_CHALLENGES_DEMO}
-                  max={2}
-                  pickReal={viralChallengeMarkets}
-                  markets={markets}
-                  onOpen={(id) => navigate(`/markets/${id}`)}
-                  onViewAll={() => navigate('/explore?filter=trends')}
-                />
-                <TwoCardSection
-                  sector={{ id: 'trends', icon: 'bars', label: 'Creator Milestones' }}
-                  demo={CREATOR_MILESTONES_DEMO}
-                  max={2}
-                  pickReal={creatorMilestoneMarkets}
-                  markets={markets}
-                  onOpen={(id) => navigate(`/markets/${id}`)}
-                  onViewAll={() => navigate('/explore?filter=trends')}
-                />
-              </>
-            ) : (
-              <TwoCardSection
-                sector={SECTORS.find((s) => s.id === 'trends')}
-                demo={TRENDS_PLATFORM_DEMO[trendsSub] || VIRAL_CHALLENGES_DEMO}
-                max={4}
-                title={`Internet Trends · ${trendsSub}`}
-                pickReal={(m) => trendsPlatformMarkets(m, trendsSub)}
-                markets={markets}
-                onOpen={(id) => navigate(`/markets/${id}`)}
-                onViewAll={() => navigate('/explore?filter=trends')}
-              />
-            )}
-          </div>
-          <div ref={refs.tech} style={{ scrollMarginTop: 90 }}>
-            {techSub === 'All Tech' ? (
-              <>
-                <TwoCardSection
-                  sector={{ id: 'tech', icon: 'hardware', label: 'AI Model Benchmarks' }}
-                  demo={AI_BENCHMARKS_DEMO}
-                  max={2}
-                  pickReal={aiBenchmarkMarkets}
-                  markets={markets}
-                  onOpen={(id) => navigate(`/markets/${id}`)}
-                  onViewAll={() => navigate('/explore?filter=tech')}
-                />
-                <TwoCardSection
-                  sector={{ id: 'tech', icon: 'rocket', label: 'Startup Funding & M&A' }}
-                  demo={STARTUP_FUNDING_DEMO}
-                  max={2}
-                  pickReal={startupFundingMarkets}
-                  markets={markets}
-                  onOpen={(id) => navigate(`/markets/${id}`)}
-                  onViewAll={() => navigate('/explore?filter=tech')}
-                />
-              </>
-            ) : (
-              <TwoCardSection
-                sector={SECTORS.find((s) => s.id === 'tech')}
-                demo={TECH_SUB_DEMO[techSub] || AI_BENCHMARKS_DEMO}
-                max={4}
-                title={`Tech & AI · ${techSub}`}
-                pickReal={(m) => techSubMarkets(m, techSub)}
-                markets={markets}
-                onOpen={(id) => navigate(`/markets/${id}`)}
-                onViewAll={() => navigate('/explore?filter=tech')}
-              />
-            )}
-          </div>
+        </div>
         </main>
       </div>
       </div>
