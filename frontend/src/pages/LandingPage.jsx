@@ -417,7 +417,7 @@ const TECH_SUB_RE = {
   'Trending AI Companies': /openai|anthropic|\bxai\b|mistral|cohere|perplexity|deepmind|stability ai/i,
   'Prediction Markets': /kalshi|polymarket|manifold|prediction market|event contract|\bcftc\b|designated contract market/i,
   'AI Models': /\bgpt\b|\bllm\b|\bclaude\b|gemini|llama|model release|benchmark|leaderboard/i,
-  'Big Tech': /\bapple\b|\bgoogle\b|\bmeta\b|\bmicrosoft\b|\bamazon\b|\bnvidia\b|big tech/i,
+  'Big Tech': /\bapple\b|\bgoogle\b|\bmeta\b|\bmicrosoft\b|\bamazon\b|\bnvidia\b|alphabet|\btesla\b|waymo|\buber\b|big tech/i,
   'Startup Raises and Funding': /\braise\b|funding round|series [a-e]\b|seed round|valuation/i,
   'Open Source AI & Github Repos': /open.?source|github|\bllama\b|hugging ?face|\brepo\b/i,
   'Startup Acquisitions': /acquir|acquisition|\bm&a\b|merger|buyout|bought by/i,

@@ -4,7 +4,7 @@
 // both present the exact same seven sectors and agree on what belongs where.
 export const SECTORS = [
   { id: 'tech', label: 'Tech & AI',
-    re: /\bai\b|\bgpt\b|\bllm\b|openai|anthropic|\bclaude\b|startup|venture capital|\bvc\b|\bipo\b|spacex|nvidia|silicon valley|y combinator|artificial intelligence|kalshi|polymarket|manifold|prediction market|event contract/i },
+    re: /\bai\b|\bgpt\b|\bllm\b|openai|anthropic|\bclaude\b|startup|venture capital|\bvc\b|\bipo\b|spacex|nvidia|silicon valley|y combinator|artificial intelligence|kalshi|polymarket|manifold|prediction market|event contract|tesla|waymo|robotaxi|\buber\b|cruise|autonomous|self.?driving/i },
   { id: 'music', label: 'Music',
     re: /kendrick|drake|sza|beyonc|taylor swift|billboard|album|tour(?!nament)|stream(ing)?|spotify|chart|single|mixtape|rapper|grammy nom/i },
   { id: 'trends', label: 'Internet Trends',
