@@ -110,12 +110,25 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds, hideLege
     };
   });
 
-  const allValues = histories.flatMap(h => h.data);
-  // Kalshi-style fixed 0–100% scale: honest proportions, no auto-zoomed
-  // flat lines dominating an empty box
-  const minValue = 0;
-  const maxValue = 100;
-  const range = 100;
+  const allValues = histories.flatMap(h => h.data).filter(v => Number.isFinite(v));
+  // Scale to the data with headroom, as the reference does — its axis runs
+  // 20-60% because that is where its lines sit. A fixed 0-100 box pins a 99%
+  // market to the ceiling above a mostly empty chart. Floors at a 20-point
+  // span so a genuinely flat market doesn't get magnified into noise.
+  const dataMin = allValues.length ? Math.min(...allValues) : 0;
+  const dataMax = allValues.length ? Math.max(...allValues) : 100;
+  const spanPad = Math.max(4, (dataMax - dataMin) * 0.18);
+  let minValue = Math.max(0, Math.floor((dataMin - spanPad) / 5) * 5);
+  let maxValue = Math.min(100, Math.ceil((dataMax + spanPad) / 5) * 5);
+  if (maxValue - minValue < 20) {
+    const mid = (maxValue + minValue) / 2;
+    minValue = Math.max(0, Math.round(mid - 10));
+    maxValue = Math.min(100, minValue + 20);
+    // Re-widen downward when the top clamped at 100, so a 99% market still
+    // gets a full 20-point window instead of a squashed 15.
+    if (maxValue - minValue < 20) minValue = Math.max(0, maxValue - 20);
+  }
+  const range = maxValue - minValue || 100;
 
   const getY = (value) => padding + ((maxValue - value) / range) * (height - 2 * padding);
   const getX = (index, total) => padding + (index / (total - 1)) * (width - 2 * padding - rightGutter);
@@ -227,7 +240,6 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds, hideLege
 
           return (
             <g key={h.id}>
-              {isBinaryChart && <path d={areaPath} fill={`url(#gradient-${idx})`} />}
               <path d={linePath} fill="none" stroke={h.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="3.5" fill={h.color} />
               {hoverIdx !== null && (
