@@ -437,6 +437,20 @@ function techSubMarkets(markets, sub) {
 // regardless of sector. Kept out of the shared sectors.js taxonomy for that
 // reason (Explore's dropdown expects mutually-exclusive categories).
 const ATTENTION_SUBS = ['Trending Attention & News'];
+const AWARDS_SUBS = ['All Awards', 'The Oscars', 'The Grammys'];
+const AWARDS_SUB_ICONS = { 'All Awards': 'trophy', 'The Oscars': 'film', 'The Grammys': 'note' };
+const AWARDS_SUB_RE = {
+  'The Oscars': /oscar|academy award|best picture|best actor|best actress|best director/i,
+  'The Grammys': /grammy|album of the year|record of the year|song of the year/i,
+};
+function awardsSubMarkets(markets, sub) {
+  const re = AWARDS_SUB_RE[sub];
+  if (!re) return null;
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && re.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
+
 const AWARDS_DEMO = [
   { title: 'Best Picture winner at the next Academy Awards?', vol: '$0', yes: 50, no: 50, tag: 'AWARDS' },
   { title: 'Album of the Year at the next Grammys?', vol: '$0', yes: 50, no: 50, tag: 'AWARDS' },
@@ -876,6 +890,8 @@ export default function LandingPage() {
   const [gamingSub, setGamingSub] = useState('All Gaming');
   const [streamingOpen, setStreamingOpen] = useState(false);
   const [streamingSub, setStreamingSub] = useState('All Streaming');
+  const [awardsOpen, setAwardsOpen] = useState(false);
+  const [awardsSub, setAwardsSub] = useState('All Awards');
   const [trendsOpen, setTrendsOpen] = useState(false);
   const [trendsSub, setTrendsSub] = useState('Google Trends');
   const [techOpen, setTechOpen] = useState(false);
@@ -1079,6 +1095,32 @@ export default function LandingPage() {
     refs.streaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const toggleAwards = () => {
+    if (activeSector === 'awards') {
+      setAwardsOpen((v) => !v);
+    } else {
+      setActiveSector('awards');
+      setAwardsOpen(true);
+      setMusicOpen(false);
+      setMoviesOpen(false);
+      setCreatorsOpen(false);
+      setFestivalsOpen(false);
+      setGamingOpen(false);
+      setStreamingOpen(false);
+      setTrendsOpen(false);
+      setTechOpen(false);
+      setAttentionOpen(false);
+    }
+    refs.awards?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const selectAwardsSub = (v) => {
+    setAwardsSub(v);
+    setActiveSector('awards');
+    setAwardsOpen(true);
+    refs.awards?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const toggleTrends = () => {
     if (activeSector === 'trends') {
       setTrendsOpen((v) => !v);
@@ -1199,13 +1241,14 @@ export default function LandingPage() {
               const isStreaming = s.id === 'streaming';
               const isTrends = s.id === 'trends';
               const isTech = s.id === 'tech';
-              const hasDropdown = isMusic || isMovies || isCreators || isFestivals || isGaming || isStreaming || isTrends || isTech;
-              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCreators && creatorsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen) || (isTrends && trendsOpen) || (isTech && techOpen));
-              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCreators ? toggleCreators : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : isTrends ? toggleTrends : isTech ? toggleTech : () => goTo(s.id);
-              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCreators ? CREATOR_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : isTrends ? INTERNET_TRENDS_SUBS : isTech ? TECH_SUBS : null;
-              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCreators ? creatorSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : isTrends ? trendsSub : isTech ? techSub : null;
-              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCreators ? selectCreatorSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : isTrends ? selectTrendsSub : isTech ? selectTechSub : null;
-              const iconSubs = isCreators ? CREATOR_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : isStreaming ? STREAMING_SUB_ICONS : isTrends ? TRENDS_SUB_ICONS : isTech ? TECH_SUB_ICONS : null;
+              const isAwards = s.id === 'awards';
+              const hasDropdown = isMusic || isMovies || isCreators || isFestivals || isGaming || isStreaming || isTrends || isTech || isAwards;
+              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCreators && creatorsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen) || (isTrends && trendsOpen) || (isTech && techOpen) || (isAwards && awardsOpen));
+              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCreators ? toggleCreators : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : isTrends ? toggleTrends : isTech ? toggleTech : isAwards ? toggleAwards : () => goTo(s.id);
+              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCreators ? CREATOR_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : isTrends ? INTERNET_TRENDS_SUBS : isTech ? TECH_SUBS : isAwards ? AWARDS_SUBS : null;
+              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCreators ? creatorSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : isTrends ? trendsSub : isTech ? techSub : isAwards ? awardsSub : null;
+              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCreators ? selectCreatorSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : isTrends ? selectTrendsSub : isTech ? selectTechSub : isAwards ? selectAwardsSub : null;
+              const iconSubs = isCreators ? CREATOR_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : isStreaming ? STREAMING_SUB_ICONS : isTrends ? TRENDS_SUB_ICONS : isTech ? TECH_SUB_ICONS : isAwards ? AWARDS_SUB_ICONS : null;
               return (
                 <div key={s.id}>
                   <button onClick={onClickHeader}
@@ -1440,6 +1483,8 @@ export default function LandingPage() {
             sector={SECTORS.find((s) => s.id === 'awards')}
             markets={markets}
             demo={AWARDS_DEMO}
+            title={awardsSub === 'All Awards' ? 'Awards' : `Awards · ${awardsSub}`}
+            pickReal={awardsSub === 'All Awards' ? undefined : (m) => awardsSubMarkets(m, awardsSub)}
             onOpen={(id) => navigate(`/markets/${id}`)}
             onViewAll={() => navigate('/explore?filter=awards')}
             forwardRef={refs.awards}
