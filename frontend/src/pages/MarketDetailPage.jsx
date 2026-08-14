@@ -810,7 +810,7 @@ export default function MarketDetailPage() {
               together — the reference layout. Previously this was a
               full-width block below both columns, past Recent Activity. */}
         {/* Full-width Outcomes list (Kalshi-style) — lives below both columns, not squeezed into the sidebar */}
-          {!isBinaryMkt && market && (
+          {market && outcomes.length > 0 && (
             <div className="p-6 mb-6" style={PANEL}>
             {!isBinaryMkt && (<div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-white">Outcomes</h2>
