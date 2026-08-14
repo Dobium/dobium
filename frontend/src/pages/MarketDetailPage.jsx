@@ -625,37 +625,6 @@ export default function MarketDetailPage() {
       <MarketTicker markets={markets} />
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-      {/* Header card (mock): small icon tile + TRENDING / • OPEN chips + title */}
-      <div className="shrink-0 p-5 mb-6" style={PANEL}>
-        <div style={{ display: 'flex', gap: 15, alignItems: 'center' }}>
-        {eventImage && /^https?:/.test(eventImage) ? (
-          <img src={eventImage} alt="" style={{ width: 46, height: 46, borderRadius: 8, flexShrink: 0, objectFit: 'cover', border: `1px solid ${INSET_LINE}` }} />
-        ) : (
-          <MarketIcon market={market} size={46} radius={8} />
-        )}
-        <div style={{ minWidth: 0, flex: 1 }}>
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <span style={{ ...microLabel, fontSize: 8.5, color: '#B9C6D9', background: '#12294A', border: `1px solid ${INSET_LINE}`, borderRadius: 3, padding: '4px 8px' }}>
-            {bucketLabel(market.category)}
-          </span>
-          {sportsMeta && sportsMeta.match_state ? (
-            <span style={{ ...microLabel, fontSize: 8.5, color: '#B9C6D9', background: '#12294A', border: `1px solid ${INSET_LINE}`, borderRadius: 3, padding: '4px 8px' }}>
-              {sportsMeta.match_state.replace(/[_-]/g, ' ')}
-            </span>
-          ) : (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.14em', color: market.status === 'resolved' ? GOLD_TEXT : GREEN, background: market.status === 'resolved' ? 'rgba(255,223,155,.07)' : 'rgba(107,254,143,.07)', border: `1px solid ${market.status === 'resolved' ? 'rgba(255,223,155,.3)' : 'rgba(107,254,143,.3)'}`, borderRadius: 3, padding: '4px 8px' }}>
-              <span style={{ width: 5, height: 5, borderRadius: 999, background: market.status === 'resolved' ? GOLD_TEXT : GREEN }}></span>
-              {market.status === 'resolved' ? 'RESOLVED' : 'OPEN'}
-            </span>
-          )}
-        </div>
-        <h1 style={{ color: WHITE, fontSize: 'clamp(15px,1.9vw,18px)', fontWeight: 700, lineHeight: 1.35, margin: 0 }}>
-          {market.title}
-        </h1>
-        </div>
-        </div>
-      </div>
-
       <div className="flex flex-col lg:flex-row gap-6 lg:items-start relative">
         {/* Left Column: Info, Price Chart & Controls */}
         <div className="flex-1 min-w-0 space-y-6 z-10">
@@ -714,6 +683,39 @@ export default function MarketDetailPage() {
           {/* Price Chart (mock: header row with price + DOBIUM INDEX + timeframes,
               chart body, then a vol / YES-NO chip footer bar) */}
           <div className="mb-6" style={PANEL}>
+            {/* Title row sits inside the chart panel rather than in a separate
+                card above it. As two panels it read as a detached slab floating
+                over the chart; Kalshi runs image, category and question as the
+                top of the same block. */}
+            <div style={{ padding: '16px 16px 14px', borderBottom: `1px solid ${PANEL_LINE}` }}>
+              <div style={{ display: 'flex', gap: 15, alignItems: 'center' }}>
+        {eventImage && /^https?:/.test(eventImage) ? (
+          <img src={eventImage} alt="" style={{ width: 46, height: 46, borderRadius: 8, flexShrink: 0, objectFit: 'cover', border: `1px solid ${INSET_LINE}` }} />
+        ) : (
+          <MarketIcon market={market} size={46} radius={8} />
+        )}
+        <div style={{ minWidth: 0, flex: 1 }}>
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <span style={{ ...microLabel, fontSize: 8.5, color: '#B9C6D9', background: '#12294A', border: `1px solid ${INSET_LINE}`, borderRadius: 3, padding: '4px 8px' }}>
+            {bucketLabel(market.category)}
+          </span>
+          {sportsMeta && sportsMeta.match_state ? (
+            <span style={{ ...microLabel, fontSize: 8.5, color: '#B9C6D9', background: '#12294A', border: `1px solid ${INSET_LINE}`, borderRadius: 3, padding: '4px 8px' }}>
+              {sportsMeta.match_state.replace(/[_-]/g, ' ')}
+            </span>
+          ) : (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.14em', color: market.status === 'resolved' ? GOLD_TEXT : GREEN, background: market.status === 'resolved' ? 'rgba(255,223,155,.07)' : 'rgba(107,254,143,.07)', border: `1px solid ${market.status === 'resolved' ? 'rgba(255,223,155,.3)' : 'rgba(107,254,143,.3)'}`, borderRadius: 3, padding: '4px 8px' }}>
+              <span style={{ width: 5, height: 5, borderRadius: 999, background: market.status === 'resolved' ? GOLD_TEXT : GREEN }}></span>
+              {market.status === 'resolved' ? 'RESOLVED' : 'OPEN'}
+            </span>
+          )}
+        </div>
+        <h1 style={{ color: WHITE, fontSize: 'clamp(15px,1.9vw,18px)', fontWeight: 700, lineHeight: 1.35, margin: 0 }}>
+          {market.title}
+        </h1>
+        </div>
+        </div>
+            </div>
             <div className="flex items-center justify-between flex-wrap gap-2" style={{ padding: '12px 16px', borderBottom: `1px solid ${PANEL_LINE}` }}>
               <div style={{ fontFamily: 'var(--mono)', display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
                 {isBinaryMkt ? (() => {
