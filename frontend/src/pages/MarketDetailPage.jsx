@@ -34,7 +34,13 @@ const GOLD_TEXT = '#D9C089';
 const ON_GOLD = '#0A1A33';
 const NO_CHIP = '#CFC5B5';
 
-const PANEL = { background: PANEL_BG, border: `1px solid ${PANEL_LINE}`, borderRadius: 6 };
+// The reference has no cards: chart, outcomes and activity sit flush on the
+// page background, separated by hairlines rather than boxed. Keeping the name
+// so every existing style={PANEL} follows suit.
+const PANEL = { background: 'transparent', border: 'none', borderRadius: 0 };
+// Retained for the places that genuinely are raised surfaces — the trade
+// ticket sidebar and inset notices.
+const CARD = { background: PANEL_BG, border: `1px solid ${PANEL_LINE}`, borderRadius: 6 };
 const microLabel = { fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.14em', color: LABEL, textTransform: 'uppercase' };
 
 export function getOutcomeColor(o, outcomes) {
@@ -697,7 +703,7 @@ export default function MarketDetailPage() {
         )}
         <div style={{ minWidth: 0, flex: 1 }}>
         <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <span style={{ ...microLabel, fontSize: 8.5, color: '#B9C6D9', background: '#12294A', border: `1px solid ${INSET_LINE}`, borderRadius: 3, padding: '4px 8px' }}>
+          <span style={{ ...microLabel, fontSize: 9, color: LABEL }}>
             {bucketLabel(market.category)}
           </span>
           {sportsMeta && sportsMeta.match_state ? (
@@ -711,7 +717,7 @@ export default function MarketDetailPage() {
             </span>
           )}
         </div>
-        <h1 style={{ color: WHITE, fontSize: 'clamp(15px,1.9vw,18px)', fontWeight: 700, lineHeight: 1.35, margin: 0 }}>
+        <h1 style={{ color: WHITE, fontSize: 'clamp(19px,2.4vw,24px)', fontWeight: 700, lineHeight: 1.3, margin: 0 }}>
           {market.title}
         </h1>
         </div>
@@ -1423,7 +1429,7 @@ export default function MarketDetailPage() {
             const selPos = sel ? (userPositions[sel.id] || 0) : 0;
             const priceOf = (o) => Math.round(o?.probability || 0);
             return (
-              <div className="mb-5" style={{ ...PANEL, overflow: 'hidden' }}>
+              <div className="mb-5" style={{ ...CARD, overflow: 'hidden' }}>
                 {/* Buy / Sell tabs (mock: flush top tabs, inactive side darker) */}
                 <div style={{ display: 'flex', borderBottom: `1px solid ${PANEL_LINE}` }}>
                   {['buy', 'sell'].map((t, i) => (
