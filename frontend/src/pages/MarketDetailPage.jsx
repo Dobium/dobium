@@ -118,8 +118,14 @@ function PriceChart({ outcomes, priceHistory, totalVolume, selectedIds, hideLege
   const dataMin = allValues.length ? Math.min(...allValues) : 0;
   const dataMax = allValues.length ? Math.max(...allValues) : 100;
   const spanPad = Math.max(4, (dataMax - dataMin) * 0.18);
-  let minValue = Math.max(0, Math.floor((dataMin - spanPad) / 5) * 5);
-  let maxValue = Math.min(100, Math.ceil((dataMax + spanPad) / 5) * 5);
+  let minValue = Math.max(0, Math.floor((dataMin - spanPad) / 10) * 10);
+  let maxValue = Math.min(100, Math.ceil((dataMax + spanPad) / 10) * 10);
+  // Four equal steps between the bounds, so every gridline label is a round
+  // number as in the reference. Widen to the nearest multiple of 40 span.
+  const steps = 4;
+  const stepSize = Math.max(10, Math.ceil((maxValue - minValue) / steps / 10) * 10);
+  maxValue = Math.min(100, minValue + stepSize * steps);
+  if (maxValue - minValue < stepSize * steps) minValue = Math.max(0, maxValue - stepSize * steps);
   if (maxValue - minValue < 20) {
     const mid = (maxValue + minValue) / 2;
     minValue = Math.max(0, Math.round(mid - 10));
@@ -811,9 +817,8 @@ export default function MarketDetailPage() {
               full-width block below both columns, past Recent Activity. */}
         {/* Full-width Outcomes list (Kalshi-style) — lives below both columns, not squeezed into the sidebar */}
           {market && outcomes.length > 0 && (
-            <div className="p-6 mb-6" style={PANEL}>
-            {!isBinaryMkt && (<div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white">Outcomes</h2>
+            <div className="px-2 pb-4 mb-4" style={PANEL}>
+            {!isBinaryMkt && outcomes.length >= 10 && (<div className="flex items-center justify-between mb-4">
               {outcomes.length >= 10 && (
                 <div className="relative w-48 sm:w-64">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
