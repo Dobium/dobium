@@ -711,9 +711,9 @@ export default function MarketDetailPage() {
               {sportsMeta.match_state.replace(/[_-]/g, ' ')}
             </span>
           ) : (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.14em', color: market.status === 'resolved' ? GOLD_TEXT : GREEN, background: market.status === 'resolved' ? 'rgba(255,223,155,.07)' : 'rgba(107,254,143,.07)', border: `1px solid ${market.status === 'resolved' ? 'rgba(255,223,155,.3)' : 'rgba(107,254,143,.3)'}`, borderRadius: 3, padding: '4px 8px' }}>
-              <span style={{ width: 5, height: 5, borderRadius: 999, background: market.status === 'resolved' ? GOLD_TEXT : GREEN }}></span>
-              {market.status === 'resolved' ? 'RESOLVED' : 'OPEN'}
+            <span style={{ display: market.status === 'resolved' ? 'inline-flex' : 'none', alignItems: 'center', gap: 6, fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.14em', color: GOLD_TEXT }}>
+              <span style={{ width: 5, height: 5, borderRadius: 999, background: GOLD_TEXT }}></span>
+              RESOLVED
             </span>
           )}
         </div>
@@ -762,8 +762,11 @@ export default function MarketDetailPage() {
                     </span>
                   ))
                 )}
-                <span style={{ ...microLabel, fontSize: 8.5, letterSpacing: '0.16em' }}>Dobium Index</span>
               </div>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={LABEL} strokeWidth="1.8"><circle cx="12" cy="12" r="9" /><path d="M10 9l5 3-5 3z" fill={LABEL} stroke="none" /></svg>
+                <span style={{ fontFamily: 'var(--wordmark)', fontWeight: 700, fontSize: 12, color: LABEL }}>Dobium</span>
+              </span>
             </div>
             <div style={{ padding: '12px 10px 6px' }}>
               <PriceChart selectedIds={selectedIds}
@@ -786,21 +789,8 @@ export default function MarketDetailPage() {
                     {range}
                   </button>
                 ))}
+                <button title="Add to watchlist" style={{ fontFamily: 'var(--mono)', fontSize: 13, padding: '2px 8px', background: 'none', border: 'none', color: LABEL, cursor: 'pointer' }}>+</button>
               </div>
-              {isBinaryMkt && (() => {
-                const yesO = outcomes.find(o => (o.title || '').toLowerCase().startsWith('yes')) || outcomes[0];
-                const noO = outcomes.find(o => o.id !== yesO.id);
-                const yesP = Math.round(yesO?.probability || 0);
-                const noP = noO ? Math.round(noO.probability || 0) : 100 - yesP;
-                return (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--mono)' }}>
-                    <span style={{ ...microLabel, fontSize: 8.5 }}>Yes</span>
-                    <span style={{ background: GREEN, color: ON_GOLD, fontSize: 10, fontWeight: 800, borderRadius: 3, padding: '2px 7px' }}>{yesP}¢</span>
-                    <span style={{ ...microLabel, fontSize: 8.5, marginLeft: 6 }}>No</span>
-                    <span style={{ background: NO_CHIP, color: ON_GOLD, fontSize: 10, fontWeight: 800, borderRadius: 3, padding: '2px 7px' }}>{noP}¢</span>
-                  </span>
-                );
-              })()}
             </div>
           </div>
           {/* Outcomes sit immediately under the chart, in the same column,
@@ -1250,8 +1240,9 @@ export default function MarketDetailPage() {
                       {isPartiallyResolved && <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Open Options</h3>}
                       {/* Column header over the probability column, as in the
                           reference — the percentages were previously unlabelled. */}
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: 8, paddingBottom: 6 }}>
-                        <span style={{ ...microLabel, fontSize: 9, color: LABEL, marginRight: 150 }}>Chance</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 8px 8px', borderBottom: `1px solid ${PANEL_LINE}`, marginBottom: 4 }}>
+                        <span style={{ ...microLabel, fontSize: 9, color: LABEL, marginLeft: '42%' }}>Chance</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={LABEL} strokeWidth="1.8" strokeLinecap="round" style={{ marginLeft: 'auto' }}><path d="M4 7h16M4 12h10M4 17h6" /></svg>
                       </div>
                       {renderOutcomesBlock(unresolvedOutcomesList)}
                     </div>
