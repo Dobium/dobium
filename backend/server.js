@@ -2011,6 +2011,67 @@ app.get('/api/cron/sync-prices', requireRadarKey, async (req, res) => {
 // already market-grade and these auto-link to their real-money originals via
 // price sync — trending markets appear with zero manual clicks. RSS-drafted
 // suggestions still get one-tap human review (machine wording needs eyes).
+// ── Void and refund ────────────────────────────────────────────────────────
+// Auto-resolution already covers any market linked to a live Kalshi or
+// Polymarket twin: runPriceSync reads the real settlement and resolves ours the
+// same way. What it can't cover is a Dobium-original with no real-money
+// counterpart — nothing external ever tells us the answer, so those would sit
+// open forever waiting for a human.
+//
+// Rather than guess an outcome (a wrong settlement is worse than none), a
+// market that passes its deadline unresolved and unlinked is voided: every open
+// position is refunded at cost and the market closes. Real exchanges do the
+// same when a contract can't be settled. Nobody wins, nobody loses, and no
+// admin action is required.
+const VOID_GRACE_DAYS = 3;
+
+async function voidUnresolvableMarkets({ dryRun = false, limit = 25 } = {}) {
+  const cutoff = new Date(Date.now() - VOID_GRACE_DAYS * 86400 * 1000);
+  const stale = await Market.findAll({
+    where: {
+      status: { [Op.in]: ['active', 'closed'] },
+      price_source: null,                       // linked ones resolve on their own
+      [Op.or]: [
+        { resolution_date: { [Op.ne]: null, [Op.lt]: cutoff } },
+        { resolution_date: null, close_date: { [Op.ne]: null, [Op.lt]: cutoff } },
+      ],
+    },
+    limit,
+  });
+
+  const voided = [];
+  for (const market of stale) {
+    const open = await Prediction.findAll({ where: { market_id: market.id, status: 'active' } });
+    if (dryRun) {
+      voided.push({ id: market.id, title: market.title, refunds: open.length });
+      continue;
+    }
+    await sequelize.transaction(async (t) => {
+      for (const pred of open) {
+        const stake = Number(pred.stake_amount) || 0;
+        await pred.update({ status: 'refunded' }, { transaction: t });
+        await Transaction.findOrCreate({
+          where: { id: `refund_${pred.id}` },
+          defaults: {
+            id: `refund_${pred.id}`,
+            user_id: pred.user_id,
+            type: 'payout',
+            amount: stake,
+            payment_method: 'market_void',
+            status: 'completed',
+            completed_at: new Date(),
+          },
+          transaction: t,
+        });
+      }
+      await market.update({ status: 'closed', close_date: new Date() }, { transaction: t });
+    });
+    voided.push({ id: market.id, title: market.title, refunds: open.length });
+  }
+
+  return { checked: stale.length, voided, dryRun };
+}
+
 // ── Hype-decay expiry ──────────────────────────────────────────────────────
 // A market's close_date is a guess made the moment it was drafted, so a market
 // about something still being talked about can expire mid-conversation, while a
@@ -2137,8 +2198,10 @@ async function autoPublishMirrors(limit = 5) {
 // it would do without writing.
 app.get('/api/cron/hype-sweep', requireRadarKey, async (req, res) => {
   try {
-    const result = await sweepHypeDecay({ dryRun: req.query.dry === '1' });
-    res.json(result);
+    const dryRun = req.query.dry === '1';
+    const hype = await sweepHypeDecay({ dryRun });
+    const voided = await voidUnresolvableMarkets({ dryRun });
+    res.json({ hype, voided });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -2152,6 +2215,7 @@ app.get('/api/cron/daily', requireRadarKey, async (req, res) => {
     out.autoPublished = await autoPublishMirrors(5);
   } catch (e) { out.autoPublished = { error: e.message }; }
   try { out.hype = await sweepHypeDecay(); } catch (e) { out.hype = { error: e.message }; }
+  try { out.voided = await voidUnresolvableMarkets(); } catch (e) { out.voided = { error: e.message }; }
   if (false) {
   try {
     const mirrors = await MarketSuggestion.findAll({
