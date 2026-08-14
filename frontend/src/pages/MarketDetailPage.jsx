@@ -738,13 +738,6 @@ export default function MarketDetailPage() {
                 )}
                 <span style={{ ...microLabel, fontSize: 8.5, letterSpacing: '0.16em' }}>Dobium Index</span>
               </div>
-              <div className="flex gap-1 p-1 rounded" style={{ background: INSET_BG, border: `1px solid ${INSET_LINE}` }}>
-                {['1D', '1W', '1M', 'ALL'].map(range => (
-                  <button key={range} style={{ fontFamily: 'var(--mono)', fontSize: 9.5, padding: '4px 9px', borderRadius: 3, background: range === 'ALL' ? GOLD : 'transparent', color: range === 'ALL' ? ON_GOLD : LABEL, border: 'none', cursor: 'pointer', fontWeight: 700, letterSpacing: '0.06em' }}>
-                    {range}
-                  </button>
-                ))}
-              </div>
             </div>
             <div style={{ padding: '12px 10px 6px' }}>
               <PriceChart selectedIds={selectedIds}
@@ -758,6 +751,16 @@ export default function MarketDetailPage() {
               <span style={{ fontFamily: 'var(--mono)', color: '#7E92B0', fontSize: 11, letterSpacing: '0.05em' }}>
                 ${(market.total_volume || 0).toLocaleString()} vol
               </span>
+              {/* Range picker sits under the chart next to the volume rather
+                  than above it — the reference keeps the top row for the
+                  question and the outcome legend only. */}
+              <div className="flex gap-1" style={{ marginLeft: 'auto', marginRight: 12 }}>
+                {['1D', '1W', '1M', 'ALL'].map(range => (
+                  <button key={range} style={{ fontFamily: 'var(--mono)', fontSize: 9.5, padding: '4px 9px', borderRadius: 3, background: range === 'ALL' ? GOLD : 'transparent', color: range === 'ALL' ? ON_GOLD : LABEL, border: 'none', cursor: 'pointer', fontWeight: 700, letterSpacing: '0.06em' }}>
+                    {range}
+                  </button>
+                ))}
+              </div>
               {isBinaryMkt && (() => {
                 const yesO = outcomes.find(o => (o.title || '').toLowerCase().startsWith('yes')) || outcomes[0];
                 const noO = outcomes.find(o => o.id !== yesO.id);
@@ -1537,6 +1540,11 @@ export default function MarketDetailPage() {
                 {unresolvedOutcomesList.length > 0 && (
                   <div>
                     {isPartiallyResolved && <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Open Options</h3>}
+                    {/* Column header over the probability column, as in the
+                        reference — the percentages were previously unlabelled. */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: 8, paddingBottom: 6 }}>
+                      <span style={{ ...microLabel, fontSize: 9, color: LABEL, marginRight: 150 }}>Chance</span>
+                    </div>
                     {renderOutcomesBlock(unresolvedOutcomesList)}
                   </div>
                 )}
