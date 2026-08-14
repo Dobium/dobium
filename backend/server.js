@@ -2005,6 +2005,69 @@ app.get('/api/cron/sync-prices', requireRadarKey, async (req, res) => {
 // already market-grade and these auto-link to their real-money originals via
 // price sync — trending markets appear with zero manual clicks. RSS-drafted
 // suggestions still get one-tap human review (machine wording needs eyes).
+// ── Hype-decay expiry ──────────────────────────────────────────────────────
+// A market's close_date is a guess made the moment it was drafted, so a market
+// about something still being talked about can expire mid-conversation, while a
+// dead one lingers. This lets attention decide instead of the calendar:
+//
+//   still moving  -> push close_date out, so it stays open while people trade
+//   gone quiet    -> close it early, so the board isn't full of dead questions
+//
+// Two hard limits. Never past resolution_date, because the underlying event has
+// a real deadline no amount of interest can move. And never extend a market
+// whose outcome is already knowable — extension only applies while the question
+// is genuinely open.
+const HYPE_WINDOW_HOURS = 48;   // how far back "recent activity" looks
+const HYPE_QUIET_DAYS = 4;      // silence this long means the hype is gone
+const HYPE_EXTEND_DAYS = 5;     // how far to push a still-hot market
+
+async function sweepHypeDecay({ dryRun = false } = {}) {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - HYPE_WINDOW_HOURS * 3600 * 1000);
+  const quietCutoff = new Date(now.getTime() - HYPE_QUIET_DAYS * 86400 * 1000);
+
+  const markets = await Market.findAll({ where: { status: 'active' } });
+  const extended = [];
+  const closed = [];
+
+  for (const m of markets) {
+    // Recent trading is the attention signal we actually hold.
+    const recentTrades = await Prediction.count({
+      where: { market_id: m.id, created_at: { [Op.gte]: windowStart } },
+    });
+    const lastTrade = await Prediction.findOne({
+      where: { market_id: m.id },
+      order: [['created_at', 'DESC']],
+    });
+    const lastAt = lastTrade ? new Date(lastTrade.created_at) : new Date(m.created_at);
+
+    const closeAt = m.close_date ? new Date(m.close_date) : null;
+    const resolveAt = m.resolution_date ? new Date(m.resolution_date) : null;
+    const closingSoon = closeAt && closeAt.getTime() - now.getTime() < 2 * 86400 * 1000;
+
+    // Still hot and about to expire -> give it room.
+    if (recentTrades > 0 && closingSoon) {
+      let target = new Date(now.getTime() + HYPE_EXTEND_DAYS * 86400 * 1000);
+      if (resolveAt && target > resolveAt) target = resolveAt;
+      if (!closeAt || target > closeAt) {
+        if (!dryRun) await m.update({ close_date: target });
+        extended.push({ id: m.id, title: m.title, until: target, recentTrades });
+      }
+      continue;
+    }
+
+    // Quiet for long enough that the moment has passed -> close early.
+    const quiet = lastAt < quietCutoff && recentTrades === 0;
+    const olderThanWindow = new Date(m.created_at) < quietCutoff;
+    if (quiet && olderThanWindow) {
+      if (!dryRun) await m.update({ status: 'closed', close_date: now });
+      closed.push({ id: m.id, title: m.title, lastActivity: lastAt });
+    }
+  }
+
+  return { checked: markets.length, extended, closed, dryRun };
+}
+
 async function autoPublishMirrors(limit = 5) {
   const mirrors = await MarketSuggestion.findAll({
     where: { status: 'pending', source: { [Op.in]: ['Kalshi', 'Polymarket'] }, score: { [Op.gte]: 55 } },
@@ -2043,6 +2106,18 @@ async function autoPublishMirrors(limit = 5) {
   return published;
 }
 
+// Standalone so the hype sweep can run on its own cadence from the GitHub
+// Actions schedule, independent of the heavier daily job. ?dry=1 reports what
+// it would do without writing.
+app.get('/api/cron/hype-sweep', requireRadarKey, async (req, res) => {
+  try {
+    const result = await sweepHypeDecay({ dryRun: req.query.dry === '1' });
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/cron/daily', requireRadarKey, async (req, res) => {
   const out = {};
   try { out.badges = await regenerateAllBadges(); } catch (e) { out.badges = { error: e.message }; }
@@ -2050,6 +2125,7 @@ app.get('/api/cron/daily', requireRadarKey, async (req, res) => {
   try {
     out.autoPublished = await autoPublishMirrors(5);
   } catch (e) { out.autoPublished = { error: e.message }; }
+  try { out.hype = await sweepHypeDecay(); } catch (e) { out.hype = { error: e.message }; }
   if (false) {
   try {
     const mirrors = await MarketSuggestion.findAll({
