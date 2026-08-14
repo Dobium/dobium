@@ -92,7 +92,13 @@ const ADMIN_EMAILS = ['donotreply.dobium@gmail.com', 'neel.bolaram@gmail.com'];
 // NOTE: since this repo is public, this is a light lock, not real secrecy —
 // it stops anyone stumbling onto the page/API, not a determined reader of the source.
 // Move this to a private env var once Vercel/hosting access is sorted.
-const RADAR_KEY = 'dobium-radar-9247';
+// Admin/cron auth. This was a hardcoded literal that also appeared verbatim in
+// the frontend bundle as the /radar passphrase, so the key guarding every admin
+// and cron endpoint was readable by anyone who opened devtools. It now comes
+// from the environment; the literal remains only as a fallback so existing
+// deployments keep working until ADMIN_KEY is set, and should be removed once
+// it is.
+const RADAR_KEY = process.env.ADMIN_KEY || 'dobium-radar-9247';
 function requireRadarKey(req, res, next) {
   const key = req.headers['x-radar-key'] || req.query.key;
   if (key !== RADAR_KEY) {
@@ -2068,9 +2074,27 @@ async function sweepHypeDecay({ dryRun = false } = {}) {
   return { checked: markets.length, extended, closed, dryRun };
 }
 
+// Auto-publish. Exchange mirrors clear at 55 because their wording is already
+// market-grade and copied verbatim from a live regulated market. RSS-drafted
+// questions are machine-written, so they clear at a stricter bar and only when
+// the scout flagged them tradeable with a usable close date — a question with
+// no deadline can't be resolved and must never go live unattended.
+const AUTOPUBLISH_MIRROR_SCORE = 55;
+const AUTOPUBLISH_DRAFT_SCORE = 72;
+
 async function autoPublishMirrors(limit = 5) {
   const mirrors = await MarketSuggestion.findAll({
-    where: { status: 'pending', source: { [Op.in]: ['Kalshi', 'Polymarket'] }, score: { [Op.gte]: 55 } },
+    where: {
+      status: 'pending',
+      [Op.or]: [
+        { source: { [Op.in]: ['Kalshi', 'Polymarket'] }, score: { [Op.gte]: AUTOPUBLISH_MIRROR_SCORE } },
+        {
+          source: { [Op.notIn]: ['Kalshi', 'Polymarket'] },
+          score: { [Op.gte]: AUTOPUBLISH_DRAFT_SCORE },
+          suggested_close_date: { [Op.ne]: null },
+        },
+      ],
+    },
     order: [['score', 'DESC']],
     limit,
   });
@@ -2083,7 +2107,9 @@ async function autoPublishMirrors(limit = 5) {
       await Market.create({
         id: marketId,
         title: sug.headline,
-        description: `Mirrored from a live ${sug.source} market — prices track the real market and this resolves automatically with the real-world outcome.`,
+        description: ['Kalshi', 'Polymarket'].includes(sug.source)
+          ? `Mirrored from a live ${sug.source} market — prices track the real market and this resolves automatically with the real-world outcome.`
+          : `Drafted automatically from ${sug.source} coverage. Resolves on the publicly reported outcome.`,
         category: sug.category || 'entertainment',
         market_type: 'binary',
         status: 'active',

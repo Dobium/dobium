@@ -1,3 +1,15 @@
+// The key used to be a string literal here, which meant it shipped inside the
+// public JS bundle — anyone could read it from the browser and call every
+// admin endpoint. It is now typed once per session and never committed.
+function adminKey() {
+  let k = sessionStorage.getItem('dobium_admin_key');
+  if (!k) {
+    k = window.prompt('Admin key') || '';
+    if (k) sessionStorage.setItem('dobium_admin_key', k);
+  }
+  return k;
+}
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -509,7 +521,7 @@ export default function AdminDashboard() {
 
       const res = await fetch(`${API_URL}/api/markets/${resolvingMarket.id}/resolve`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-radar-key': 'dobium-radar-9247' },
+        headers: { 'Content-Type': 'application/json', 'x-radar-key': adminKey() },
         body: JSON.stringify({ winning_outcome_ids })
       });
 
@@ -609,7 +621,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`${API_URL}/api/markets/${confirmModal.market.id}/resolve`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-radar-key': 'dobium-radar-9247' },
+        headers: { 'Content-Type': 'application/json', 'x-radar-key': adminKey() },
         body: JSON.stringify({ winning_outcome_ids: confirmModal.winnerIds })
       });
       const data = await res.json();
