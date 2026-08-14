@@ -48,7 +48,7 @@ function compactVol(v) {
 }
 
 // ── Sector classification ────────────────────────────────────────────────
-const SECTOR_ICONS = { music: 'note', movies: 'film', celebrities: 'people', festivals: 'stage', gaming: 'gamepad', streaming: 'play', trends: 'trend', tech: 'grid' };
+const SECTOR_ICONS = { music: 'note', movies: 'film', celebrities: 'people', festivals: 'stage', gaming: 'gamepad', streaming: 'play', trends: 'trend', tech: 'grid', awards: 'trophy' };
 const SECTORS = SHARED_SECTORS.map((s) => ({ ...s, icon: SECTOR_ICONS[s.id] }));
 
 function classify(title) {
