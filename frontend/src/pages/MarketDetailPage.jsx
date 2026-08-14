@@ -1438,23 +1438,40 @@ export default function MarketDetailPage() {
             const priceOf = (o) => Math.round(o?.probability || 0);
             return (
               <div className="mb-5" style={{ ...CARD, overflow: 'hidden' }}>
-                {/* Buy / Sell tabs (mock: flush top tabs, inactive side darker) */}
-                <div style={{ display: 'flex', borderBottom: `1px solid ${PANEL_LINE}` }}>
-                  {['buy', 'sell'].map((t, i) => (
-                    <button key={t} onClick={() => setPanelTab(t)}
-                      style={{
-                        flex: 1, padding: '12px 0',
-                        background: panelTab === t ? 'transparent' : '#001737',
-                        color: panelTab === t ? WHITE : LABEL,
-                        fontSize: 13, fontWeight: panelTab === t ? 700 : 500,
-                        textTransform: 'capitalize',
-                        border: 'none', cursor: 'pointer',
-                        borderLeft: i > 0 ? `1px solid ${PANEL_LINE}` : 'none',
-                        transition: 'color .15s ease, background .15s ease',
-                      }}>
-                      {t}
-                    </button>
-                  ))}
+                {/* Ticket header, per the reference: BUY / SELL as text tabs on
+                    the left with an order-type selector on the right. The
+                    selector reads MARKET rather than LIMIT — Dobium fills at
+                    the current price and has no order book, so offering a limit
+                    type would be a control that can't work. */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px 12px' }}>
+                  <div style={{ display: 'flex', gap: 18 }}>
+                    {['buy', 'sell'].map((t) => (
+                      <button key={t} onClick={() => setPanelTab(t)}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 4px',
+                          fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
+                          textTransform: 'uppercase',
+                          color: panelTab === t ? WHITE : LABEL,
+                          borderBottom: panelTab === t ? `2px solid ${WHITE}` : '2px solid transparent',
+                        }}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                  <span style={{ ...microLabel, fontSize: 10, color: LABEL }}>MARKET</span>
+                </div>
+
+                {/* Question above the selected outcome, as in the reference */}
+                <div style={{ padding: '0 18px 10px' }}>
+                  <div style={{ color: LABEL, fontSize: 12.5, lineHeight: 1.4, marginBottom: 8 }}>{market.title}</div>
+                  {sel && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <MarketIcon market={market} size={26} radius={6} />
+                      <span style={{ color: WHITE, fontSize: 17, fontWeight: 700 }}>
+                        {sel.title.replace(/\s*\((Yes|No)\)\s*$/i, '')}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ padding: 16 }}>
@@ -1476,15 +1493,16 @@ export default function MarketDetailPage() {
                           onClick={() => setSelectedOutcome(active ? null : o)}
                           className="flex-1 transition-all disabled:opacity-50"
                           style={{
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                            padding: '12px 8px', borderRadius: 4, cursor: 'pointer',
-                            fontFamily: 'var(--mono)',
-                            background: active ? (yes ? '#052A47' : '#2C1420') : INSET_BG,
-                            border: `1px solid ${active ? (yes ? 'rgba(107,254,143,.55)' : 'rgba(255,158,142,.55)') : INSET_LINE}`,
-                            color: active ? (yes ? GREEN : RED) : (yes ? GREEN_DIM : '#B9C0CC'),
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                            padding: '13px 8px', borderRadius: 999, cursor: 'pointer',
+                            fontFamily: 'var(--mono)', fontSize: 13.5, fontWeight: 700,
+                            letterSpacing: '0.04em', textTransform: 'uppercase',
+                            background: active ? (yes ? GREEN : RED) : 'transparent',
+                            border: `1px solid ${active ? (yes ? GREEN : RED) : INSET_LINE}`,
+                            color: active ? ON_GOLD : (yes ? GREEN : RED),
                           }}>
-                          <span style={{ fontSize: 13, fontWeight: 700 }}>{o.title}</span>
-                          <span style={{ fontSize: 11.5, opacity: .85 }}>{priceOf(o)}¢</span>
+                          <span>{o.title}</span>
+                          <span>{priceOf(o)}¢</span>
                         </button>
                       );
                     })}
@@ -1527,11 +1545,26 @@ export default function MarketDetailPage() {
                     {sel && parseFloat(stake) > 0 && (() => {
                       const b = calculatePayoutBounds(parseFloat(stake), sel.probability || 50);
                       return (
-                        <div className="p-3 space-y-2" style={{ background: INSET_BG, border: `1px solid ${INSET_LINE}`, borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 11 }}>
-                          <div className="flex justify-between"><span style={{ color: LABEL }}>Avg. Price</span><span style={{ color: '#DCE6F5' }}>{priceOf(sel)}¢</span></div>
-                          <div className="flex justify-between items-baseline"><span style={{ color: LABEL }}>Potential Payout</span><span style={{ color: GREEN, fontSize: 15, fontWeight: 800, fontFamily: 'var(--mono)' }}>+${b.winReturn.toFixed(2)}</span></div>
-                          <div className="flex justify-between"><span style={{ color: LABEL }}>Max Profit</span><span style={{ color: GREEN }}>+${b.winProfit.toFixed(2)} ({parseFloat(stake) > 0 ? ((b.winProfit / parseFloat(stake)) * 100).toFixed(1) : '0.0'}%)</span></div>
-                          <div className="flex justify-between" style={{ borderTop: '1px solid rgba(42,63,99,.7)', paddingTop: 8 }}><span style={{ color: LABEL }}>Total Cost</span><span style={{ color: '#DCE6F5' }}>${parseFloat(stake).toFixed(2)}</span></div>
+                        /* Summary reads like the reference: shares, then Cost
+                           and a large Max payout as the closing figure, rather
+                           than a boxed four-row table. */
+                        <div style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>
+                          <div className="flex justify-between" style={{ padding: '10px 0', borderBottom: `1px solid ${INSET_LINE}` }}>
+                            <span style={{ color: LABEL }}>Shares</span>
+                            <span style={{ color: WHITE }}>{(parseFloat(stake) / Math.max(1, priceOf(sel)) * 100).toFixed(0)}</span>
+                          </div>
+                          <div className="flex justify-between" style={{ padding: '10px 0', borderBottom: `1px solid ${INSET_LINE}` }}>
+                            <span style={{ color: LABEL }}>Avg. price</span>
+                            <span style={{ color: WHITE }}>{priceOf(sel)}¢</span>
+                          </div>
+                          <div className="flex justify-between" style={{ padding: '12px 0 4px' }}>
+                            <span style={{ color: LABEL }}>Cost</span>
+                            <span style={{ color: WHITE }}>${parseFloat(stake).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between items-baseline" style={{ padding: '2px 0 12px' }}>
+                            <span style={{ color: LABEL }}>Max payout</span>
+                            <span style={{ color: GREEN, fontSize: 24, fontWeight: 800 }}>${b.winReturn.toFixed(2)}</span>
+                          </div>
                         </div>
                       );
                     })()}
