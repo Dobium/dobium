@@ -1,6 +1,13 @@
 // The key used to be a string literal here, which meant it shipped inside the
 // public JS bundle — anyone could read it from the browser and call every
 // admin endpoint. It is now typed once per session and never committed.
+// Reachable only from inside the unlocked radar terminal. Visiting the URL
+// directly without having passed the radar gate bounces home, so the console
+// is no longer discoverable by guessing a path.
+function radarUnlocked() {
+  try { return localStorage.getItem('dobium_radar_unlocked') === 'true'; } catch { return false; }
+}
+
 function adminKey() {
   let k = sessionStorage.getItem('dobium_admin_key');
   if (!k) {
@@ -11,7 +18,7 @@ function adminKey() {
 }
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { resizeImageFile } from '../lib/imageResizer';
 import AdminUserDashboard from '../components/AdminUserDashboard';
@@ -30,6 +37,8 @@ const formatDateTimeLocal = (dateString) => {
 };
 
 export default function AdminDashboard() {
+  if (!radarUnlocked()) return <Navigate to="/" replace />;
+
   const { session } = useAuth();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);

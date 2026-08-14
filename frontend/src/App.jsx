@@ -50,7 +50,11 @@ function AppRoutes() {
           {/* Logged-in portfolio/dashboard lives here now */}
           <Route path="/portfolio" element={<DashboardPage />} />
           <Route path="/charts" element={<DashboardPage />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          {/* Operations console. Previously /admin — a guessable URL that
+              advertised itself. It now lives behind the radar terminal's
+              passphrase gate and off any predictable path. */}
+          <Route path="/radar/ops" element={<AdminDashboard />} />
+          <Route path="/admin" element={<Navigate to="/" replace />} />
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/pulse" element={<PulsePage />} />
           <Route path="/radar" element={<RadarPage />} />

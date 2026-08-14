@@ -84,6 +84,7 @@ export const SOURCE_GROUPS = [
     title: 'SOURCES',
     items: [
       { label: 'Home', icon: 'home', to: '/radar' },
+      { label: 'Ops Console', icon: 'terminal', to: '/radar/ops' },
       { label: 'Market Maker', icon: 'maker', to: '/market-maker' },
       { label: 'News', icon: 'news', to: '/news' },
       { label: 'X (Twitter)', icon: 'at', to: '/x' },
@@ -120,6 +121,7 @@ export function RailIcon({ kind, color }) {
     case 'chat': return <svg {...c}><path d="M4 5h16v11H9l-5 4z" /><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" /></svg>;
     case 'play': return <svg {...c}><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M11 9.5l4 2.5-4 2.5z" fill={color} stroke="none" /></svg>;
     case 'trend': return <svg {...c}><path d="M3 17l6-6 4 4 8-8M15 7h6v6" /></svg>;
+    case 'terminal': return <svg {...c}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 9l3 3-3 3M13 15h4" /></svg>;
     case 'code': return <svg {...c}><path d="M9 8l-4 4 4 4M15 8l4 4-4 4" /></svg>;
     case 'cat': return <svg {...c}><path d="M12 4c4.4 0 8 3.2 8 7.2 0 4.3-3.6 7.8-8 7.8s-8-3.5-8-7.8C4 7.2 7.6 4 12 4z" /><path d="M9.5 11h3a1.8 1.8 0 000-3.6h-3V15" /></svg>;
     case 'gamepad': return <svg {...c}><rect x="2" y="8" width="20" height="9" rx="4" /><path d="M7 11v3M5.5 12.5h3M15.5 12.5h.01M18.5 11h.01" /></svg>;
@@ -184,5 +186,5 @@ export function SourceRail({ source, setSource, active }) {
 export const TERMINAL_PATHS = ['/radar', '/terminal', '/market-maker', '/news', '/x', '/reddit', '/youtube', '/trends'];
 
 export function isTerminalPath(pathname) {
-  return TERMINAL_PATHS.includes(pathname) || pathname.startsWith('/x/') || pathname.startsWith('/reddit/') || pathname.startsWith('/youtube/') || pathname.startsWith('/trends/');
+  return TERMINAL_PATHS.includes(pathname) || pathname.startsWith('/x/') || pathname.startsWith('/reddit/') || pathname.startsWith('/youtube/') || pathname.startsWith('/trends/') || pathname === '/radar/ops';
 }
