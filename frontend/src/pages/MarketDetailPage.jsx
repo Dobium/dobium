@@ -389,6 +389,7 @@ export default function MarketDetailPage() {
   const [sellMsg, setSellMsg] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAllOutcomes, setShowAllOutcomes] = useState(false);
+  const [copied, setCopied] = useState(false);
   const { balance: buyingPower, loading: buyingPowerLoading, refetch: refetchWallet } = useWallet();
 
   const [selectedIds, setSelectedIds] = useState([]);
@@ -714,6 +715,25 @@ export default function MarketDetailPage() {
           {market.title}
         </h1>
         </div>
+        {/* Row actions, as in the reference. Jump-to-comments and copy-link are
+            real; both act on things this page already has, rather than being
+            decorative icons. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, alignSelf: 'flex-start' }}>
+          <button
+            title="Comments"
+            onClick={() => document.getElementById('market-comments')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, lineHeight: 0, color: LABEL }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><path d="M4 5h16v11H9l-5 4z" /></svg>
+          </button>
+          <button
+            title={copied ? 'Link copied' : 'Copy link'}
+            onClick={() => { navigator.clipboard?.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, lineHeight: 0, color: copied ? GREEN : LABEL }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M10 14a4 4 0 006 .5l2-2a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-6-.5l-2 2a4 4 0 005.7 5.7l1-1" /></svg>
+          </button>
+        </div>
         </div>
             </div>
             <div className="flex items-center justify-between flex-wrap gap-2" style={{ padding: '12px 16px', borderBottom: `1px solid ${PANEL_LINE}` }}>
@@ -777,6 +797,471 @@ export default function MarketDetailPage() {
               })()}
             </div>
           </div>
+          {/* Outcomes sit immediately under the chart, in the same column,
+              so the question, the chart and everything tradeable are visible
+              together — the reference layout. Previously this was a
+              full-width block below both columns, past Recent Activity. */}
+        {/* Full-width Outcomes list (Kalshi-style) — lives below both columns, not squeezed into the sidebar */}
+          {!isBinaryMkt && market && (
+            <div className="p-6 mb-6" style={PANEL}>
+            {!isBinaryMkt && (<div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">Outcomes</h2>
+              {outcomes.length >= 10 && (
+                <div className="relative w-48 sm:w-64">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search outcomes..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700/50 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
+                  />
+                </div>
+              )}
+            </div>)}
+            {(() => {
+              if (isBinaryMkt) return null;
+              const renderOutcome = (o, displayTitleOverride = null, i = 0) => {
+                const displayTitle = displayTitleOverride || o.title;
+                const isYes = displayTitle?.toLowerCase() === 'yes' || o.title?.toLowerCase().endsWith('(yes)');
+                const isNo = displayTitle?.toLowerCase() === 'no' || o.title?.toLowerCase().endsWith('(no)');
+                const isSelected = selectedOutcome?.id === o.id;
+                const isWinner = winningOutcomeSet.has(o.id);
+                const isResolvedOutcome = isOutcomeResolved(o.id) || market.status === 'resolved';
+
+                const userResolvedPreds = resolvedPositions.filter(p => p.outcome_id === o.id);
+                let userWinStatus = null;
+                if (userResolvedPreds.length > 0) {
+                  userWinStatus = userResolvedPreds.some(p => p.status === 'won') ? 'won' : 'lost';
+                }
+
+                let colorClasses = 'border-slate-700 hover:border-slate-600';
+                let textColorClass = 'text-slate-300';
+                let barColorClass = 'bg-blue-500';
+
+                if (isYes) {
+                  colorClasses = isSelected ? 'border-green-500 bg-green-500/5' : 'border-green-500/50 hover:border-green-500';
+                  textColorClass = 'text-green-400';
+                  barColorClass = 'bg-green-500';
+                } else if (isNo) {
+                  colorClasses = isSelected ? 'border-red-500 bg-red-500/5' : 'border-red-500/50 hover:border-red-500';
+                  textColorClass = 'text-red-400';
+                  barColorClass = 'bg-red-500';
+                } else if (isSelected) {
+                  colorClasses = 'border-yellow-500 bg-yellow-500/5';
+                  textColorClass = 'text-yellow-400';
+                  barColorClass = 'bg-yellow-500';
+                }
+                if (isResolvedOutcome) {
+                  colorClasses = isWinner ? 'border-green-500 bg-green-500/10' : 'border-slate-800 opacity-70';
+                  textColorClass = isWinner ? 'text-green-400' : 'text-slate-500';
+                  barColorClass = isWinner ? 'bg-green-500' : 'bg-slate-700';
+                }
+
+                let imageUrl = o.image_url;
+                if (!imageUrl && sportsMeta) {
+                  if (sportsMeta.home_team && displayTitle.includes(sportsMeta.home_team)) imageUrl = sportsMeta.home_logo;
+                  else if (sportsMeta.away_team && displayTitle.includes(sportsMeta.away_team)) imageUrl = sportsMeta.away_logo;
+                }
+
+                return (
+                  <div key={o.id}>
+                    {/* Outcome row — flat, hairline-separated, like Kalshi. Each
+                        row used to be a rounded bordered card on its own fill,
+                        which stacked into a column of chunky boxes. */}
+                    <div
+                      className={`flex items-center justify-between gap-3 px-2 py-3.5 transition-colors cursor-pointer
+                        ${isResolvedOutcome && !isWinner ? 'opacity-60' : ''}`}
+                      style={{
+                        borderTop: i === 0 ? 'none' : `1px solid ${PANEL_LINE}`,
+                        background: isSelected ? 'rgba(107,254,143,.05)' : 'transparent',
+                      }}
+                      onClick={() => market.status === 'active' && !isResolvedOutcome && setSelectedOutcome(isSelected ? null : o)}
+                    >
+                      {/* Left: title + badges */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {imageUrl && (
+                          <img src={imageUrl} alt={displayTitle} className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-700/50 bg-slate-900" />
+                        )}
+                        {!imageUrl && (
+                          <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: getOutcomeColor(o, outcomes) }} />
+                        )}
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
+                          <span className="font-medium text-white truncate">{displayTitle}</span>
+                          {isResolvedOutcome && isWinner && <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-green-300 shrink-0">Won</span>}
+                          {isResolvedOutcome && !isWinner && <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500 shrink-0">Lost</span>}
+                          {userWinStatus === 'won' && <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-green-300 shrink-0">You Won</span>}
+                          {userWinStatus === 'lost' && <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-red-300 shrink-0">You Lost</span>}
+                        </div>
+                      </div>
+
+                      {/* Middle: probability + change (Kalshi's ▲3 / ▼4) */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-white font-bold text-base">{Math.round(o.probability || 0)}%</span>
+                        {(() => {
+                          const hist = market.price_history || [];
+                          if (hist.length < 2) return null;
+                          const last = hist[hist.length - 1]?.prices?.[o.id];
+                          const prev = hist[Math.max(0, hist.length - 2)]?.prices?.[o.id];
+                          if (last == null || prev == null) return null;
+                          const d = Math.round(last - prev);
+                          if (d === 0) return null;
+                          return (
+                            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: d > 0 ? GREEN : RED }}>
+                              {d > 0 ? '\u25B2' : '\u25BC'}{Math.abs(d)}
+                            </span>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Right: Yes / No pill buttons */}
+                      {!isResolvedOutcome && market.status === 'active' && (
+                        <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                          {isYes || (!isYes && !isNo) ? (
+                            <button
+                              className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all
+                                ${isSelected
+                                  ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/20'
+                                  : 'border-green-500/60 text-green-400 hover:bg-green-500/10'}`}
+                              onClick={() => setSelectedOutcome(isSelected ? null : o)}
+                            >
+                              Yes {Math.round(o.probability || 0)}¢
+                            </button>
+                          ) : null}
+                          {isNo && (
+                            <button
+                              className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all
+                                ${isSelected
+                                  ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20'
+                                  : 'border-red-500/60 text-red-400 hover:bg-red-500/10'}`}
+                              onClick={() => setSelectedOutcome(isSelected ? null : o)}
+                            >
+                              No {Math.round(o.probability || 0)}¢
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Sell button for positions */}
+                      {userPositions[o.id] > 0 && market.status === 'active' && (
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            if (sellingOutcomeId === o.id) {
+                              setSellingOutcomeId(null); setSellAmount(''); setSellMsg('');
+                            } else {
+                              setSellingOutcomeId(o.id); setSellAmount(''); setSellMsg('');
+                            }
+                          }}
+                          className={`px-2 py-0.5 rounded text-xs font-semibold transition-all shrink-0 ${sellingOutcomeId === o.id
+                              ? 'bg-slate-700 text-slate-300'
+                              : 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30'
+                            }`}
+                        >
+                          {sellingOutcomeId === o.id ? 'Cancel' : 'Sell'}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Position info */}
+                    {userPositions[o.id] > 0 && (() => {
+                      const S = userPositions[o.id];
+                      const mtmValue = calcPositionValue(S, userAvgEntry[o.id] || 50, o.probability || 50);
+                      const unrealizedPnl = mtmValue - S;
+                      return (
+                        <div className="px-4 py-2 text-xs flex items-center gap-3 text-slate-400">
+                          <span>Cost: <span className="text-slate-300">${S.toFixed(2)}</span>{userAvgEntry[o.id] && <span className="text-slate-500 ml-1">@ {userAvgEntry[o.id].toFixed(1)}%</span>}</span>
+                          <span>·</span>
+                          <span>Value: <span className={`font-semibold ${mtmValue < S ? 'text-red-400' : mtmValue > S ? 'text-green-400' : 'text-slate-300'}`}>${mtmValue.toFixed(2)}</span></span>
+                          <span className={`text-[10px] ${unrealizedPnl < 0 ? 'text-red-500' : unrealizedPnl > 0 ? 'text-green-500' : 'text-slate-500'}`}>({unrealizedPnl >= 0 ? '+' : ''}${unrealizedPnl.toFixed(2)})</span>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Sell form */}
+                    {sellingOutcomeId === o.id && (
+                      <form
+                        onSubmit={e => handleSell(e, o.id)}
+                        className="mx-4 mb-3 mt-1 pt-3 border-t border-slate-700/50 space-y-2"
+                      >
+                        <p className="text-slate-500 text-xs">
+                          Sell at current price ({(o.probability || 50).toFixed(1)}%)
+                          {userAvgEntry[o.id] && (
+                            <span className={`ml-1 ${(o.probability || 50) >= userAvgEntry[o.id] ? 'text-green-400' : 'text-red-400'}`}>
+                              {(o.probability || 50) >= userAvgEntry[o.id] ? '↑' : '↓'} vs entry
+                            </span>
+                          )}
+                        </p>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+                            <input
+                              type="number" min="0.01" max={userPositions[o.id]} step="0.01"
+                              value={sellAmount} onChange={e => setSellAmount(e.target.value)}
+                              placeholder={`Max $${userPositions[o.id].toFixed(2)}`}
+                              className="w-full bg-slate-800 border border-slate-600 rounded-lg pl-7 pr-3 py-2 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500"
+                            />
+                          </div>
+                          <button type="button" onClick={() => setSellAmount(userPositions[o.id].toFixed(2))}
+                            className="px-3 py-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-slate-300 hover:text-white hover:border-slate-500 transition-colors">Max</button>
+                        </div>
+                        {parseFloat(sellAmount) > 0 && (
+                          <div className="bg-slate-800/60 rounded-lg p-2.5 space-y-1 text-xs">
+                            <div className="flex justify-between"><span className="text-slate-400">You receive:</span><span className="text-white font-semibold">${calcPositionValue(parseFloat(sellAmount), userAvgEntry[o.id] || 50, o.probability || 50).toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="text-slate-400">Net P&L:</span><span className={`font-semibold ${(o.probability || 50) >= (userAvgEntry[o.id] || 50) ? 'text-green-400' : 'text-red-400'}`}>{(() => { const r = calcPositionValue(parseFloat(sellAmount), userAvgEntry[o.id] || 50, o.probability || 50); const p = r - parseFloat(sellAmount); return `${p >= 0 ? '+' : ''}$${p.toFixed(2)}`; })()}</span></div>
+                          </div>
+                        )}
+                        {sellMsg && <p className={`text-xs ${sellMsg.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>{sellMsg}</p>}
+                        <button type="submit" disabled={sellLoading || !parseFloat(sellAmount) || parseFloat(sellAmount) > userPositions[o.id]}
+                          className="w-full py-2 rounded-lg text-sm font-semibold bg-red-500/20 border border-red-500/50 text-red-400 hover:bg-red-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                          {sellLoading ? 'Selling...' : `Confirm Sell $${parseFloat(sellAmount) > 0 ? parseFloat(sellAmount).toFixed(2) : '0.00'}`}
+                        </button>
+                      </form>
+                    )}
+
+                    {/* Inline Place Prediction */}
+                    {false && isSelected && market.status === 'active' && !isResolvedOutcome && (
+                      <div className="mx-4 mb-3 mt-2 pt-3 border-t border-slate-700/50" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-sm font-bold text-white mb-3">Place Prediction</h3>
+                        <form onSubmit={handleTrade} className="space-y-4">
+                          {session?.user?.id && session.user.id !== 'demo_user' && (
+                            <div className={`flex items-center justify-between rounded-lg px-3 py-2 border ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'bg-red-500/10 border-red-500/40' : 'bg-slate-800/50 border-slate-700'}`}>
+                              <span className="text-slate-400 text-xs font-medium">💰 Buying Power</span>
+                              <span className={`text-sm font-bold ${buyingPowerLoading ? 'text-slate-500' : buyingPower === null ? 'text-slate-500' : parseFloat(stake) > safeBuyingPower ? 'text-red-400' : 'text-green-400'}`}>
+                                {buyingPowerLoading ? '...' : safeBuyingPower !== null ? `$${safeBuyingPower.toFixed(2)}` : 'N/A'}
+                              </span>
+                            </div>
+                          )}
+                          <div>
+                            <div className="flex justify-between items-center mb-1">
+                              <label className="block text-slate-300 text-xs font-medium">Stake Amount</label>
+                              {safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && (
+                                <button type="button" onClick={() => setStake(safeBuyingPower.toFixed(2))} className="text-xs text-yellow-500 hover:text-yellow-400 transition-colors">Max</button>
+                              )}
+                            </div>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+                              <input type="number" min="0.01" max={safeBuyingPower !== null && session?.user?.id !== 'demo_user' ? safeBuyingPower : undefined}
+                                step="0.01" value={stake} onChange={e => setStake(e.target.value)} placeholder="10.00" required
+                                className={`w-full bg-slate-900 border rounded-lg px-4 pl-7 py-2 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-1 ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'border-red-500 focus:ring-red-500/50' : 'border-slate-600 focus:ring-yellow-500/50 focus:border-yellow-500'}`}
+                              />
+                            </div>
+                            {safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower && (
+                              <p className="text-red-400 text-xs mt-1.5 flex items-center gap-1"><span>⚠</span><span>Exceeds buying power</span></p>
+                            )}
+                          </div>
+                          {payout && (
+                            <div className="bg-slate-800/40 border border-slate-700/50 rounded-lg p-3 space-y-2">
+                              <div className="flex justify-between items-center"><span className="text-green-400/80 text-xs">Expected Win:</span><span className="text-green-400 text-sm font-bold">${payout.winReturn.toFixed(2)}</span></div>
+                              <div className="flex justify-between items-center"><span className="text-red-400/80 text-xs">Expected Loss (Refund):</span><span className="text-red-400 text-sm font-bold">${payout.loseRefund.toFixed(2)}</span></div>
+                            </div>
+                          )}
+                          {tradeMsg && (
+                            <div className={`rounded-lg p-2 text-xs ${tradeMsg.startsWith('✅') ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{tradeMsg}</div>
+                          )}
+                          {!session ? (
+                            <button type="button" onClick={openAuthModal} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-sm font-bold py-2 rounded-lg transition-all">Sign in to trade</button>
+                          ) : (
+                            <button type="submit" disabled={tradeLoading || (safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower)}
+                              className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 disabled:from-slate-700 disabled:to-slate-700 text-slate-950 disabled:text-slate-500 text-sm font-bold py-2 rounded-lg transition-all">
+                              {tradeLoading ? 'Placing...' : 'Confirm Prediction'}
+                            </button>
+                          )}
+                        </form>
+                      </div>
+                    )}
+                  </div>
+                );
+              };
+
+              // Helper to render the trade form inline
+              const renderTradeForm = (o) => (
+                <div className="px-4 pb-4 pt-3 border-t border-slate-700/50" onClick={e => e.stopPropagation()}>
+                  <h3 className="text-sm font-bold text-white mb-3">
+                    Place Prediction &mdash; <span className={o.title && o.title.toLowerCase() === 'no' ? 'text-red-400' : 'text-green-400'}>{o.title}</span>
+                  </h3>
+                  <form onSubmit={handleTrade} className="space-y-3">
+                    {session && session.user && session.user.id && session.user.id !== 'demo_user' && (
+                      <div className={`flex items-center justify-between rounded-lg px-3 py-2 border ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'bg-red-500/10 border-red-500/40' : 'bg-slate-800/50 border-slate-700'}`}>
+                        <span className="text-slate-400 text-xs font-medium">Buying Power</span>
+                        <span className={`text-sm font-bold ${buyingPowerLoading ? 'text-slate-500' : buyingPower === null ? 'text-slate-500' : parseFloat(stake) > safeBuyingPower ? 'text-red-400' : 'text-green-400'}`}>
+                          {buyingPowerLoading ? '...' : safeBuyingPower !== null ? '$' + safeBuyingPower.toFixed(2) : 'N/A'}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-slate-300 text-xs font-medium">Stake Amount</label>
+                        {safeBuyingPower !== null && session && session.user && session.user.id && session.user.id !== 'demo_user' && (
+                          <button type="button" onClick={() => setStake(safeBuyingPower.toFixed(2))} className="text-xs text-yellow-500 hover:text-yellow-400 transition-colors">Max</button>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+                        <input type="number" min="0.01" max={safeBuyingPower !== null && session && session.user && session.user.id !== 'demo_user' ? safeBuyingPower : undefined}
+                          step="0.01" value={stake} onChange={e => setStake(e.target.value)} placeholder="10.00" required
+                          className={`w-full bg-slate-900 border rounded-lg px-4 pl-7 py-2 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-1 ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'border-red-500 focus:ring-red-500/50' : 'border-slate-600 focus:ring-yellow-500/50 focus:border-yellow-500'}`}
+                        />
+                      </div>
+                      {safeBuyingPower !== null && session && session.user && session.user.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower && (
+                        <p className="text-red-400 text-xs mt-1.5 flex items-center gap-1"><span>!</span><span>Exceeds buying power</span></p>
+                      )}
+                    </div>
+                    {payout && (
+                      <div className="bg-slate-800/40 border border-slate-700/50 rounded-lg p-3 space-y-1.5">
+                        <div className="flex justify-between items-center"><span className="text-green-400/80 text-xs">Expected Win:</span><span className="text-green-400 text-sm font-bold">${payout.winReturn.toFixed(2)}</span></div>
+                        <div className="flex justify-between items-center"><span className="text-red-400/80 text-xs">Expected Loss (Refund):</span><span className="text-red-400 text-sm font-bold">${payout.loseRefund.toFixed(2)}</span></div>
+                      </div>
+                    )}
+                    {tradeMsg && <div className={`rounded-lg p-2 text-xs ${tradeMsg.startsWith('✅') ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{tradeMsg}</div>}
+                    {!session ? (
+                      <button type="button" onClick={openAuthModal} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-sm font-bold py-2 rounded-lg transition-all">Sign in to trade</button>
+                    ) : (
+                      <button type="submit" disabled={tradeLoading || (safeBuyingPower !== null && session.user && session.user.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower)}
+                        className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 disabled:from-slate-700 disabled:to-slate-700 text-slate-950 disabled:text-slate-500 text-sm font-bold py-2 rounded-lg transition-all">
+                        {tradeLoading ? 'Placing...' : 'Confirm Prediction'}
+                      </button>
+                    )}
+                  </form>
+                </div>
+              );
+
+              // Render yes + no as a single horizontal row
+              const renderPairRow = (yes, no, rowTitle) => {
+                const yesSelected = selectedOutcome && selectedOutcome.id === yes.id;
+                const noSelected = selectedOutcome && selectedOutcome.id === no.id;
+                const isResolvedYes = isOutcomeResolved(yes.id) || market.status === 'resolved';
+                const isWinnerYes = winningOutcomeSet.has(yes.id);
+                const isWinnerNo = winningOutcomeSet.has(no.id);
+                const activeOutcome = yesSelected ? yes : noSelected ? no : null;
+                const imageUrl = yes.image_url || no.image_url || (() => {
+                  if (!sportsMeta) return null;
+                  if (sportsMeta.home_team && rowTitle.includes(sportsMeta.home_team)) return sportsMeta.home_logo;
+                  if (sportsMeta.away_team && rowTitle.includes(sportsMeta.away_team)) return sportsMeta.away_logo;
+                  return null;
+                })();
+                return (
+                  <div key={yes.id} style={{ borderTop: `1px solid ${PANEL_LINE}` }}>
+                    <div className="flex items-center gap-3 px-4 py-3.5">
+                      {imageUrl && (
+                        <img src={imageUrl} alt={rowTitle} className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-700/50 bg-slate-900" />
+                      )}
+                      <span className="flex-1 font-medium text-white truncate min-w-0">{rowTitle}</span>
+                      {!isResolvedYes ? (
+                        <span className="text-white font-bold text-sm shrink-0 w-12 text-right">{Math.round(yes.probability || 0)}%</span>
+                      ) : (
+                        <span className="shrink-0">
+                          {isWinnerYes && <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-green-300">Yes Won</span>}
+                          {isWinnerNo && <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-red-300">No Won</span>}
+                        </span>
+                      )}
+                      {market.status === 'active' && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          {!isResolvedYes && (
+                            <button className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all ${yesSelected ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/20' : 'border-green-500/60 text-green-400 hover:bg-green-500/10'}`}
+                              onClick={() => setSelectedOutcome(yesSelected ? null : yes)}>
+                              Yes {Math.round(yes.probability || 0)}&cent;
+                            </button>
+                          )}
+                          {!isResolvedYes && (
+                            <button className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all ${noSelected ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20' : 'border-red-500/60 text-red-400 hover:bg-red-500/10'}`}
+                              onClick={() => setSelectedOutcome(noSelected ? null : no)}>
+                              No {Math.round(no.probability || 0)}&cent;
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {/* Selecting Yes/No here updates the sticky Buy/Sell panel above —
+                        no duplicate inline form, matching Kalshi's compact row list */}
+                  </div>
+                );
+              };
+
+              const renderOutcomesBlock = (outcomesToRender) => {
+                // Multi-binary: each question has a _yes / _no pair
+                if (isMultiMultiple && hasYesNoPairs) {
+                  return (
+                    <div>
+                      {outcomesToRender.filter(o => o.id.endsWith('_yes')).filter(yes => {
+                        const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
+                        return baseTitle.toLowerCase().includes(searchQuery.toLowerCase());
+                      }).map(yes => {
+                        const no = outcomesToRender.find(o => o.id === yes.id.replace('_yes', '_no'));
+                        if (!yes || !no) return null;
+                        const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
+                        return renderPairRow(yes, no, baseTitle);
+                      })}
+                    </div>
+                  );
+                }
+                // Simple binary (just Yes + No)
+                const yesO = outcomesToRender.find(o => o.title && o.title.toLowerCase() === 'yes');
+                const noO = outcomesToRender.find(o => o.title && o.title.toLowerCase() === 'no');
+                if (yesO && noO && outcomesToRender.length === 2) {
+                  return <div>{renderPairRow(yesO, noO, market.title)}</div>;
+                }
+                // Multi-outcome without pairs. Long lists collapse to the first
+                // COLLAPSED_OUTCOMES rows with a toggle, rather than running on
+                // for dozens of rows — Kalshi's "More markets" behaviour.
+                const filteredOutcomes = outcomesToRender.filter(o => o.title.toLowerCase().includes(searchQuery.toLowerCase()));
+                const collapsible = !searchQuery && filteredOutcomes.length > COLLAPSED_OUTCOMES;
+                const visible = collapsible && !showAllOutcomes
+                  ? filteredOutcomes.slice(0, COLLAPSED_OUTCOMES)
+                  : filteredOutcomes;
+                return (
+                  <div>
+                    {visible.map((o, i) => renderOutcome(o, null, i))}
+                    {collapsible && (
+                      <button
+                        onClick={() => setShowAllOutcomes(v => !v)}
+                        style={{
+                          display: 'block', width: '100%', textAlign: 'left',
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          borderTop: `1px solid ${PANEL_LINE}`,
+                          padding: '14px 8px 4px', color: LABEL,
+                          fontSize: 13.5, fontWeight: 600,
+                        }}
+                      >
+                        {showAllOutcomes
+                          ? 'See less markets'
+                          : `See more markets (${filteredOutcomes.length - COLLAPSED_OUTCOMES})`}
+                      </button>
+                    )}
+                  </div>
+                );
+              };
+
+              const unresolvedOutcomesList = outcomes.filter(o => !isOutcomeResolved(o.id));
+              const resolvedOutcomesList = outcomes.filter(o => isOutcomeResolved(o.id));
+
+              return (
+                <div className="space-y-8">
+                  {unresolvedOutcomesList.length > 0 && (
+                    <div>
+                      {isPartiallyResolved && <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Open Options</h3>}
+                      {/* Column header over the probability column, as in the
+                          reference — the percentages were previously unlabelled. */}
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: 8, paddingBottom: 6 }}>
+                        <span style={{ ...microLabel, fontSize: 9, color: LABEL, marginRight: 150 }}>Chance</span>
+                      </div>
+                      {renderOutcomesBlock(unresolvedOutcomesList)}
+                    </div>
+                  )}
+                  {resolvedOutcomesList.length > 0 && (
+                    <div className={unresolvedOutcomesList.length > 0 ? 'pt-6 border-t border-slate-800' : ''}>
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Resolved Options</h3>
+                      {renderOutcomesBlock(resolvedOutcomesList)}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            </div>
+          )}
+
           {/* Recent Activity (mock: bordered panel, mono uppercase columns, trend icons) */}
           {recentActivity.length > 0 && (
             <div className="mb-6" style={PANEL}>
@@ -1099,471 +1584,10 @@ export default function MarketDetailPage() {
           )}
         </div>
       </div>
-        {/* Full-width Outcomes list (Kalshi-style) — lives below both columns, not squeezed into the sidebar */}
-        {!isBinaryMkt && market && (
-          <div className="p-6 mt-6" style={PANEL}>
-          {!isBinaryMkt && (<div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white">Outcomes</h2>
-            {outcomes.length >= 10 && (
-              <div className="relative w-48 sm:w-64">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search outcomes..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700/50 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
-                />
-              </div>
-            )}
-          </div>)}
-          {(() => {
-            if (isBinaryMkt) return null;
-            const renderOutcome = (o, displayTitleOverride = null, i = 0) => {
-              const displayTitle = displayTitleOverride || o.title;
-              const isYes = displayTitle?.toLowerCase() === 'yes' || o.title?.toLowerCase().endsWith('(yes)');
-              const isNo = displayTitle?.toLowerCase() === 'no' || o.title?.toLowerCase().endsWith('(no)');
-              const isSelected = selectedOutcome?.id === o.id;
-              const isWinner = winningOutcomeSet.has(o.id);
-              const isResolvedOutcome = isOutcomeResolved(o.id) || market.status === 'resolved';
-
-              const userResolvedPreds = resolvedPositions.filter(p => p.outcome_id === o.id);
-              let userWinStatus = null;
-              if (userResolvedPreds.length > 0) {
-                userWinStatus = userResolvedPreds.some(p => p.status === 'won') ? 'won' : 'lost';
-              }
-
-              let colorClasses = 'border-slate-700 hover:border-slate-600';
-              let textColorClass = 'text-slate-300';
-              let barColorClass = 'bg-blue-500';
-
-              if (isYes) {
-                colorClasses = isSelected ? 'border-green-500 bg-green-500/5' : 'border-green-500/50 hover:border-green-500';
-                textColorClass = 'text-green-400';
-                barColorClass = 'bg-green-500';
-              } else if (isNo) {
-                colorClasses = isSelected ? 'border-red-500 bg-red-500/5' : 'border-red-500/50 hover:border-red-500';
-                textColorClass = 'text-red-400';
-                barColorClass = 'bg-red-500';
-              } else if (isSelected) {
-                colorClasses = 'border-yellow-500 bg-yellow-500/5';
-                textColorClass = 'text-yellow-400';
-                barColorClass = 'bg-yellow-500';
-              }
-              if (isResolvedOutcome) {
-                colorClasses = isWinner ? 'border-green-500 bg-green-500/10' : 'border-slate-800 opacity-70';
-                textColorClass = isWinner ? 'text-green-400' : 'text-slate-500';
-                barColorClass = isWinner ? 'bg-green-500' : 'bg-slate-700';
-              }
-
-              let imageUrl = o.image_url;
-              if (!imageUrl && sportsMeta) {
-                if (sportsMeta.home_team && displayTitle.includes(sportsMeta.home_team)) imageUrl = sportsMeta.home_logo;
-                else if (sportsMeta.away_team && displayTitle.includes(sportsMeta.away_team)) imageUrl = sportsMeta.away_logo;
-              }
-
-              return (
-                <div key={o.id}>
-                  {/* Outcome row — flat, hairline-separated, like Kalshi. Each
-                      row used to be a rounded bordered card on its own fill,
-                      which stacked into a column of chunky boxes. */}
-                  <div
-                    className={`flex items-center justify-between gap-3 px-2 py-3.5 transition-colors cursor-pointer
-                      ${isResolvedOutcome && !isWinner ? 'opacity-60' : ''}`}
-                    style={{
-                      borderTop: i === 0 ? 'none' : `1px solid ${PANEL_LINE}`,
-                      background: isSelected ? 'rgba(107,254,143,.05)' : 'transparent',
-                    }}
-                    onClick={() => market.status === 'active' && !isResolvedOutcome && setSelectedOutcome(isSelected ? null : o)}
-                  >
-                    {/* Left: title + badges */}
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {imageUrl && (
-                        <img src={imageUrl} alt={displayTitle} className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-700/50 bg-slate-900" />
-                      )}
-                      {!imageUrl && (
-                        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: getOutcomeColor(o, outcomes) }} />
-                      )}
-                      <div className="flex flex-wrap items-center gap-2 min-w-0">
-                        <span className="font-medium text-white truncate">{displayTitle}</span>
-                        {isResolvedOutcome && isWinner && <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-green-300 shrink-0">Won</span>}
-                        {isResolvedOutcome && !isWinner && <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500 shrink-0">Lost</span>}
-                        {userWinStatus === 'won' && <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-green-300 shrink-0">You Won</span>}
-                        {userWinStatus === 'lost' && <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-red-300 shrink-0">You Lost</span>}
-                      </div>
-                    </div>
-
-                    {/* Middle: probability + change (Kalshi's ▲3 / ▼4) */}
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-white font-bold text-base">{Math.round(o.probability || 0)}%</span>
-                      {(() => {
-                        const hist = market.price_history || [];
-                        if (hist.length < 2) return null;
-                        const last = hist[hist.length - 1]?.prices?.[o.id];
-                        const prev = hist[Math.max(0, hist.length - 2)]?.prices?.[o.id];
-                        if (last == null || prev == null) return null;
-                        const d = Math.round(last - prev);
-                        if (d === 0) return null;
-                        return (
-                          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: d > 0 ? GREEN : RED }}>
-                            {d > 0 ? '\u25B2' : '\u25BC'}{Math.abs(d)}
-                          </span>
-                        );
-                      })()}
-                    </div>
-
-                    {/* Right: Yes / No pill buttons */}
-                    {!isResolvedOutcome && market.status === 'active' && (
-                      <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
-                        {isYes || (!isYes && !isNo) ? (
-                          <button
-                            className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all
-                              ${isSelected
-                                ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/20'
-                                : 'border-green-500/60 text-green-400 hover:bg-green-500/10'}`}
-                            onClick={() => setSelectedOutcome(isSelected ? null : o)}
-                          >
-                            Yes {Math.round(o.probability || 0)}¢
-                          </button>
-                        ) : null}
-                        {isNo && (
-                          <button
-                            className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all
-                              ${isSelected
-                                ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20'
-                                : 'border-red-500/60 text-red-400 hover:bg-red-500/10'}`}
-                            onClick={() => setSelectedOutcome(isSelected ? null : o)}
-                          >
-                            No {Math.round(o.probability || 0)}¢
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Sell button for positions */}
-                    {userPositions[o.id] > 0 && market.status === 'active' && (
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          if (sellingOutcomeId === o.id) {
-                            setSellingOutcomeId(null); setSellAmount(''); setSellMsg('');
-                          } else {
-                            setSellingOutcomeId(o.id); setSellAmount(''); setSellMsg('');
-                          }
-                        }}
-                        className={`px-2 py-0.5 rounded text-xs font-semibold transition-all shrink-0 ${sellingOutcomeId === o.id
-                            ? 'bg-slate-700 text-slate-300'
-                            : 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30'
-                          }`}
-                      >
-                        {sellingOutcomeId === o.id ? 'Cancel' : 'Sell'}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Position info */}
-                  {userPositions[o.id] > 0 && (() => {
-                    const S = userPositions[o.id];
-                    const mtmValue = calcPositionValue(S, userAvgEntry[o.id] || 50, o.probability || 50);
-                    const unrealizedPnl = mtmValue - S;
-                    return (
-                      <div className="px-4 py-2 text-xs flex items-center gap-3 text-slate-400">
-                        <span>Cost: <span className="text-slate-300">${S.toFixed(2)}</span>{userAvgEntry[o.id] && <span className="text-slate-500 ml-1">@ {userAvgEntry[o.id].toFixed(1)}%</span>}</span>
-                        <span>·</span>
-                        <span>Value: <span className={`font-semibold ${mtmValue < S ? 'text-red-400' : mtmValue > S ? 'text-green-400' : 'text-slate-300'}`}>${mtmValue.toFixed(2)}</span></span>
-                        <span className={`text-[10px] ${unrealizedPnl < 0 ? 'text-red-500' : unrealizedPnl > 0 ? 'text-green-500' : 'text-slate-500'}`}>({unrealizedPnl >= 0 ? '+' : ''}${unrealizedPnl.toFixed(2)})</span>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Sell form */}
-                  {sellingOutcomeId === o.id && (
-                    <form
-                      onSubmit={e => handleSell(e, o.id)}
-                      className="mx-4 mb-3 mt-1 pt-3 border-t border-slate-700/50 space-y-2"
-                    >
-                      <p className="text-slate-500 text-xs">
-                        Sell at current price ({(o.probability || 50).toFixed(1)}%)
-                        {userAvgEntry[o.id] && (
-                          <span className={`ml-1 ${(o.probability || 50) >= userAvgEntry[o.id] ? 'text-green-400' : 'text-red-400'}`}>
-                            {(o.probability || 50) >= userAvgEntry[o.id] ? '↑' : '↓'} vs entry
-                          </span>
-                        )}
-                      </p>
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
-                          <input
-                            type="number" min="0.01" max={userPositions[o.id]} step="0.01"
-                            value={sellAmount} onChange={e => setSellAmount(e.target.value)}
-                            placeholder={`Max $${userPositions[o.id].toFixed(2)}`}
-                            className="w-full bg-slate-800 border border-slate-600 rounded-lg pl-7 pr-3 py-2 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500"
-                          />
-                        </div>
-                        <button type="button" onClick={() => setSellAmount(userPositions[o.id].toFixed(2))}
-                          className="px-3 py-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-slate-300 hover:text-white hover:border-slate-500 transition-colors">Max</button>
-                      </div>
-                      {parseFloat(sellAmount) > 0 && (
-                        <div className="bg-slate-800/60 rounded-lg p-2.5 space-y-1 text-xs">
-                          <div className="flex justify-between"><span className="text-slate-400">You receive:</span><span className="text-white font-semibold">${calcPositionValue(parseFloat(sellAmount), userAvgEntry[o.id] || 50, o.probability || 50).toFixed(2)}</span></div>
-                          <div className="flex justify-between"><span className="text-slate-400">Net P&L:</span><span className={`font-semibold ${(o.probability || 50) >= (userAvgEntry[o.id] || 50) ? 'text-green-400' : 'text-red-400'}`}>{(() => { const r = calcPositionValue(parseFloat(sellAmount), userAvgEntry[o.id] || 50, o.probability || 50); const p = r - parseFloat(sellAmount); return `${p >= 0 ? '+' : ''}$${p.toFixed(2)}`; })()}</span></div>
-                        </div>
-                      )}
-                      {sellMsg && <p className={`text-xs ${sellMsg.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>{sellMsg}</p>}
-                      <button type="submit" disabled={sellLoading || !parseFloat(sellAmount) || parseFloat(sellAmount) > userPositions[o.id]}
-                        className="w-full py-2 rounded-lg text-sm font-semibold bg-red-500/20 border border-red-500/50 text-red-400 hover:bg-red-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-                        {sellLoading ? 'Selling...' : `Confirm Sell $${parseFloat(sellAmount) > 0 ? parseFloat(sellAmount).toFixed(2) : '0.00'}`}
-                      </button>
-                    </form>
-                  )}
-
-                  {/* Inline Place Prediction */}
-                  {false && isSelected && market.status === 'active' && !isResolvedOutcome && (
-                    <div className="mx-4 mb-3 mt-2 pt-3 border-t border-slate-700/50" onClick={e => e.stopPropagation()}>
-                      <h3 className="text-sm font-bold text-white mb-3">Place Prediction</h3>
-                      <form onSubmit={handleTrade} className="space-y-4">
-                        {session?.user?.id && session.user.id !== 'demo_user' && (
-                          <div className={`flex items-center justify-between rounded-lg px-3 py-2 border ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'bg-red-500/10 border-red-500/40' : 'bg-slate-800/50 border-slate-700'}`}>
-                            <span className="text-slate-400 text-xs font-medium">💰 Buying Power</span>
-                            <span className={`text-sm font-bold ${buyingPowerLoading ? 'text-slate-500' : buyingPower === null ? 'text-slate-500' : parseFloat(stake) > safeBuyingPower ? 'text-red-400' : 'text-green-400'}`}>
-                              {buyingPowerLoading ? '...' : safeBuyingPower !== null ? `$${safeBuyingPower.toFixed(2)}` : 'N/A'}
-                            </span>
-                          </div>
-                        )}
-                        <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <label className="block text-slate-300 text-xs font-medium">Stake Amount</label>
-                            {safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && (
-                              <button type="button" onClick={() => setStake(safeBuyingPower.toFixed(2))} className="text-xs text-yellow-500 hover:text-yellow-400 transition-colors">Max</button>
-                            )}
-                          </div>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
-                            <input type="number" min="0.01" max={safeBuyingPower !== null && session?.user?.id !== 'demo_user' ? safeBuyingPower : undefined}
-                              step="0.01" value={stake} onChange={e => setStake(e.target.value)} placeholder="10.00" required
-                              className={`w-full bg-slate-900 border rounded-lg px-4 pl-7 py-2 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-1 ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'border-red-500 focus:ring-red-500/50' : 'border-slate-600 focus:ring-yellow-500/50 focus:border-yellow-500'}`}
-                            />
-                          </div>
-                          {safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower && (
-                            <p className="text-red-400 text-xs mt-1.5 flex items-center gap-1"><span>⚠</span><span>Exceeds buying power</span></p>
-                          )}
-                        </div>
-                        {payout && (
-                          <div className="bg-slate-800/40 border border-slate-700/50 rounded-lg p-3 space-y-2">
-                            <div className="flex justify-between items-center"><span className="text-green-400/80 text-xs">Expected Win:</span><span className="text-green-400 text-sm font-bold">${payout.winReturn.toFixed(2)}</span></div>
-                            <div className="flex justify-between items-center"><span className="text-red-400/80 text-xs">Expected Loss (Refund):</span><span className="text-red-400 text-sm font-bold">${payout.loseRefund.toFixed(2)}</span></div>
-                          </div>
-                        )}
-                        {tradeMsg && (
-                          <div className={`rounded-lg p-2 text-xs ${tradeMsg.startsWith('✅') ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{tradeMsg}</div>
-                        )}
-                        {!session ? (
-                          <button type="button" onClick={openAuthModal} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-sm font-bold py-2 rounded-lg transition-all">Sign in to trade</button>
-                        ) : (
-                          <button type="submit" disabled={tradeLoading || (safeBuyingPower !== null && session?.user?.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower)}
-                            className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 disabled:from-slate-700 disabled:to-slate-700 text-slate-950 disabled:text-slate-500 text-sm font-bold py-2 rounded-lg transition-all">
-                            {tradeLoading ? 'Placing...' : 'Confirm Prediction'}
-                          </button>
-                        )}
-                      </form>
-                    </div>
-                  )}
-                </div>
-              );
-            };
-
-            // Helper to render the trade form inline
-            const renderTradeForm = (o) => (
-              <div className="px-4 pb-4 pt-3 border-t border-slate-700/50" onClick={e => e.stopPropagation()}>
-                <h3 className="text-sm font-bold text-white mb-3">
-                  Place Prediction &mdash; <span className={o.title && o.title.toLowerCase() === 'no' ? 'text-red-400' : 'text-green-400'}>{o.title}</span>
-                </h3>
-                <form onSubmit={handleTrade} className="space-y-3">
-                  {session && session.user && session.user.id && session.user.id !== 'demo_user' && (
-                    <div className={`flex items-center justify-between rounded-lg px-3 py-2 border ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'bg-red-500/10 border-red-500/40' : 'bg-slate-800/50 border-slate-700'}`}>
-                      <span className="text-slate-400 text-xs font-medium">Buying Power</span>
-                      <span className={`text-sm font-bold ${buyingPowerLoading ? 'text-slate-500' : buyingPower === null ? 'text-slate-500' : parseFloat(stake) > safeBuyingPower ? 'text-red-400' : 'text-green-400'}`}>
-                        {buyingPowerLoading ? '...' : safeBuyingPower !== null ? '$' + safeBuyingPower.toFixed(2) : 'N/A'}
-                      </span>
-                    </div>
-                  )}
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="block text-slate-300 text-xs font-medium">Stake Amount</label>
-                      {safeBuyingPower !== null && session && session.user && session.user.id && session.user.id !== 'demo_user' && (
-                        <button type="button" onClick={() => setStake(safeBuyingPower.toFixed(2))} className="text-xs text-yellow-500 hover:text-yellow-400 transition-colors">Max</button>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
-                      <input type="number" min="0.01" max={safeBuyingPower !== null && session && session.user && session.user.id !== 'demo_user' ? safeBuyingPower : undefined}
-                        step="0.01" value={stake} onChange={e => setStake(e.target.value)} placeholder="10.00" required
-                        className={`w-full bg-slate-900 border rounded-lg px-4 pl-7 py-2 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-1 ${safeBuyingPower !== null && parseFloat(stake) > safeBuyingPower ? 'border-red-500 focus:ring-red-500/50' : 'border-slate-600 focus:ring-yellow-500/50 focus:border-yellow-500'}`}
-                      />
-                    </div>
-                    {safeBuyingPower !== null && session && session.user && session.user.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower && (
-                      <p className="text-red-400 text-xs mt-1.5 flex items-center gap-1"><span>!</span><span>Exceeds buying power</span></p>
-                    )}
-                  </div>
-                  {payout && (
-                    <div className="bg-slate-800/40 border border-slate-700/50 rounded-lg p-3 space-y-1.5">
-                      <div className="flex justify-between items-center"><span className="text-green-400/80 text-xs">Expected Win:</span><span className="text-green-400 text-sm font-bold">${payout.winReturn.toFixed(2)}</span></div>
-                      <div className="flex justify-between items-center"><span className="text-red-400/80 text-xs">Expected Loss (Refund):</span><span className="text-red-400 text-sm font-bold">${payout.loseRefund.toFixed(2)}</span></div>
-                    </div>
-                  )}
-                  {tradeMsg && <div className={`rounded-lg p-2 text-xs ${tradeMsg.startsWith('✅') ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{tradeMsg}</div>}
-                  {!session ? (
-                    <button type="button" onClick={openAuthModal} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-sm font-bold py-2 rounded-lg transition-all">Sign in to trade</button>
-                  ) : (
-                    <button type="submit" disabled={tradeLoading || (safeBuyingPower !== null && session.user && session.user.id && session.user.id !== 'demo_user' && parseFloat(stake) > safeBuyingPower)}
-                      className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 disabled:from-slate-700 disabled:to-slate-700 text-slate-950 disabled:text-slate-500 text-sm font-bold py-2 rounded-lg transition-all">
-                      {tradeLoading ? 'Placing...' : 'Confirm Prediction'}
-                    </button>
-                  )}
-                </form>
-              </div>
-            );
-
-            // Render yes + no as a single horizontal row
-            const renderPairRow = (yes, no, rowTitle) => {
-              const yesSelected = selectedOutcome && selectedOutcome.id === yes.id;
-              const noSelected = selectedOutcome && selectedOutcome.id === no.id;
-              const isResolvedYes = isOutcomeResolved(yes.id) || market.status === 'resolved';
-              const isWinnerYes = winningOutcomeSet.has(yes.id);
-              const isWinnerNo = winningOutcomeSet.has(no.id);
-              const activeOutcome = yesSelected ? yes : noSelected ? no : null;
-              const imageUrl = yes.image_url || no.image_url || (() => {
-                if (!sportsMeta) return null;
-                if (sportsMeta.home_team && rowTitle.includes(sportsMeta.home_team)) return sportsMeta.home_logo;
-                if (sportsMeta.away_team && rowTitle.includes(sportsMeta.away_team)) return sportsMeta.away_logo;
-                return null;
-              })();
-              return (
-                <div key={yes.id} style={{ borderTop: `1px solid ${PANEL_LINE}` }}>
-                  <div className="flex items-center gap-3 px-4 py-3.5">
-                    {imageUrl && (
-                      <img src={imageUrl} alt={rowTitle} className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-700/50 bg-slate-900" />
-                    )}
-                    <span className="flex-1 font-medium text-white truncate min-w-0">{rowTitle}</span>
-                    {!isResolvedYes ? (
-                      <span className="text-white font-bold text-sm shrink-0 w-12 text-right">{Math.round(yes.probability || 0)}%</span>
-                    ) : (
-                      <span className="shrink-0">
-                        {isWinnerYes && <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-green-300">Yes Won</span>}
-                        {isWinnerNo && <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-red-300">No Won</span>}
-                      </span>
-                    )}
-                    {market.status === 'active' && (
-                      <div className="flex items-center gap-2 shrink-0">
-                        {!isResolvedYes && (
-                          <button className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all ${yesSelected ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/20' : 'border-green-500/60 text-green-400 hover:bg-green-500/10'}`}
-                            onClick={() => setSelectedOutcome(yesSelected ? null : yes)}>
-                            Yes {Math.round(yes.probability || 0)}&cent;
-                          </button>
-                        )}
-                        {!isResolvedYes && (
-                          <button className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all ${noSelected ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20' : 'border-red-500/60 text-red-400 hover:bg-red-500/10'}`}
-                            onClick={() => setSelectedOutcome(noSelected ? null : no)}>
-                            No {Math.round(no.probability || 0)}&cent;
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {/* Selecting Yes/No here updates the sticky Buy/Sell panel above —
-                      no duplicate inline form, matching Kalshi's compact row list */}
-                </div>
-              );
-            };
-
-            const renderOutcomesBlock = (outcomesToRender) => {
-              // Multi-binary: each question has a _yes / _no pair
-              if (isMultiMultiple && hasYesNoPairs) {
-                return (
-                  <div>
-                    {outcomesToRender.filter(o => o.id.endsWith('_yes')).filter(yes => {
-                      const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
-                      return baseTitle.toLowerCase().includes(searchQuery.toLowerCase());
-                    }).map(yes => {
-                      const no = outcomesToRender.find(o => o.id === yes.id.replace('_yes', '_no'));
-                      if (!yes || !no) return null;
-                      const baseTitle = yes.title.replace(/\s*\(Yes\)$/i, '');
-                      return renderPairRow(yes, no, baseTitle);
-                    })}
-                  </div>
-                );
-              }
-              // Simple binary (just Yes + No)
-              const yesO = outcomesToRender.find(o => o.title && o.title.toLowerCase() === 'yes');
-              const noO = outcomesToRender.find(o => o.title && o.title.toLowerCase() === 'no');
-              if (yesO && noO && outcomesToRender.length === 2) {
-                return <div>{renderPairRow(yesO, noO, market.title)}</div>;
-              }
-              // Multi-outcome without pairs. Long lists collapse to the first
-              // COLLAPSED_OUTCOMES rows with a toggle, rather than running on
-              // for dozens of rows — Kalshi's "More markets" behaviour.
-              const filteredOutcomes = outcomesToRender.filter(o => o.title.toLowerCase().includes(searchQuery.toLowerCase()));
-              const collapsible = !searchQuery && filteredOutcomes.length > COLLAPSED_OUTCOMES;
-              const visible = collapsible && !showAllOutcomes
-                ? filteredOutcomes.slice(0, COLLAPSED_OUTCOMES)
-                : filteredOutcomes;
-              return (
-                <div>
-                  {visible.map((o, i) => renderOutcome(o, null, i))}
-                  {collapsible && (
-                    <button
-                      onClick={() => setShowAllOutcomes(v => !v)}
-                      style={{
-                        display: 'block', width: '100%', textAlign: 'left',
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        borderTop: `1px solid ${PANEL_LINE}`,
-                        padding: '14px 8px 4px', color: LABEL,
-                        fontSize: 13.5, fontWeight: 600,
-                      }}
-                    >
-                      {showAllOutcomes
-                        ? 'See less markets'
-                        : `See more markets (${filteredOutcomes.length - COLLAPSED_OUTCOMES})`}
-                    </button>
-                  )}
-                </div>
-              );
-            };
-
-            const unresolvedOutcomesList = outcomes.filter(o => !isOutcomeResolved(o.id));
-            const resolvedOutcomesList = outcomes.filter(o => isOutcomeResolved(o.id));
-
-            return (
-              <div className="space-y-8">
-                {unresolvedOutcomesList.length > 0 && (
-                  <div>
-                    {isPartiallyResolved && <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Open Options</h3>}
-                    {/* Column header over the probability column, as in the
-                        reference — the percentages were previously unlabelled. */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: 8, paddingBottom: 6 }}>
-                      <span style={{ ...microLabel, fontSize: 9, color: LABEL, marginRight: 150 }}>Chance</span>
-                    </div>
-                    {renderOutcomesBlock(unresolvedOutcomesList)}
-                  </div>
-                )}
-                {resolvedOutcomesList.length > 0 && (
-                  <div className={unresolvedOutcomesList.length > 0 ? 'pt-6 border-t border-slate-800' : ''}>
-                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Resolved Options</h3>
-                    {renderOutcomesBlock(resolvedOutcomesList)}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-          </div>
-        )}
-
         {/* Comments sit below the outcomes, as on Kalshi — reading the market
             and placing a trade come first, discussion after. */}
         {market && (
-          <div className="mt-6">
+          <div className="mt-6" id="market-comments">
             <CommentsSection marketId={market.id} />
           </div>
         )}
