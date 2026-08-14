@@ -1,0 +1,81 @@
+# Continuous market refresh
+#
+# Vercel Hobby caps us at two cron jobs with daily granularity, and a sub-daily
+# entry in vercel.json makes Vercel reject every deployment (this froze
+# production on 2026-07-08). So the schedule lives here instead. The cron
+# endpoints are plain authenticated URLs, so GitHub Actions can drive them as
+# often as we like without touching vercel.json.
+#
+# The vercel.json crons stay as they are — they're the safety net if Actions is
+# ever disabled, and the endpoints are idempotent, so an overlap is harmless.
+#
+# Setup: add two repository secrets under Settings > Secrets and variables >
+# Actions:
+#   DOBIUM_BASE_URL  e.g. https://dobium.com
+#   DOBIUM_CRON_KEY  the radar key the endpoints check
+name: Dobium market refresh
+
+on:
+  schedule:
+    # Prices every 15 minutes — cheapest call, keeps mirrored markets live.
+    - cron: '*/15 * * * *'
+    # Scout hourly — pulls RSS + exchange mirrors and auto-publishes.
+    - cron: '17 * * * *'
+    # Hype sweep every 6h — extends live markets, closes dead ones.
+    - cron: '43 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: Which job to run now
+        required: true
+        default: sync-prices
+        type: choice
+        options: [sync-prices, market-scout, hype-sweep, daily]
+
+permissions:
+  contents: read
+
+concurrency:
+  # Never let a slow scout run overlap the next tick.
+  group: dobium-cron
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Pick endpoint
+        id: pick
+        run: |
+          if [ -n "${{ inputs.job }}" ]; then
+            echo "path=${{ inputs.job }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "17 * * * *" ]; then
+            echo "path=market-scout" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "43 */6 * * *" ]; then
+            echo "path=hype-sweep" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=sync-prices" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Call cron endpoint
+        env:
+          BASE: ${{ secrets.DOBIUM_BASE_URL }}
+          KEY: ${{ secrets.DOBIUM_CRON_KEY }}
+          PATH_NAME: ${{ steps.pick.outputs.path }}
+        run: |
+          if [ -z "$BASE" ] || [ -z "$KEY" ]; then
+            echo "::error::DOBIUM_BASE_URL or DOBIUM_CRON_KEY secret is not set"
+            exit 1
+          fi
+          echo "Calling /api/cron/$PATH_NAME"
+          code=$(curl -sS -o /tmp/out.json -w '%{http_code}' --max-time 300 \
+            "$BASE/api/cron/$PATH_NAME?key=$KEY")
+          echo "HTTP $code"
+          head -c 2000 /tmp/out.json || true
+          echo
+          # The key is a secret, so never echo the URL itself on failure.
+          if [ "$code" -ge 400 ]; then
+            echo "::error::cron/$PATH_NAME returned $code"
+            exit 1
+          fi
