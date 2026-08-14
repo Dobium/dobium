@@ -287,9 +287,9 @@ function streamingSubMarkets(markets, sub) {
     .filter((m) => m.status === 'active' && re.test(m.title || ''))
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
-const INTERNET_TRENDS_SUBS = ['Google Trends', 'Reddit', 'X/Twitter', 'Tiktok', 'YouTube'];
+const INTERNET_TRENDS_SUBS = ['Google Trends', 'Instagram', 'Reddit', 'X/Twitter', 'Tiktok', 'YouTube'];
 const TRENDS_SUB_ICONS = {
-  'Google Trends': 'trend', 'Reddit': 'bars', 'X/Twitter': 'pin', 'Tiktok': 'tiktok',
+  'Google Trends': 'trend', 'Instagram': 'instagram', 'Reddit': 'bars', 'X/Twitter': 'pin', 'Tiktok': 'tiktok',
   'YouTube': 'play',
 };
 // Default ("Google Trends") view shows two themed groups rather than one
@@ -317,6 +317,10 @@ function creatorMilestoneMarkets(markets) {
 }
 
 const TRENDS_PLATFORM_DEMO = {
+  'Instagram': [
+    { title: 'Will Cristiano Ronaldo pass MrBeast as the most followed account?', vol: '$0', yes: 50, no: 50, tag: 'INSTAGRAM' },
+    { title: 'Will Reels overtake TikTok in daily watch time this year?', vol: '$0', yes: 50, no: 50, tag: 'INSTAGRAM' },
+  ],
   'Reddit': [
     { title: 'A subreddit hits 50M members before 2026?', vol: '$180K', yes: 44, no: 56, tag: 'REDDIT' },
     { title: 'r/wallstreetbets sparks another meme-stock rally in 2025?', vol: '$620K', yes: 29, no: 71, tag: 'REDDIT' },
@@ -335,6 +339,7 @@ const TRENDS_PLATFORM_DEMO = {
   ],
 };
 const TRENDS_PLATFORM_RE = {
+  'Instagram': /instagram|\breels?\b|\big\b|most followed/i,
   'Reddit': /reddit/i,
   'X/Twitter': /twitter|\bx\/twitter\b|elon musk/i,
   'Tiktok': /tiktok/i,
@@ -605,6 +610,7 @@ function SectorIcon({ kind, color, size = 15 }) {
     case 'castle': return <svg {...c}><path d="M4 21V9l3-2v2h2V7l3-2 3 2v2h2V7l3 2v12z" /><path d="M4 21h16M9 21v-5h6v5" /></svg>;
     case 'pin': return <svg {...c}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="2.5" fill={color} stroke="none" /></svg>;
     case 'people': return <svg {...c}><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5" /><circle cx="17.5" cy="9" r="2.6" /><path d="M16 15.2c2.7.2 4.8 1.6 5.5 4.3" /></svg>;
+    case 'instagram': return <svg {...c}><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17" cy="7" r="1" fill="currentColor" stroke="none" /></svg>;
     case 'tiktok': return <svg {...c}><path d="M14 4v10.5a3.5 3.5 0 11-3-3.46M14 4a4.5 4.5 0 004.5 4.5" /></svg>;
     case 'grid': return <svg {...c}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>;
     case 'robot': return <svg {...c}><rect x="5" y="9" width="14" height="10" rx="2" /><path d="M12 9V5M9 5h6M9 13v2M15 13v2" /><circle cx="12" cy="4" r="1.2" fill={color} stroke="none" /></svg>;
