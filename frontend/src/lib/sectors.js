@@ -7,7 +7,7 @@ export const SECTORS = [
     re: /\bai\b|\bgpt\b|\bllm\b|openai|anthropic|\bclaude\b|startup|venture capital|\bvc\b|\bipo\b|spacex|nvidia|silicon valley|y combinator|artificial intelligence|kalshi|polymarket|manifold|prediction market|event contract|tesla|waymo|robotaxi|\buber\b|cruise|autonomous|self.?driving/i },
   { id: 'music', label: 'Music',
     re: /kendrick|drake|sza|beyonc|taylor swift|billboard|album|tour(?!nament)|stream(ing)?|spotify|chart|single|mixtape|rapper|grammy nom/i },
-  { id: 'trends', label: 'Internet Trends',
+  { id: 'trends', label: 'Social Media Trends',
     re: /tiktok|viral|meme|trending on|twitter|\bx\.com\b|instagram|influencer|challenge/i },
   { id: 'movies', label: 'Movies & TV',
     re: /movie|film|box office|netflix|hbo|disney|marvel|oscar|premiere|sequel|\bseries\b|renewal|episode|season \d|trailer|rotten tomatoes/i },

@@ -333,7 +333,7 @@ const SECTOR_TILES = [
   { id: 'GLOBAL ATTENTION', icon: 'globe' },
   { id: 'TECH & AI', icon: 'chip' },
   { id: 'MUSIC', icon: 'note' },
-  { id: 'INTERNET TRENDS', icon: 'trend' },
+  { id: 'SOCIAL MEDIA TRENDS', icon: 'trend' },
   { id: 'MOVIES & TV', icon: 'film' },
   { id: 'FESTIVALS', icon: 'tent' },
   { id: 'GAMING', icon: 'pad' },

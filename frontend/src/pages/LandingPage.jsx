@@ -355,7 +355,7 @@ const TECH_SUB_ICONS = {
   'Startup Acquisitions': 'layers', 'Space Tech': 'rocket',
 };
 // Default ("All Tech") view shows two themed groups, matching the mock —
-// same pattern as Internet Trends' default "Google Trends" view.
+// same pattern as Social Media Trends' default "Google Trends" view.
 const AI_BENCHMARKS_DEMO = [
   { title: 'GPT-5 official release before Q4?', vol: '$42.2M', yes: 68, no: 32, tag: 'OPENAI' },
   { title: 'Claude 3.5 Opus to top LMSYS leaderboard?', vol: '$18.5M', yes: 54, no: 46, tag: 'ANTHROPIC' },
@@ -1424,7 +1424,7 @@ export default function LandingPage() {
                 sector={SECTORS.find((s) => s.id === 'trends')}
                 demo={TRENDS_PLATFORM_DEMO[trendsSub] || VIRAL_CHALLENGES_DEMO}
                 max={4}
-                title={`Internet Trends · ${trendsSub}`}
+                title={`Social Media Trends · ${trendsSub}`}
                 pickReal={(m) => trendsPlatformMarkets(m, trendsSub)}
                 markets={markets}
                 onOpen={(id) => navigate(`/markets/${id}`)}
