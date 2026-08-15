@@ -3,6 +3,8 @@
 // sector dashboard (LandingPage) and Explore's "All Categories" dropdown so
 // both present the exact same seven sectors and agree on what belongs where.
 export const SECTORS = [
+  { id: 'sportsfutures', label: 'Sports Futures',
+    re: /championship|undefeated|super bowl|world cup winner|world series|stanley cup|\bfinals\b|national title|march madness|conference title|win the (title|league|division|cup)|\bplayoffs?\b|season win total|\bpennant\b|golden boot|golden ball|golden glove|young player award|top scorer|\bmvp\b|relegat/i },
   { id: 'tech', label: 'Tech & AI',
     re: /\bai\b|\bgpt\b|\bllm\b|openai|anthropic|\bclaude\b|startup|venture capital|\bvc\b|\bipo\b|spacex|nvidia|silicon valley|y combinator|artificial intelligence|kalshi|polymarket|manifold|prediction market|event contract|tesla|waymo|robotaxi|\buber\b|cruise|autonomous|self.?driving/i },
   { id: 'music', label: 'Music',
@@ -28,7 +30,7 @@ export const SECTORS = [
 // and "ai" appear in plenty of music and gaming titles — so matching it first
 // would silently reclassify existing markets. Matching keeps the original
 // narrow-to-broad precedence with tech last.
-const MATCH_ORDER = ['awards', 'music', 'movies', 'celebrities', 'festivals', 'gaming', 'streaming', 'trends', 'tech'];
+const MATCH_ORDER = ['sportsfutures', 'awards', 'music', 'movies', 'celebrities', 'festivals', 'gaming', 'streaming', 'trends', 'tech'];
 
 export function classifySector(title) {
   for (const id of MATCH_ORDER) {

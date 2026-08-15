@@ -48,7 +48,7 @@ function compactVol(v) {
 }
 
 // ── Sector classification ────────────────────────────────────────────────
-const SECTOR_ICONS = { music: 'note', movies: 'film', celebrities: 'people', festivals: 'stage', gaming: 'gamepad', streaming: 'play', trends: 'trend', tech: 'grid', awards: 'trophy' };
+const SECTOR_ICONS = { music: 'note', movies: 'film', celebrities: 'people', festivals: 'stage', gaming: 'gamepad', streaming: 'play', trends: 'trend', tech: 'grid', awards: 'trophy', sportsfutures: 'calendar' };
 const SECTORS = SHARED_SECTORS.map((s) => ({ ...s, icon: SECTOR_ICONS[s.id] }));
 
 function classify(title) {
@@ -442,6 +442,10 @@ function techSubMarkets(markets, sub) {
 // regardless of sector. Kept out of the shared sectors.js taxonomy for that
 // reason (Explore's dropdown expects mutually-exclusive categories).
 const ATTENTION_SUBS = ['Trending Attention & News'];
+const SPORTS_FUTURES_DEMO = [
+  { title: 'Will Texas go undefeated this season?', vol: '$0', yes: 50, no: 50, tag: 'FUTURES' },
+  { title: 'Who wins the College Football national championship?', vol: '$0', yes: 50, no: 50, tag: 'FUTURES' },
+];
 const AWARDS_SUBS = ['All Awards', 'The Oscars', 'The Grammys'];
 const AWARDS_SUB_ICONS = { 'All Awards': 'trophy', 'The Oscars': 'film', 'The Grammys': 'note' };
 const AWARDS_SUB_RE = {
@@ -909,7 +913,7 @@ export default function LandingPage() {
   const refs = {
     attention: useRef(null), music: useRef(null), movies: useRef(null), celebrities: useRef(null),
     festivals: useRef(null), gaming: useRef(null), streaming: useRef(null),
-    trends: useRef(null), tech: useRef(null), awards: useRef(null),
+    trends: useRef(null), tech: useRef(null), awards: useRef(null), sportsfutures: useRef(null),
   };
 
   const goTo = (id) => {
@@ -1368,6 +1372,15 @@ export default function LandingPage() {
             onViewAll={() => navigate('/explore?filter=attention')}
             forwardRef={refs.attention}
           />
+          <TwoCardSection
+            sector={SECTORS.find((s) => s.id === 'sportsfutures')}
+            markets={markets}
+            demo={SPORTS_FUTURES_DEMO}
+            onOpen={(id) => navigate(`/markets/${id}`)}
+            onViewAll={() => navigate('/explore?filter=sportsfutures')}
+            forwardRef={refs.sportsfutures}
+          />
+
           <div ref={refs.tech} style={{ scrollMarginTop: 90 }}>
             {techSub === 'All Tech' ? (
               <>
