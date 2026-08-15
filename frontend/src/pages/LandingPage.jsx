@@ -442,6 +442,30 @@ function techSubMarkets(markets, sub) {
 // regardless of sector. Kept out of the shared sectors.js taxonomy for that
 // reason (Explore's dropdown expects mutually-exclusive categories).
 const ATTENTION_SUBS = ['Trending Attention & News'];
+const SPORTS_FUTURES_SUBS = ['All Futures', 'NFL', 'NBA', 'College Football', 'Soccer', 'MLB', 'NHL'];
+const SPORTS_FUTURES_SUB_ICONS = {
+  'All Futures': 'calendar', 'NFL': 'trophy', 'NBA': 'trophy', 'College Football': 'trophy',
+  'Soccer': 'globe', 'MLB': 'trophy', 'NHL': 'trophy',
+};
+// Split by league rather than by duration: nobody browses for "the six-month
+// markets", they browse for NFL. Duration is answered per-market by the
+// resolution date on the card.
+const SPORTS_FUTURES_SUB_RE = {
+  'NFL': /\bnfl\b|super bowl|afc\b|nfc\b/i,
+  'NBA': /\bnba\b|finals mvp|eastern conference|western conference/i,
+  'College Football': /college football|\bcfb\b|\bncaa\b|heisman|bowl game|\bsec\b|big ten|big 12|\bacc\b/i,
+  'Soccer': /soccer|premier league|champions league|world cup|\bfifa\b|la liga|serie a|bundesliga|golden boot|golden ball/i,
+  'MLB': /\bmlb\b|world series|\bpennant\b|baseball/i,
+  'NHL': /\bnhl\b|stanley cup|hockey/i,
+};
+function sportsFuturesSubMarkets(markets, sub) {
+  const re = SPORTS_FUTURES_SUB_RE[sub];
+  if (!re) return null;
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && re.test(m.title || ''))
+    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+}
+
 const SPORTS_FUTURES_DEMO = [
   { title: 'Will Texas go undefeated this season?', vol: '$0', yes: 50, no: 50, tag: 'FUTURES' },
   { title: 'Who wins the College Football national championship?', vol: '$0', yes: 50, no: 50, tag: 'FUTURES' },
@@ -714,11 +738,27 @@ function DuneArt() {
   );
 }
 
+// How long a market runs is the thing a duration category can't tell you, so
+// it goes on the card itself: a near date reads as days left, a far one as the
+// month it settles.
+function resolvesLabel(m) {
+  const raw = m.resolution_date || m.close_date;
+  if (!raw) return null;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return null;
+  const days = Math.ceil((d.getTime() - Date.now()) / 86400000);
+  if (days < 0) return 'Closed';
+  if (days === 0) return 'Ends today';
+  if (days === 1) return 'Ends tomorrow';
+  if (days < 14) return `Ends in ${days}d`;
+  return `Resolves ${d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+}
+
 function toCardShape(m, tag, seed) {
   const yes = yesOf(m);
   const lead = yes || leaderOf(m);
   const yesP = yes ? Math.round(yes.probability || 0) : Math.round(lead?.probability || 50);
-  return { id: m.id, title: m.title, vol: compactVol(m.total_volume || 0), yes: yesP, no: 100 - yesP, tag, _seed: seed };
+  return { id: m.id, title: m.title, vol: compactVol(m.total_volume || 0), yes: yesP, no: 100 - yesP, tag, resolves: resolvesLabel(m), _seed: seed };
 }
 
 function SectionHeader({ icon, label, onViewAll }) {
@@ -817,7 +857,12 @@ function SectorGridCard({ m, onOpen }) {
       <span style={{ ...mono({ fontSize: 8, color: WARM }) }}>{m.tag}</span>
       <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 15, lineHeight: 1.4, margin: '9px 0 12px' }}>{m.title}</div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ ...mono({ fontSize: 10, color: WARM }) }}>Vol: {m.vol}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10, minWidth: 0 }}>
+          <span style={{ ...mono({ fontSize: 10, color: WARM }) }}>Vol: {m.vol}</span>
+          {m.resolves && (
+            <span style={{ ...mono({ fontSize: 9, color: '#6B7B93' }), whiteSpace: 'nowrap' }}>{m.resolves}</span>
+          )}
+        </span>
         <span style={{ display: 'flex', gap: 6 }}>
           <span style={{ background: '#0C2745', border: '1px solid rgba(75,225,118,.4)', color: GREEN, ...mono({ fontSize: 10, letterSpacing: '0.02em' }), borderRadius: 3, padding: '5px 9px' }}>{m.yes}¢</span>
           <span style={{ background: '#0C2745', border: '1px solid rgba(255,180,171,.35)', color: SALMON, ...mono({ fontSize: 10, letterSpacing: '0.02em' }), borderRadius: 3, padding: '5px 9px' }}>{m.no}¢</span>
@@ -900,6 +945,8 @@ export default function LandingPage() {
   const [gamingSub, setGamingSub] = useState('All Gaming');
   const [streamingOpen, setStreamingOpen] = useState(false);
   const [streamingSub, setStreamingSub] = useState('All Streaming');
+  const [futuresOpen, setFuturesOpen] = useState(false);
+  const [futuresSub, setFuturesSub] = useState('All Futures');
   const [awardsOpen, setAwardsOpen] = useState(false);
   const [awardsSub, setAwardsSub] = useState('All Awards');
   const [trendsOpen, setTrendsOpen] = useState(false);
@@ -1105,6 +1152,26 @@ export default function LandingPage() {
     refs.streaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const toggleFutures = () => {
+    if (activeSector === 'sportsfutures') {
+      setFuturesOpen((v) => !v);
+    } else {
+      setActiveSector('sportsfutures');
+      setFuturesOpen(true);
+      setMusicOpen(false); setMoviesOpen(false); setCreatorsOpen(false);
+      setFestivalsOpen(false); setGamingOpen(false); setStreamingOpen(false);
+      setTrendsOpen(false); setTechOpen(false); setAwardsOpen(false); setAttentionOpen(false);
+    }
+    refs.sportsfutures?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const selectFuturesSub = (v) => {
+    setFuturesSub(v);
+    setActiveSector('sportsfutures');
+    setFuturesOpen(true);
+    refs.sportsfutures?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const toggleAwards = () => {
     if (activeSector === 'awards') {
       setAwardsOpen((v) => !v);
@@ -1252,13 +1319,14 @@ export default function LandingPage() {
               const isTrends = s.id === 'trends';
               const isTech = s.id === 'tech';
               const isAwards = s.id === 'awards';
-              const hasDropdown = isMusic || isMovies || isCreators || isFestivals || isGaming || isStreaming || isTrends || isTech || isAwards;
-              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCreators && creatorsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen) || (isTrends && trendsOpen) || (isTech && techOpen) || (isAwards && awardsOpen));
-              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCreators ? toggleCreators : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : isTrends ? toggleTrends : isTech ? toggleTech : isAwards ? toggleAwards : () => goTo(s.id);
-              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCreators ? CREATOR_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : isTrends ? INTERNET_TRENDS_SUBS : isTech ? TECH_SUBS : isAwards ? AWARDS_SUBS : null;
-              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCreators ? creatorSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : isTrends ? trendsSub : isTech ? techSub : isAwards ? awardsSub : null;
-              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCreators ? selectCreatorSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : isTrends ? selectTrendsSub : isTech ? selectTechSub : isAwards ? selectAwardsSub : null;
-              const iconSubs = isCreators ? CREATOR_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : isStreaming ? STREAMING_SUB_ICONS : isTrends ? TRENDS_SUB_ICONS : isTech ? TECH_SUB_ICONS : isAwards ? AWARDS_SUB_ICONS : null;
+              const isFutures = s.id === 'sportsfutures';
+              const hasDropdown = isMusic || isMovies || isCreators || isFestivals || isGaming || isStreaming || isTrends || isTech || isAwards || isFutures;
+              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCreators && creatorsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen) || (isTrends && trendsOpen) || (isTech && techOpen) || (isAwards && awardsOpen) || (isFutures && futuresOpen));
+              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCreators ? toggleCreators : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : isTrends ? toggleTrends : isTech ? toggleTech : isAwards ? toggleAwards : isFutures ? toggleFutures : () => goTo(s.id);
+              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCreators ? CREATOR_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : isTrends ? INTERNET_TRENDS_SUBS : isTech ? TECH_SUBS : isAwards ? AWARDS_SUBS : isFutures ? SPORTS_FUTURES_SUBS : null;
+              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCreators ? creatorSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : isTrends ? trendsSub : isTech ? techSub : isAwards ? awardsSub : isFutures ? futuresSub : null;
+              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCreators ? selectCreatorSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : isTrends ? selectTrendsSub : isTech ? selectTechSub : isAwards ? selectAwardsSub : isFutures ? selectFuturesSub : null;
+              const iconSubs = isCreators ? CREATOR_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : isStreaming ? STREAMING_SUB_ICONS : isTrends ? TRENDS_SUB_ICONS : isTech ? TECH_SUB_ICONS : isAwards ? AWARDS_SUB_ICONS : isFutures ? SPORTS_FUTURES_SUB_ICONS : null;
               return (
                 <div key={s.id}>
                   <button onClick={onClickHeader}
@@ -1376,6 +1444,8 @@ export default function LandingPage() {
             sector={SECTORS.find((s) => s.id === 'sportsfutures')}
             markets={markets}
             demo={SPORTS_FUTURES_DEMO}
+            title={futuresSub === 'All Futures' ? 'Sports Futures' : `Sports Futures · ${futuresSub}`}
+            pickReal={futuresSub === 'All Futures' ? undefined : (m) => sportsFuturesSubMarkets(m, futuresSub)}
             onOpen={(id) => navigate(`/markets/${id}`)}
             onViewAll={() => navigate('/explore?filter=sportsfutures')}
             forwardRef={refs.sportsfutures}
