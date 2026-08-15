@@ -2087,6 +2087,12 @@ async function voidUnresolvableMarkets({ dryRun = false, limit = 25 } = {}) {
 const HYPE_WINDOW_HOURS = 48;   // how far back "recent activity" looks
 const HYPE_QUIET_DAYS = 4;      // silence this long means the hype is gone
 const HYPE_EXTEND_DAYS = 5;     // how far to push a still-hot market
+// Long-dated markets are exempt from the quiet rule entirely. A season-long
+// future — "will Texas go undefeated", "who wins the championship" — is silent
+// for weeks between games by nature, and that silence says nothing about
+// whether the question still matters. Only short-fuse markets, the ones the
+// decay rule was written for, get closed for going quiet.
+const LONG_DATED_DAYS = 21;
 
 async function sweepHypeDecay({ dryRun = false } = {}) {
   const now = new Date();
@@ -2096,6 +2102,7 @@ async function sweepHypeDecay({ dryRun = false } = {}) {
   const markets = await Market.findAll({ where: { status: 'active' } });
   const extended = [];
   const closed = [];
+  const skipped = [];
 
   for (const m of markets) {
     // Recent trading is the attention signal we actually hold.
@@ -2111,6 +2118,12 @@ async function sweepHypeDecay({ dryRun = false } = {}) {
     const closeAt = m.close_date ? new Date(m.close_date) : null;
     const resolveAt = m.resolution_date ? new Date(m.resolution_date) : null;
     const closingSoon = closeAt && closeAt.getTime() - now.getTime() < 2 * 86400 * 1000;
+
+    // Anything still more than LONG_DATED_DAYS from its deadline is a
+    // long-running market; leave it alone in both directions.
+    const horizon = resolveAt || closeAt;
+    const longDated = horizon && horizon.getTime() - now.getTime() > LONG_DATED_DAYS * 86400 * 1000;
+    if (longDated) { skipped.push({ id: m.id, title: m.title, until: horizon }); continue; }
 
     // Still hot and about to expire -> give it room.
     if (recentTrades > 0 && closingSoon) {
@@ -2132,7 +2145,7 @@ async function sweepHypeDecay({ dryRun = false } = {}) {
     }
   }
 
-  return { checked: markets.length, extended, closed, dryRun };
+  return { checked: markets.length, extended, closed, skippedLongDated: skipped.length, dryRun };
 }
 
 // Auto-publish. Exchange mirrors clear at 55 because their wording is already
