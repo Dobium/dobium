@@ -1286,7 +1286,11 @@ export default function LandingPage() {
               const isAwards = s.id === 'awards';
               const hasDropdown = isMusic || isMovies || isCreators || isFestivals || isGaming || isStreaming || isTrends || isTech || isAwards;
               const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCreators && creatorsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen) || (isTrends && trendsOpen) || (isTech && techOpen) || (isAwards && awardsOpen));
-              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCreators ? toggleCreators : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : isTrends ? toggleTrends : isTech ? toggleTech : isAwards ? toggleAwards : () => goTo(s.id);
+              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCreators ? toggleCreators : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : isTrends ? toggleTrends : isTech ? toggleTech : isAwards ? toggleAwards
+                : // Sectors with no dropdown have nothing to expand, so the row
+                  // opens that category's own page rather than scrolling to a
+                  // section on this one.
+                  () => navigate(`/explore?filter=${s.id}`);
               const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCreators ? CREATOR_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : isTrends ? INTERNET_TRENDS_SUBS : isTech ? TECH_SUBS : isAwards ? AWARDS_SUBS : null;
               const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCreators ? creatorSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : isTrends ? trendsSub : isTech ? techSub : isAwards ? awardsSub : null;
               const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCreators ? selectCreatorSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : isTrends ? selectTrendsSub : isTech ? selectTechSub : isAwards ? selectAwardsSub : null;
