@@ -71,6 +71,7 @@ export function ExploreStatBand() {
 // Market Intelligence rail underneath.
 
 function CategoryDropdown({ category, setCategory }) {
+  const current = SECTORS.find((s) => s.id === category);
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -92,7 +93,7 @@ function CategoryDropdown({ category, setCategory }) {
           padding: '11px 14px', cursor: 'pointer', justifyContent: 'space-between',
         }}
       >
-        All Categories
+        {current?.label || 'All Categories'}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E9AB0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
           style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease' }}>
           <path d="M6 9l6 6 6-6" />
