@@ -780,8 +780,10 @@ function MusicSection({ markets, genre, onOpen, onViewAll, forwardRef }) {
   const real = isGenre
     ? genreMarkets(markets, genre).slice(0, 4).map((m, i) => toCardShape(m, (GENRE_DEMO[genre]?.[i]?.tag) || genre.toUpperCase(), i))
     : sectorMarkets(markets, 'music').slice(0, 4).map((m, i) => toCardShape(m, MUSIC_DEMO[i]?.tag || 'MUSIC', i));
-  const demoBank = isGenre ? (GENRE_DEMO[genre] || []) : MUSIC_DEMO;
-  const rows = real.length >= Math.min(2, demoBank.length) ? real : demoBank.map((d, i) => ({ ...d, id: null, _seed: i }));
+  // Real markets only, same reasoning as TwoCardSection — no invented volume,
+  // no unclickable cards. Nothing real means the section doesn't render.
+  const rows = real;
+  if (rows.length === 0) return null;
   return (
     <div ref={forwardRef} style={{ marginBottom: 34, scrollMarginTop: 90 }}>
       <SectionHeader icon="note" label={isGenre ? `Music · ${genre}` : 'Music'} onViewAll={onViewAll} />
@@ -799,13 +801,12 @@ function MoviesSection({ markets, platform, onOpen, onViewAll, forwardRef }) {
   const sideMs = real.slice(1, 3);
   const demoSet = isPlatform ? (PLATFORM_DEMO[platform] || { featured: MOVIES_DEMO_FEATURED, side: MOVIES_DEMO_SIDE }) : { featured: MOVIES_DEMO_FEATURED, side: MOVIES_DEMO_SIDE };
 
-  const featured = featuredM
-    ? { id: featuredM.id, title: featuredM.title, desc: featuredM.description || demoSet.featured.desc, ...(() => { const y = yesOf(featuredM) || leaderOf(featuredM); const yp = Math.round((yesOf(featuredM) ? y.probability : y?.probability) || 50); return { yes: yp, no: 100 - yp }; })(), image: featuredM.image || featuredM.event_image }
-    : demoSet.featured;
+  // Real markets only — no placeholder feature, no invented side cards.
+  if (!featuredM) return null;
 
-  const side = sideMs.length > 0
-    ? sideMs.map((m, i) => toCardShape(m, demoSet.side[i]?.tag || (isPlatform ? platform.toUpperCase() : (i === 0 ? 'ROTTEN TOMATOES' : 'STREAMING WARS')), i))
-    : demoSet.side.map((d, i) => ({ ...d, id: null, _seed: i }));
+  const featured = { id: featuredM.id, title: featuredM.title, desc: featuredM.description || '', ...(() => { const y = yesOf(featuredM) || leaderOf(featuredM); const yp = Math.round((yesOf(featuredM) ? y.probability : y?.probability) || 50); return { yes: yp, no: 100 - yp }; })(), image: featuredM.image || featuredM.event_image };
+
+  const side = sideMs.map((m, i) => toCardShape(m, demoSet.side[i]?.tag || (isPlatform ? platform.toUpperCase() : (i === 0 ? 'ROTTEN TOMATOES' : 'STREAMING WARS')), i));
 
   return (
     <div ref={forwardRef} style={{ marginBottom: 34, scrollMarginTop: 90 }}>
@@ -874,8 +875,15 @@ function SectorGridCard({ m, onOpen }) {
 
 function TwoCardSection({ sector, markets, demo, max = 2, title, pickReal, onOpen, onViewAll, forwardRef }) {
   const pool = pickReal ? pickReal(markets) : sectorMarkets(markets, sector.id);
-  const real = pool.slice(0, max).map((m, i) => toCardShape(m, demo[i]?.tag || sector.label.toUpperCase(), i));
-  const rows = real.length >= Math.min(2, demo.length) ? real : demo.map((d, i) => ({ ...d, id: null, _seed: i }));
+  const rows = pool.slice(0, max).map((m, i) => toCardShape(m, demo?.[i]?.tag || sector.label.toUpperCase(), i));
+
+  // Real markets only. This used to fall back to hardcoded demo cards whenever
+  // a section had fewer than two — cards carrying invented volume like "$8.4M"
+  // on a site with about $20k total, and no id, so clicking them did nothing.
+  // They read as live tradeable markets and were neither. A section with
+  // nothing real in it now renders nothing at all.
+  if (rows.length === 0) return null;
+
   return (
     <div ref={forwardRef} style={{ marginBottom: 34, scrollMarginTop: 90 }}>
       <SectionHeader icon={sector.icon} label={title || sector.label} onViewAll={onViewAll} />
@@ -903,7 +911,10 @@ function HomeTape({ markets }) {
     { label: 'K. LAMAR ALBUM', price: 88, delta: 4 },
     { label: "SZA TOUR '25", price: 91, delta: 2 },
   ];
-  const items = real.length >= 4 ? real : demo;
+  // Tape shows real markets only; with none, it renders empty rather than
+  // scrolling invented prices past the visitor.
+  const items = real;
+  if (items.length === 0) return null;
   const loop = [...items, ...items, ...items];
   return (
     <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
