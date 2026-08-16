@@ -441,7 +441,36 @@ function techSubMarkets(markets, sub) {
 // keyword classifier it just pulls the platform's top markets by volume
 // regardless of sector. Kept out of the shared sectors.js taxonomy for that
 // reason (Explore's dropdown expects mutually-exclusive categories).
-const ATTENTION_SUBS = ['Trending'];
+const ATTENTION_SUBS = ['Trending', 'Breaking', 'News'];
+const ATTENTION_SUB_ICONS = { Trending: 'trend', Breaking: 'bolt', News: 'bars' };
+
+// The three views differ by what they sort on, not by keyword, since this
+// surface deliberately cuts across sectors.
+//   Trending – biggest by volume, the existing behaviour
+//   Breaking – newest, what appeared in the last two days
+//   News     – markets the scout drafted from news coverage, which its
+//              published description records verbatim
+const BREAKING_WINDOW_HOURS = 48;
+
+function breakingMarkets(markets) {
+  const cutoff = Date.now() - BREAKING_WINDOW_HOURS * 3600 * 1000;
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && new Date(m.created_at || 0).getTime() > cutoff)
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+}
+
+function newsDraftedMarkets(markets) {
+  return [...(markets || [])]
+    .filter((m) => m.status === 'active' && /drafted automatically from/i.test(m.description || ''))
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+}
+
+function attentionPicker(sub) {
+  if (sub === 'Breaking') return breakingMarkets;
+  if (sub === 'News') return newsDraftedMarkets;
+  return globalAttentionMarkets;
+}
+
 const SPORTS_FUTURES_DEMO = [
   { title: 'Will Texas go undefeated this season?', vol: '$0', yes: 50, no: 50, tag: 'FUTURES' },
   { title: 'Who wins the College Football national championship?', vol: '$0', yes: 50, no: 50, tag: 'FUTURES' },
@@ -1272,7 +1301,7 @@ export default function LandingPage() {
                           padding: '7px 11px 7px 38px', fontSize: 12.5,
                           color: genreActive ? GOLD_DIM : WARM, fontWeight: genreActive ? 700 : 500,
                         }}>
-                        <span style={{ width: 5, height: 5, borderRadius: 999, background: genreActive ? GOLD_DIM : 'transparent', flexShrink: 0 }} />
+                        <SectorIcon kind={ATTENTION_SUB_ICONS[g] || 'trend'} color={genreActive ? GOLD_DIM : WARM} size={13} />
                         {g}
                       </button>
                     );
@@ -1349,8 +1378,8 @@ export default function LandingPage() {
             sector={{ id: 'attention', icon: 'globe', label: 'Global Attention' }}
             demo={GLOBAL_ATTENTION_DEMO}
             max={4}
-            title="Trending"
-            pickReal={globalAttentionMarkets}
+            title={attentionSub}
+            pickReal={attentionPicker(attentionSub)}
             markets={markets}
             onOpen={(id) => navigate(`/markets/${id}`)}
             onViewAll={() => navigate('/explore?filter=attention')}
