@@ -9,7 +9,7 @@
 // landing page uses — no per-market subcategory field exists yet.
 
 export const SUBCATEGORIES = {
-  sportsfutures: ['All Futures', 'NFL', 'NBA', 'College Football', 'Soccer', 'MLB', 'NHL'],
+  sportsfutures: ['All Futures', 'NFL Futures', 'NBA Futures', 'College Football Futures', 'Soccer Futures', 'MLB Futures', 'NHL Futures'],
   tech: ['All Tech', 'Prediction Markets', 'Trending AI Companies', 'AI Models', 'Big Tech', 'Startup Raises and Funding', 'Open Source AI & Github Repos', 'Startup Acquisitions', 'Space Tech'],
   music: ['All Music', 'R&B', 'Hip Hop', 'Rap', 'Pop', 'Electronic', 'Latin', 'Country', 'Rock', 'K-Pop'],
   trends: ['All Trends', 'Google Trends', 'Instagram', 'Reddit', 'X/Twitter', 'Tiktok', 'YouTube'],
@@ -24,12 +24,12 @@ export const SUBCATEGORIES = {
 // Title patterns for the non-"all" entries. Anything without a pattern simply
 // shows everything in the sector rather than an empty list.
 export const SUBCATEGORY_RE = {
-  NFL: /\bnfl\b|super bowl|afc\b|nfc\b/i,
-  NBA: /\bnba\b|finals mvp|eastern conference|western conference/i,
-  'College Football': /college football|\bcfb\b|\bncaa\b|heisman|bowl game|\bsec\b|big ten|big 12|\bacc\b/i,
-  Soccer: /soccer|premier league|champions league|world cup|\bfifa\b|la liga|serie a|bundesliga|golden boot|golden ball/i,
-  MLB: /\bmlb\b|world series|\bpennant\b|baseball/i,
-  NHL: /\bnhl\b|stanley cup|hockey/i,
+  'NFL Futures': /\bnfl\b|super bowl|afc\b|nfc\b/i,
+  'NBA Futures': /\bnba\b|finals mvp|eastern conference|western conference/i,
+  'College Football Futures': /college football|\bcfb\b|\bncaa\b|heisman|bowl game|\bsec\b|big ten|big 12|\bacc\b/i,
+  'Soccer Futures': /soccer|premier league|champions league|world cup|\bfifa\b|la liga|serie a|bundesliga|golden boot|golden ball/i,
+  'MLB Futures': /\bmlb\b|world series|\bpennant\b|baseball/i,
+  'NHL Futures': /\bnhl\b|stanley cup|hockey/i,
 
   'Prediction Markets': /kalshi|polymarket|manifold|prediction market|event contract|cftc/i,
   'Trending AI Companies': /openai|anthropic|deepmind|mistral|perplexity|xai\b/i,

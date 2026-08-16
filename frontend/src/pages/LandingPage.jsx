@@ -442,21 +442,21 @@ function techSubMarkets(markets, sub) {
 // regardless of sector. Kept out of the shared sectors.js taxonomy for that
 // reason (Explore's dropdown expects mutually-exclusive categories).
 const ATTENTION_SUBS = ['Trending Attention & News'];
-const SPORTS_FUTURES_SUBS = ['All Futures', 'NFL', 'NBA', 'College Football', 'Soccer', 'MLB', 'NHL'];
+const SPORTS_FUTURES_SUBS = ['All Futures', 'NFL Futures', 'NBA Futures', 'College Football Futures', 'Soccer Futures', 'MLB Futures', 'NHL Futures'];
 const SPORTS_FUTURES_SUB_ICONS = {
-  'All Futures': 'calendar', 'NFL': 'trophy', 'NBA': 'trophy', 'College Football': 'trophy',
-  'Soccer': 'globe', 'MLB': 'trophy', 'NHL': 'trophy',
+  'All Futures': 'calendar', 'NFL Futures': 'trophy', 'NBA Futures': 'trophy',
+  'College Football Futures': 'trophy', 'Soccer Futures': 'globe', 'MLB Futures': 'trophy', 'NHL Futures': 'trophy',
 };
 // Split by league rather than by duration: nobody browses for "the six-month
 // markets", they browse for NFL. Duration is answered per-market by the
 // resolution date on the card.
 const SPORTS_FUTURES_SUB_RE = {
-  'NFL': /\bnfl\b|super bowl|afc\b|nfc\b/i,
-  'NBA': /\bnba\b|finals mvp|eastern conference|western conference/i,
-  'College Football': /college football|\bcfb\b|\bncaa\b|heisman|bowl game|\bsec\b|big ten|big 12|\bacc\b/i,
-  'Soccer': /soccer|premier league|champions league|world cup|\bfifa\b|la liga|serie a|bundesliga|golden boot|golden ball/i,
-  'MLB': /\bmlb\b|world series|\bpennant\b|baseball/i,
-  'NHL': /\bnhl\b|stanley cup|hockey/i,
+  'NFL Futures': /\bnfl\b|super bowl|afc\b|nfc\b/i,
+  'NBA Futures': /\bnba\b|finals mvp|eastern conference|western conference/i,
+  'College Football Futures': /college football|\bcfb\b|\bncaa\b|heisman|bowl game|\bsec\b|big ten|big 12|\bacc\b/i,
+  'Soccer Futures': /soccer|premier league|champions league|world cup|\bfifa\b|la liga|serie a|bundesliga|golden boot|golden ball/i,
+  'MLB Futures': /\bmlb\b|world series|\bpennant\b|baseball/i,
+  'NHL Futures': /\bnhl\b|stanley cup|hockey/i,
 };
 function sportsFuturesSubMarkets(markets, sub) {
   const re = SPORTS_FUTURES_SUB_RE[sub];

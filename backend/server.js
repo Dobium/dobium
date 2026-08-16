@@ -2212,6 +2212,18 @@ async function autoPublishMirrors(limit = 5) {
 // Recurring chart markets: writes next week's Hot 100 market and settles any
 // whose chart date has arrived. Runs on its own cadence from GitHub Actions.
 // ?dry=1 reports what it would do without writing.
+// One-shot seeder for the league futures subcategories. Idempotent — re-runs
+// skip anything already present. ?dry=1 lists what it would create.
+app.get('/api/cron/seed-futures', requireRadarKey, async (req, res) => {
+  try {
+    const { seedSportsFutures } = require('./jobs/seed-futures');
+    const result = await seedSportsFutures({ Market, Outcome, sequelize }, { dryRun: req.query.dry === '1' });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/cron/chart-markets', requireRadarKey, async (req, res) => {
   try {
     const dryRun = req.query.dry === '1';
