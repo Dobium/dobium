@@ -441,7 +441,7 @@ function techSubMarkets(markets, sub) {
 // keyword classifier it just pulls the platform's top markets by volume
 // regardless of sector. Kept out of the shared sectors.js taxonomy for that
 // reason (Explore's dropdown expects mutually-exclusive categories).
-const ATTENTION_SUBS = ['Trending Attention & News'];
+const ATTENTION_SUBS = ['Trending'];
 const SPORTS_FUTURES_DEMO = [
   { title: 'Will Texas go undefeated this season?', vol: '$0', yes: 50, no: 50, tag: 'FUTURES' },
   { title: 'Who wins the College Football national championship?', vol: '$0', yes: 50, no: 50, tag: 'FUTURES' },
@@ -926,7 +926,7 @@ export default function LandingPage() {
   const [pulse, setPulse] = useState(null);
   const [activeSector, setActiveSector] = useState('attention');
   const [attentionOpen, setAttentionOpen] = useState(true);
-  const [attentionSub, setAttentionSub] = useState('Trending Attention & News');
+  const [attentionSub, setAttentionSub] = useState('Trending');
   const [musicOpen, setMusicOpen] = useState(false);
   const [musicGenre, setMusicGenre] = useState('All Music');
   const [moviesOpen, setMoviesOpen] = useState(false);
@@ -1349,7 +1349,7 @@ export default function LandingPage() {
             sector={{ id: 'attention', icon: 'globe', label: 'Global Attention' }}
             demo={GLOBAL_ATTENTION_DEMO}
             max={4}
-            title="Trending Attention & News"
+            title="Trending"
             pickReal={globalAttentionMarkets}
             markets={markets}
             onOpen={(id) => navigate(`/markets/${id}`)}

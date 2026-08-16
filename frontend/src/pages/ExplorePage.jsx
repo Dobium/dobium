@@ -142,7 +142,7 @@ export default function ExplorePage() {
   }, [urlFilter]);
   const search = (urlQuery || '').trim();
 
-  // "Trending Attention & News" isn't a sector — it's the highest-volume
+  // "Trending" isn't a sector — it's the highest-volume
   // active markets, same rule the landing section uses. Treated as its own
   // mode so that section's View All lands somewhere that matches it.
   const attentionMode = urlFilter === 'attention' && !category;
@@ -177,7 +177,7 @@ export default function ExplorePage() {
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, padding: '28px 0 20px' }}>
         <div>
           <h1 style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 'clamp(30px,3.8vw,46px)', color: '#FFFFFF', margin: 0, lineHeight: 1.1, letterSpacing: '-0.01em' }}>
-            {attentionMode ? 'Trending Attention & News' : (activeSector?.label || 'Explore Markets')}
+            {attentionMode ? 'Trending' : (activeSector?.label || 'Explore Markets')}
           </h1>
           <p style={{ color: '#CFC5B5', fontSize: 13, margin: '8px 0 0' }}>
             {attentionMode
