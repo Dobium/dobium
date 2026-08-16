@@ -754,16 +754,18 @@ function DuneArt() {
 // it goes on the card itself: a near date reads as days left, a far one as the
 // month it settles.
 function resolvesLabel(m) {
-  const raw = m.resolution_date || m.close_date;
+  // Trading close is what a trader actually needs — the last moment they can
+  // act — so it wins over the resolution date when the two differ.
+  const raw = m.close_date || m.resolution_date;
   if (!raw) return null;
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return null;
   const days = Math.ceil((d.getTime() - Date.now()) / 86400000);
   if (days < 0) return 'Closed';
-  if (days === 0) return 'Ends today';
-  if (days === 1) return 'Ends tomorrow';
-  if (days < 14) return `Ends in ${days}d`;
-  return `Resolves ${d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+  if (days === 0) return 'Closes today';
+  if (days === 1) return 'Closes tomorrow';
+  if (days < 14) return `Closes in ${days}d`;
+  return `Closes ${d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
 }
 
 function toCardShape(m, tag, seed) {

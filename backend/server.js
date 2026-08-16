@@ -2214,6 +2214,17 @@ async function autoPublishMirrors(limit = 5) {
 // ?dry=1 reports what it would do without writing.
 // One-shot seeder for the league futures subcategories. Idempotent — re-runs
 // skip anything already present. ?dry=1 lists what it would create.
+// Sets each market's trading close ahead of its resolution. ?dry=1 lists the
+// changes it would make without writing.
+app.get('/api/cron/trading-close', requireRadarKey, async (req, res) => {
+  try {
+    const { setTradingCloseDates } = require('./jobs/trading-close');
+    res.json({ ok: true, ...(await setTradingCloseDates({ Market }, { dryRun: req.query.dry === '1' })) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/cron/seed-futures', requireRadarKey, async (req, res) => {
   try {
     const { seedSportsFutures } = require('./jobs/seed-futures');
@@ -2813,6 +2824,10 @@ app.get('/api/cron/market-scout', requireRadarKey, async (req, res) => {
     const { seedSportsFutures } = require('./jobs/seed-futures');
     result.futures = await seedSportsFutures({ Market, Outcome, sequelize });
   } catch (e) { result.futures = { error: e.message }; }
+  try {
+    const { setTradingCloseDates } = require('./jobs/trading-close');
+    result.trading_close = await setTradingCloseDates({ Market });
+  } catch (e) { result.trading_close = { error: e.message }; }
   try {
     const chart = require('./jobs/chart-markets');
     const models = { Market, Outcome, sequelize, Op };
