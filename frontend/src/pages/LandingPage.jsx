@@ -1282,26 +1282,11 @@ export default function LandingPage() {
             </div>
             {SECTORS.map((s) => {
               const isActive = activeSector === s.id;
-              const isMusic = s.id === 'music';
-              const isMovies = s.id === 'movies';
-              const isCreators = s.id === 'celebrities';
-              const isFestivals = s.id === 'festivals';
-              const isGaming = s.id === 'gaming';
-              const isStreaming = s.id === 'streaming';
-              const isTrends = s.id === 'trends';
-              const isTech = s.id === 'tech';
-              const isAwards = s.id === 'awards';
-              const hasDropdown = isMusic || isMovies || isCreators || isFestivals || isGaming || isStreaming || isTrends || isTech || isAwards;
-              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCreators && creatorsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen) || (isTrends && trendsOpen) || (isTech && techOpen) || (isAwards && awardsOpen));
-              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCreators ? toggleCreators : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : isTrends ? toggleTrends : isTech ? toggleTech : isAwards ? toggleAwards
-                : // Sectors with no dropdown have nothing to expand, so the row
-                  // opens that category's own page rather than scrolling to a
-                  // section on this one.
-                  () => navigate(`/explore?filter=${s.id}`);
-              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCreators ? CREATOR_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : isTrends ? INTERNET_TRENDS_SUBS : isTech ? TECH_SUBS : isAwards ? AWARDS_SUBS : null;
-              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCreators ? creatorSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : isTrends ? trendsSub : isTech ? techSub : isAwards ? awardsSub : null;
-              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCreators ? selectCreatorSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : isTrends ? selectTrendsSub : isTech ? selectTechSub : isAwards ? selectAwardsSub : null;
-              const iconSubs = isCreators ? CREATOR_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : isStreaming ? STREAMING_SUB_ICONS : isTrends ? TRENDS_SUB_ICONS : isTech ? TECH_SUB_ICONS : isAwards ? AWARDS_SUB_ICONS : null;
+              // Homepage nav is flat: every sector row opens that category's
+              // own page, where its subcategories live in the rail. They used
+              // to be dropdowns here, hiding one or two markets behind each of
+              // roughly forty entries.
+              const onClickHeader = () => navigate(`/explore?filter=${s.id}`);
               return (
                 <div key={s.id}>
                   <button onClick={onClickHeader}
@@ -1312,51 +1297,7 @@ export default function LandingPage() {
                     }}>
                     <SectorIcon kind={s.icon} color={isActive ? '#DCE6F5' : WARM} />
                     <span style={{ flex: 1 }}>{s.label}</span>
-                    {hasDropdown && (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isActive ? '#DCE6F5' : WARM} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                        style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease', flexShrink: 0 }}>
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    )}
                   </button>
-                  {expanded && iconSubs && (
-                    <div style={{ display: 'flex', flexDirection: 'column', marginTop: 2 }}>
-                      {subItems.map((g) => {
-                        const genreActive = subActive === g;
-                        return (
-                          <button key={g} onClick={() => onSelectSub(g)}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 9,
-                              background: genreActive ? 'rgba(255,223,155,.08)' : 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
-                              padding: '9px 11px', margin: '0 6px', borderRadius: 5, fontSize: 13,
-                              color: genreActive ? GOLD_DIM : WARM, fontWeight: genreActive ? 700 : 500,
-                            }}>
-                            <SectorIcon kind={iconSubs[g]} color={genreActive ? GOLD_DIM : WARM} size={13} />
-                            {g}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {expanded && !iconSubs && (
-                    <div style={{ display: 'flex', flexDirection: 'column', marginTop: 2 }}>
-                      {subItems.map((g) => {
-                        const genreActive = subActive === g;
-                        return (
-                          <button key={g} onClick={() => onSelectSub(g)}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 8,
-                              background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
-                              padding: '7px 11px 7px 38px', fontSize: 12.5,
-                              color: genreActive ? GOLD_DIM : WARM, fontWeight: genreActive ? 700 : 500,
-                            }}>
-                            <span style={{ width: 5, height: 5, borderRadius: 999, background: genreActive ? GOLD_DIM : 'transparent', flexShrink: 0 }} />
-                            {g}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
                 </div>
               );
             })}
