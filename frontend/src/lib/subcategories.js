@@ -20,7 +20,7 @@ export const SUBCATEGORIES = {
   festivals: ['All Festivals', 'Performances & Lineups', 'Headliner', 'Ticket Volatility', 'Festival M&A'],
   gaming: ['All Gaming', 'Console', 'Esports Odds', 'Studio Deals', 'Gaming Hardware'],
   streaming: ['All Streaming', 'Netflix', 'Disney+', 'HBO/Max Releases', 'Prime Video', 'Apple TV', 'Hulu', 'Streaming Charts'],
-  awards: ['All Awards', 'The Oscars', 'The Grammys'],
+  awards: ['All Awards', 'The Oscars', 'The Grammys', 'The Emmys', 'The Golden Globes', 'BAFTA', 'Film Festivals'],
 };
 
 // Title patterns for the non-"all" entries. Anything without a pattern simply
@@ -91,6 +91,10 @@ export const SUBCATEGORY_RE = {
 
   'The Oscars': /oscar|academy award|best picture|best actor|best actress|best director/i,
   'The Grammys': /grammy|album of the year|record of the year|song of the year/i,
+  'The Emmys': /\bemmy\b|\bemmys\b|outstanding drama|outstanding comedy|primetime emmy/i,
+  'The Golden Globes': /golden globe|globes\b/i,
+  BAFTA: /\bbafta\b|british academy/i,
+  'Film Festivals': /cannes|sundance|venice film|toronto international|\btiff\b|berlinale|palme d'or|golden lion/i,
 };
 
 export function subcategoriesFor(sectorId) {

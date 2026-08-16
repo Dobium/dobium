@@ -446,11 +446,18 @@ const SPORTS_FUTURES_DEMO = [
   { title: 'Will Texas go undefeated this season?', vol: '$0', yes: 50, no: 50, tag: 'FUTURES' },
   { title: 'Who wins the College Football national championship?', vol: '$0', yes: 50, no: 50, tag: 'FUTURES' },
 ];
-const AWARDS_SUBS = ['All Awards', 'The Oscars', 'The Grammys'];
-const AWARDS_SUB_ICONS = { 'All Awards': 'trophy', 'The Oscars': 'film', 'The Grammys': 'note' };
+const AWARDS_SUBS = ['All Awards', 'The Oscars', 'The Grammys', 'The Emmys', 'The Golden Globes', 'BAFTA', 'Film Festivals'];
+const AWARDS_SUB_ICONS = {
+  'All Awards': 'trophy', 'The Oscars': 'film', 'The Grammys': 'note', 'The Emmys': 'play',
+  'The Golden Globes': 'star', 'BAFTA': 'trophy', 'Film Festivals': 'ticket',
+};
 const AWARDS_SUB_RE = {
   'The Oscars': /oscar|academy award|best picture|best actor|best actress|best director/i,
   'The Grammys': /grammy|album of the year|record of the year|song of the year/i,
+  'The Emmys': /\bemmy\b|\bemmys\b|outstanding drama|outstanding comedy|primetime emmy/i,
+  'The Golden Globes': /golden globe|globes\b/i,
+  BAFTA: /\bbafta\b|british academy/i,
+  'Film Festivals': /cannes|sundance|venice film|toronto international|\btiff\b|berlinale|palme d'or|golden lion/i,
 };
 function awardsSubMarkets(markets, sub) {
   const re = AWARDS_SUB_RE[sub];
