@@ -23,6 +23,10 @@ on:
     - cron: '17 * * * *'
     # Hype sweep every 6h — extends live markets, closes dead ones.
     - cron: '43 */6 * * *'
+    # Chart markets twice daily — writes next week's Hot 100 market and
+    # settles any whose chart date has passed. Billboard refreshes Tuesday;
+    # running twice a day means it settles within hours either way.
+    - cron: '11 6,18 * * *'
   workflow_dispatch:
     inputs:
       job:
@@ -30,7 +34,7 @@ on:
         required: true
         default: sync-prices
         type: choice
-        options: [sync-prices, market-scout, hype-sweep, daily]
+        options: [sync-prices, market-scout, hype-sweep, chart-markets, daily]
 
 permissions:
   contents: read
@@ -54,6 +58,8 @@ jobs:
             echo "path=market-scout" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event.schedule }}" = "43 */6 * * *" ]; then
             echo "path=hype-sweep" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "11 6,18 * * *" ]; then
+            echo "path=chart-markets" >> "$GITHUB_OUTPUT"
           else
             echo "path=sync-prices" >> "$GITHUB_OUTPUT"
           fi
