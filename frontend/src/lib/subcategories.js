@@ -9,7 +9,7 @@
 // landing page uses — no per-market subcategory field exists yet.
 
 export const SUBCATEGORIES = {
-  sportsfutures: ['All Futures', 'NFL Futures', 'NBA Futures', 'College Football Futures', 'Soccer Futures', 'MLB Futures', 'NHL Futures'],
+  // sportsfutures deliberately has no subs — the whole sector is one list.
   tech: ['All Tech', 'Prediction Markets', 'Trending AI Companies', 'AI Models', 'Big Tech', 'Startup Raises and Funding', 'Open Source AI & Github Repos', 'Startup Acquisitions', 'Space Tech'],
   music: ['All Music', 'R&B', 'Hip Hop', 'Rap', 'Pop', 'Electronic', 'Latin', 'Country', 'Rock', 'K-Pop'],
   trends: ['All Trends', 'Google Trends', 'Instagram', 'Reddit', 'X/Twitter', 'Tiktok', 'YouTube'],

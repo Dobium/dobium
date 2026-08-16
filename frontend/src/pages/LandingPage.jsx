@@ -442,30 +442,6 @@ function techSubMarkets(markets, sub) {
 // regardless of sector. Kept out of the shared sectors.js taxonomy for that
 // reason (Explore's dropdown expects mutually-exclusive categories).
 const ATTENTION_SUBS = ['Trending Attention & News'];
-const SPORTS_FUTURES_SUBS = ['All Futures', 'NFL Futures', 'NBA Futures', 'College Football Futures', 'Soccer Futures', 'MLB Futures', 'NHL Futures'];
-const SPORTS_FUTURES_SUB_ICONS = {
-  'All Futures': 'calendar', 'NFL Futures': 'trophy', 'NBA Futures': 'trophy',
-  'College Football Futures': 'trophy', 'Soccer Futures': 'globe', 'MLB Futures': 'trophy', 'NHL Futures': 'trophy',
-};
-// Split by league rather than by duration: nobody browses for "the six-month
-// markets", they browse for NFL. Duration is answered per-market by the
-// resolution date on the card.
-const SPORTS_FUTURES_SUB_RE = {
-  'NFL Futures': /\bnfl\b|super bowl|afc\b|nfc\b/i,
-  'NBA Futures': /\bnba\b|finals mvp|eastern conference|western conference/i,
-  'College Football Futures': /college football|\bcfb\b|\bncaa\b|heisman|bowl game|\bsec\b|big ten|big 12|\bacc\b/i,
-  'Soccer Futures': /soccer|premier league|champions league|world cup|\bfifa\b|la liga|serie a|bundesliga|golden boot|golden ball/i,
-  'MLB Futures': /\bmlb\b|world series|\bpennant\b|baseball/i,
-  'NHL Futures': /\bnhl\b|stanley cup|hockey/i,
-};
-function sportsFuturesSubMarkets(markets, sub) {
-  const re = SPORTS_FUTURES_SUB_RE[sub];
-  if (!re) return null;
-  return [...(markets || [])]
-    .filter((m) => m.status === 'active' && re.test(m.title || ''))
-    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
-}
-
 const SPORTS_FUTURES_DEMO = [
   { title: 'Will Texas go undefeated this season?', vol: '$0', yes: 50, no: 50, tag: 'FUTURES' },
   { title: 'Who wins the College Football national championship?', vol: '$0', yes: 50, no: 50, tag: 'FUTURES' },
@@ -956,8 +932,6 @@ export default function LandingPage() {
   const [gamingSub, setGamingSub] = useState('All Gaming');
   const [streamingOpen, setStreamingOpen] = useState(false);
   const [streamingSub, setStreamingSub] = useState('All Streaming');
-  const [futuresOpen, setFuturesOpen] = useState(false);
-  const [futuresSub, setFuturesSub] = useState('All Futures');
   const [awardsOpen, setAwardsOpen] = useState(false);
   const [awardsSub, setAwardsSub] = useState('All Awards');
   const [trendsOpen, setTrendsOpen] = useState(false);
@@ -1163,26 +1137,6 @@ export default function LandingPage() {
     refs.streaming?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const toggleFutures = () => {
-    if (activeSector === 'sportsfutures') {
-      setFuturesOpen((v) => !v);
-    } else {
-      setActiveSector('sportsfutures');
-      setFuturesOpen(true);
-      setMusicOpen(false); setMoviesOpen(false); setCreatorsOpen(false);
-      setFestivalsOpen(false); setGamingOpen(false); setStreamingOpen(false);
-      setTrendsOpen(false); setTechOpen(false); setAwardsOpen(false); setAttentionOpen(false);
-    }
-    refs.sportsfutures?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const selectFuturesSub = (v) => {
-    setFuturesSub(v);
-    setActiveSector('sportsfutures');
-    setFuturesOpen(true);
-    refs.sportsfutures?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   const toggleAwards = () => {
     if (activeSector === 'awards') {
       setAwardsOpen((v) => !v);
@@ -1330,14 +1284,13 @@ export default function LandingPage() {
               const isTrends = s.id === 'trends';
               const isTech = s.id === 'tech';
               const isAwards = s.id === 'awards';
-              const isFutures = s.id === 'sportsfutures';
-              const hasDropdown = isMusic || isMovies || isCreators || isFestivals || isGaming || isStreaming || isTrends || isTech || isAwards || isFutures;
-              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCreators && creatorsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen) || (isTrends && trendsOpen) || (isTech && techOpen) || (isAwards && awardsOpen) || (isFutures && futuresOpen));
-              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCreators ? toggleCreators : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : isTrends ? toggleTrends : isTech ? toggleTech : isAwards ? toggleAwards : isFutures ? toggleFutures : () => goTo(s.id);
-              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCreators ? CREATOR_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : isTrends ? INTERNET_TRENDS_SUBS : isTech ? TECH_SUBS : isAwards ? AWARDS_SUBS : isFutures ? SPORTS_FUTURES_SUBS : null;
-              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCreators ? creatorSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : isTrends ? trendsSub : isTech ? techSub : isAwards ? awardsSub : isFutures ? futuresSub : null;
-              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCreators ? selectCreatorSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : isTrends ? selectTrendsSub : isTech ? selectTechSub : isAwards ? selectAwardsSub : isFutures ? selectFuturesSub : null;
-              const iconSubs = isCreators ? CREATOR_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : isStreaming ? STREAMING_SUB_ICONS : isTrends ? TRENDS_SUB_ICONS : isTech ? TECH_SUB_ICONS : isAwards ? AWARDS_SUB_ICONS : isFutures ? SPORTS_FUTURES_SUB_ICONS : null;
+              const hasDropdown = isMusic || isMovies || isCreators || isFestivals || isGaming || isStreaming || isTrends || isTech || isAwards;
+              const expanded = isActive && ((isMusic && musicOpen) || (isMovies && moviesOpen) || (isCreators && creatorsOpen) || (isFestivals && festivalsOpen) || (isGaming && gamingOpen) || (isStreaming && streamingOpen) || (isTrends && trendsOpen) || (isTech && techOpen) || (isAwards && awardsOpen));
+              const onClickHeader = isMusic ? toggleMusic : isMovies ? toggleMovies : isCreators ? toggleCreators : isFestivals ? toggleFestivals : isGaming ? toggleGaming : isStreaming ? toggleStreaming : isTrends ? toggleTrends : isTech ? toggleTech : isAwards ? toggleAwards : () => goTo(s.id);
+              const subItems = isMusic ? MUSIC_GENRES : isMovies ? MOVIES_PLATFORMS : isCreators ? CREATOR_SUBS : isFestivals ? FESTIVAL_SUBS : isGaming ? GAMING_SUBS : isStreaming ? STREAMING_SUBS : isTrends ? INTERNET_TRENDS_SUBS : isTech ? TECH_SUBS : isAwards ? AWARDS_SUBS : null;
+              const subActive = isMusic ? musicGenre : isMovies ? moviesPlatform : isCreators ? creatorSub : isFestivals ? festivalSub : isGaming ? gamingSub : isStreaming ? streamingSub : isTrends ? trendsSub : isTech ? techSub : isAwards ? awardsSub : null;
+              const onSelectSub = isMusic ? selectGenre : isMovies ? selectPlatform : isCreators ? selectCreatorSub : isFestivals ? selectFestivalSub : isGaming ? selectGamingSub : isStreaming ? selectStreamingSub : isTrends ? selectTrendsSub : isTech ? selectTechSub : isAwards ? selectAwardsSub : null;
+              const iconSubs = isCreators ? CREATOR_SUB_ICONS : isFestivals ? FESTIVAL_SUB_ICONS : isGaming ? GAMING_SUB_ICONS : isStreaming ? STREAMING_SUB_ICONS : isTrends ? TRENDS_SUB_ICONS : isTech ? TECH_SUB_ICONS : isAwards ? AWARDS_SUB_ICONS : null;
               return (
                 <div key={s.id}>
                   <button onClick={onClickHeader}
@@ -1455,8 +1408,6 @@ export default function LandingPage() {
             sector={SECTORS.find((s) => s.id === 'sportsfutures')}
             markets={markets}
             demo={SPORTS_FUTURES_DEMO}
-            title={futuresSub === 'All Futures' ? 'Sports Futures' : `Sports Futures · ${futuresSub}`}
-            pickReal={futuresSub === 'All Futures' ? undefined : (m) => sportsFuturesSubMarkets(m, futuresSub)}
             onOpen={(id) => navigate(`/markets/${id}`)}
             onViewAll={() => navigate('/explore?filter=sportsfutures')}
             forwardRef={refs.sportsfutures}
