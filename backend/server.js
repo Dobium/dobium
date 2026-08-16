@@ -2209,6 +2209,22 @@ async function autoPublishMirrors(limit = 5) {
 // Standalone so the hype sweep can run on its own cadence from the GitHub
 // Actions schedule, independent of the heavier daily job. ?dry=1 reports what
 // it would do without writing.
+// Recurring chart markets: writes next week's Hot 100 market and settles any
+// whose chart date has arrived. Runs on its own cadence from GitHub Actions.
+// ?dry=1 reports what it would do without writing.
+app.get('/api/cron/chart-markets', requireRadarKey, async (req, res) => {
+  try {
+    const dryRun = req.query.dry === '1';
+    const chart = require('./jobs/chart-markets');
+    const models = { Market, Outcome, sequelize, Op };
+    const created = await chart.ensureWeeklyChartMarkets(models, { dryRun });
+    const resolved = await chart.resolveChartMarkets(models, resolveMarketInstance, { dryRun });
+    res.json({ ok: true, created, resolved });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/cron/hype-sweep', requireRadarKey, async (req, res) => {
   try {
     const dryRun = req.query.dry === '1';
