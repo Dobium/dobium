@@ -2806,6 +2806,19 @@ app.get('/api/cron/market-scout', requireRadarKey, async (req, res) => {
     result.scout_error = e.message;
   }
   try { result.auto_published = await autoPublishMirrors(5); } catch (e) { result.auto_published = { error: e.message }; }
+  // Seeding and chart markets run as part of the hourly job rather than
+  // needing anything triggered by hand. Both are idempotent — they skip what
+  // already exists — so running them every hour costs a handful of lookups.
+  try {
+    const { seedSportsFutures } = require('./jobs/seed-futures');
+    result.futures = await seedSportsFutures({ Market, Outcome, sequelize });
+  } catch (e) { result.futures = { error: e.message }; }
+  try {
+    const chart = require('./jobs/chart-markets');
+    const models = { Market, Outcome, sequelize, Op };
+    result.chart_created = await chart.ensureWeeklyChartMarkets(models);
+    result.chart_resolved = await chart.resolveChartMarkets(models, resolveMarketInstance);
+  } catch (e) { result.chart = { error: e.message }; }
   res.json({ ok: true, ...result });
 });
 
