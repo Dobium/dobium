@@ -103,11 +103,10 @@ function TerminalTicker({ markets }) {
 }
 
 function TerminalNav({ navigate }) {
+  // Radar and Intelligence both pointed at /radar — two labels for one
+  // destination — and Portfolio duplicated the main nav's own link.
   const TABS = [
     { label: 'Markets', to: null },
-    { label: 'Radar', to: '/radar' },
-    { label: 'Intelligence', to: '/radar' },
-    { label: 'Portfolio', to: '/portfolio' },
   ];
   return (
     <div style={{ background: '#001128', borderBottom: '1px solid #14223E' }}>
