@@ -5,6 +5,7 @@ import { MarketGridSkeleton } from '../components/MarketCardSkeleton';
 import { useMarkets } from '../hooks/useMarkets';
 import { api } from '../api/client';
 import { SECTORS, classifySector } from '../lib/sectors';
+import { subcategoriesFor, matchesSubcategory } from '../lib/subcategories';
 import { EXPLORE_FLASH, MARKET_INTEL } from '../lib/demoContent';
 
 // ── Above-nav stat band (mock): ACTIVE MARKETS · LEADERBOARD TOP · LIVE
@@ -133,6 +134,8 @@ export default function ExplorePage() {
   const urlFilter = searchParams.get('filter');
   const urlQuery = searchParams.get('q');
   const [category, setCategory] = useState(() => (SECTORS.some((s) => s.id === urlFilter) ? urlFilter : null));
+  const [sub, setSub] = useState(null);
+  useEffect(() => { setSub(null); }, [category]);
   useEffect(() => {
     if (SECTORS.some((s) => s.id === urlFilter)) setCategory(urlFilter);
   }, [urlFilter]);
@@ -142,6 +145,8 @@ export default function ExplorePage() {
   // active markets, same rule the landing section uses. Treated as its own
   // mode so that section's View All lands somewhere that matches it.
   const attentionMode = urlFilter === 'attention' && !category;
+  const activeSector = SECTORS.find((x) => x.id === category) || null;
+  const subs = activeSector ? subcategoriesFor(activeSector.id) : null;
 
   const filtered = [...markets]
     .filter((m) => {
@@ -152,7 +157,8 @@ export default function ExplorePage() {
         ? (attentionMode ? m.status === 'active' : true)
         : classifySector(m.title) === category;
       const searchMatch = !search || m.title?.toLowerCase().includes(search.toLowerCase());
-      return categoryMatch && searchMatch;
+      const subMatch = !sub || matchesSubcategory(m.title, sub);
+      return categoryMatch && searchMatch && subMatch;
     })
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 
@@ -170,10 +176,12 @@ export default function ExplorePage() {
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, padding: '28px 0 20px' }}>
         <div>
           <h1 style={{ fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 'clamp(30px,3.8vw,46px)', color: '#FFFFFF', margin: 0, lineHeight: 1.1, letterSpacing: '-0.01em' }}>
-            {attentionMode ? 'Trending Attention & News' : 'Explore Markets'}
+            {attentionMode ? 'Trending Attention & News' : (activeSector?.label || 'Explore Markets')}
           </h1>
           <p style={{ color: '#CFC5B5', fontSize: 13, margin: '8px 0 0' }}>
-            {attentionMode ? 'Highest-volume markets across every sector.' : 'High-fidelity data. Real-time predictions.'}
+            {attentionMode
+              ? 'Highest-volume markets across every sector.'
+              : activeSector ? `${filtered.length} market${filtered.length === 1 ? '' : 's'}` : 'High-fidelity data. Real-time predictions.'}
           </p>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -194,18 +202,46 @@ export default function ExplorePage() {
         </div>
       )}
 
-      {/* ── Markets grid (live data, mock styling) ── */}
-      {loading ? (
-        <MarketGridSkeleton count={9} />
-      ) : filtered.length === 0 ? (
-        <p style={{ color: '#8E9AB0', textAlign: 'center', padding: '48px 0' }}>
-          No markets match — try another category.
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 20 }}>
-          {filtered.map((m) => <ExploreCard key={m.id} market={m} />)}
+      {/* ── Category view: subcategory rail beside the grid ──
+           Subcategories live here rather than in the homepage sidebar. On the
+           homepage they were dropdowns hiding one or two markets each; on a
+           category page there's room to show the whole list at once. */}
+      <div className="dbm-explore-body">
+        {subs && (
+          <nav className="dbm-explore-rail">
+            {subs.map((label, i) => {
+              const isAll = i === 0;
+              const on = isAll ? !sub : sub === label;
+              return (
+                <button key={label} onClick={() => setSub(isAll ? null : label)}
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    padding: '7px 0', fontSize: 13.5,
+                    color: on ? '#FFDF9B' : '#8E9AB0',
+                    fontWeight: on ? 700 : 500,
+                  }}>
+                  {label}
+                </button>
+              );
+            })}
+          </nav>
+        )}
+
+        <div style={{ minWidth: 0 }}>
+          {loading ? (
+            <MarketGridSkeleton count={9} />
+          ) : filtered.length === 0 ? (
+            <p style={{ color: '#8E9AB0', textAlign: 'center', padding: '48px 0' }}>
+              No markets match — try another category.
+            </p>
+          ) : (
+            <div className={subs ? 'grid grid-cols-1 md:grid-cols-2' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} style={{ gap: 20 }}>
+              {filtered.map((m) => <ExploreCard key={m.id} market={m} />)}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* ── Flash market banner + market intelligence ── */}
       <div className="dbm-explore-flash" style={{ marginTop: 20 }}>

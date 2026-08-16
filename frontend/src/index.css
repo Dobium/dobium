@@ -890,6 +890,13 @@ a,
 /* Featured band: carousel left, promo + sentiment rail right, per the mockup.
    Single column below 1024px so the carousel keeps its chart width on tablets. */
 .dbm-featured-band { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+
+/* Category page: subcategory rail beside the grid, stacking on narrow screens. */
+.dbm-explore-body { display: grid; grid-template-columns: minmax(0,1fr); gap: 24px; align-items: start; }
+@media (min-width: 900px) {
+  .dbm-explore-body:has(.dbm-explore-rail) { grid-template-columns: 190px minmax(0,1fr); }
+}
+.dbm-explore-rail { position: sticky; top: 90px; }
 @media (min-width: 1024px) {
   .dbm-featured-band { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 18px; }
 }
