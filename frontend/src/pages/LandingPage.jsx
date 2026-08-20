@@ -228,10 +228,11 @@ function gamingSubMarkets(markets, sub) {
     .filter((m) => m.status === 'active' && re.test(m.title || ''))
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
-const STREAMING_SUBS = ['All Streaming', 'Netflix', 'Disney+', 'HBO/Max Releases', 'Prime Video', 'Apple TV', 'Hulu', 'Streaming Charts'];
+const STREAMING_SUBS = ['All Streaming', 'Netflix', 'Disney+', 'HBO/Max Releases', 'Prime Video', 'Apple TV', 'Hulu', 'Streaming Charts', 'Movie Charts'];
 const STREAMING_SUB_ICONS = {
   'All Streaming': 'film', 'Netflix': 'playcircle', 'Disney+': 'castle', 'HBO/Max Releases': 'console',
   'Prime Video': 'play', 'Apple TV': 'console', 'Hulu': 'playcircle', 'Streaming Charts': 'bars',
+  'Movie Charts': 'film',
 };
 const STREAMING_DEMO = [
   { title: 'Stranger Things Season 5 to drop before Q3 2025?', vol: '$8.4M', yes: 42, no: 58, tag: 'NETFLIX' },
@@ -268,6 +269,10 @@ const STREAMING_SUB_DEMO = {
     { title: 'A Netflix original tops the global Top 10 for 3+ weeks?', vol: '$540K', yes: 66, no: 34, tag: 'STREAMING CHARTS' },
     { title: 'A non-English series breaks into the weekly global Top 5?', vol: '$310K', yes: 39, no: 61, tag: 'STREAMING CHARTS' },
   ],
+  'Movie Charts': [
+    { title: 'A24 tops the weekend box office three weeks running?', vol: '$480K', yes: 31, no: 69, tag: 'MOVIE CHARTS' },
+    { title: 'An animated feature is the #1 film worldwide this quarter?', vol: '$290K', yes: 55, no: 45, tag: 'MOVIE CHARTS' },
+  ],
 };
 // Same title-heuristic caveat as the other four sub-filters — no real
 // per-market platform tagging exists yet.
@@ -279,6 +284,7 @@ const STREAMING_SUB_RE = {
   'Apple TV': /apple tv/i,
   'Hulu': /\bhulu\b/i,
   'Streaming Charts': /top 10|top ten|\bchart(s)?\b|weekly views|viewership/i,
+  'Movie Charts': /box office|opening weekend|\bbox-office\b|highest[- ]grossing|\b#1 film\b|movie chart/i,
 };
 function streamingSubMarkets(markets, sub) {
   const re = STREAMING_SUB_RE[sub];
