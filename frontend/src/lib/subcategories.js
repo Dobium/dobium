@@ -19,7 +19,7 @@ export const SUBCATEGORIES = {
   celebrities: ['All Creators', 'YouTube Milestones', 'Twitch Live Streaming', 'Kick Live Streaming', 'Viral Streamers and Events'],
   festivals: ['All Festivals', 'Performances & Lineups', 'Headliner', 'Ticket Volatility', 'Festival M&A'],
   gaming: ['All Gaming', 'Console', 'Esports Odds', 'Studio Deals', 'Gaming Hardware'],
-  streaming: ['All Streaming', 'Netflix', 'Disney+', 'HBO/Max Releases', 'Prime Video', 'Apple TV', 'Hulu', 'Streaming Charts'],
+  streaming: ['All Streaming', 'Netflix', 'Disney+', 'HBO/Max Releases', 'Prime Video', 'Apple TV', 'Hulu', 'Streaming Charts', 'Movie Charts'],
   awards: ['All Awards', 'The Oscars', 'The Grammys', 'The Emmys', 'The Golden Globes', 'BAFTA', 'Film Festivals'],
 };
 
@@ -88,6 +88,7 @@ export const SUBCATEGORY_RE = {
   'Apple TV': /apple tv/i,
   Hulu: /hulu/i,
   'Streaming Charts': /viewership|weekly views|streaming chart|top 10/i,
+  'Movie Charts': /box office|opening weekend|highest[- ]grossing|movie chart|#1 film|debut(s|ed)? at no\.? ?1/i,
 
   'The Oscars': /oscar|academy award|best picture|best actor|best actress|best director/i,
   'The Grammys': /grammy|album of the year|record of the year|song of the year/i,
