@@ -1369,6 +1369,12 @@ export default function LandingPage() {
               <div style={{ ...mono({ fontSize: 9, letterSpacing: '0.1em', color: WARM }) }}>ACTIVE TRADERS</div>
               <div style={{ ...mono({ fontSize: 19, color: GREEN, letterSpacing: '0.01em' }), marginTop: 6 }}>{activeTraders}</div>
             </div>
+            <div>
+              <div style={{ ...mono({ fontSize: 9, letterSpacing: '0.1em', color: WARM }) }}>MARKETS</div>
+              <div style={{ ...mono({ fontSize: 19, color: '#FFFFFF', letterSpacing: '0.01em' }), marginTop: 6 }}>
+                {active.length.toLocaleString('en-US')}
+              </div>
+            </div>
           </div>
 
           <div className="dbm-featured-band" style={{ margin: '0 0 34px' }}>
