@@ -12,7 +12,7 @@ export const SUBCATEGORIES = {
   // No dropdown on the homepage sidebar (removed in f1af21d) — but the
   // category page has room for the full rail, which is where these belong.
   sportsfutures: ['All Futures', 'NFL Futures', 'NBA Futures', 'College Football Futures', 'Soccer Futures', 'MLB Futures', 'NHL Futures'],
-  tech: ['All Tech', 'Prediction Markets', 'Trending AI Companies', 'AI Models', 'Big Tech', 'Startup Raises and Funding', 'Open Source AI & Github Repos', 'Startup Acquisitions', 'Space Tech'],
+  tech: ['All Tech', 'Prediction Markets', 'OpenAI', 'Anthropic', 'Google / Gemini', 'AI Models', 'Big Tech', 'Startup Raises and Funding', 'Open Source AI & Github Repos', 'Startup Acquisitions', 'Space Tech'],
   music: ['All Music', 'R&B', 'Hip Hop', 'Rap', 'Pop', 'Electronic', 'Latin', 'Country', 'Rock', 'K-Pop'],
   trends: ['All Trends', 'Google Trends', 'Instagram', 'Reddit', 'X/Twitter', 'Tiktok', 'YouTube'],
   movies: ['All Movies & TV', 'Box Office Hits', 'New Releases', 'Franchises', 'Awards', 'TV Shows', 'Industry Deals'],
@@ -39,7 +39,9 @@ export const SUBCATEGORY_RE = {
   'NHL Futures': /\bnhl\b|stanley cup|hockey/i,
 
   'Prediction Markets': /kalshi|polymarket|manifold|prediction market|event contract|cftc/i,
-  'Trending AI Companies': /openai|anthropic|deepmind|mistral|perplexity|xai\b/i,
+  OpenAI: /openai|\bchatgpt\b|\bgpt-?\d|sam altman|\bsora\b/i,
+  Anthropic: /anthropic|\bclaude\b|dario amodei/i,
+  'Google / Gemini': /\bgemini\b|deepmind|\bbard\b|sundar pichai|google ai/i,
   'AI Models': /\bgpt\b|\bllm\b|claude|gemini|llama|benchmark|model release/i,
   'Big Tech': /\bapple\b|\bgoogle\b|alphabet|\bmeta\b|\bmicrosoft\b|\bamazon\b|\bnvidia\b|\btesla\b|waymo|\buber\b|big tech/i,
   'Startup Raises and Funding': /raise|funding|series [a-e]\b|valuation|\bipo\b/i,

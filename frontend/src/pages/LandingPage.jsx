@@ -353,9 +353,9 @@ function trendsPlatformMarkets(markets, sub) {
     .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
 }
 
-const TECH_SUBS = ['All Tech', 'Prediction Markets', 'Trending AI Companies', 'AI Models', 'Big Tech', 'Startup Raises and Funding', 'Open Source AI & Github Repos', 'Startup Acquisitions', 'Space Tech'];
+const TECH_SUBS = ['All Tech', 'Prediction Markets', 'OpenAI', 'Anthropic', 'Google / Gemini', 'AI Models', 'Big Tech', 'Startup Raises and Funding', 'Open Source AI & Github Repos', 'Startup Acquisitions', 'Space Tech'];
 const TECH_SUB_ICONS = {
-  'All Tech': 'grid', 'Trending AI Companies': 'hardware', 'Prediction Markets': 'bars', 'AI Models': 'robot', 'Big Tech': 'building',
+  'All Tech': 'grid', OpenAI: 'hardware', Anthropic: 'star', 'Google / Gemini': 'layers', 'Prediction Markets': 'bars', 'AI Models': 'robot', 'Big Tech': 'building',
   'Startup Raises and Funding': 'briefcase', 'Open Source AI & Github Repos': 'terminal',
   'Startup Acquisitions': 'layers', 'Space Tech': 'rocket',
 };
@@ -387,7 +387,7 @@ const TECH_SUB_DEMO = {
     { title: 'Will Kalshi pass Polymarket in monthly web visits this quarter?', vol: '$0', yes: 50, no: 50, tag: 'KALSHI' },
     { title: 'Will Polymarket remain the top prediction market by volume?', vol: '$0', yes: 50, no: 50, tag: 'POLYMARKET' },
   ],
-  'Trending AI Companies': [
+  OpenAI: [
     { title: 'OpenAI to surpass $150B valuation in 2025?', vol: '$88.2M', yes: 61, no: 39, tag: 'OPENAI' },
     { title: 'Anthropic to raise a new round above $30B valuation?', vol: '$42.6M', yes: 57, no: 43, tag: 'ANTHROPIC' },
   ],
@@ -419,7 +419,9 @@ const TECH_SUB_DEMO = {
 // Same title-heuristic caveat as the other seven sub-filters — no real
 // per-market company/category metadata exists yet.
 const TECH_SUB_RE = {
-  'Trending AI Companies': /openai|anthropic|\bxai\b|mistral|cohere|perplexity|deepmind|stability ai/i,
+  OpenAI: /openai|\bchatgpt\b|\bgpt-?\d|sam altman|\bsora\b/i,
+  Anthropic: /anthropic|\bclaude\b|dario amodei/i,
+  'Google / Gemini': /\bgemini\b|deepmind|\bbard\b|sundar pichai|google ai/i,
   'Prediction Markets': /kalshi|polymarket|manifold|prediction market|event contract|\bcftc\b|designated contract market/i,
   'AI Models': /\bgpt\b|\bllm\b|\bclaude\b|gemini|llama|model release|benchmark|leaderboard/i,
   'Big Tech': /\bapple\b|\bgoogle\b|\bmeta\b|\bmicrosoft\b|\bamazon\b|\bnvidia\b|alphabet|\btesla\b|waymo|\buber\b|big tech/i,
