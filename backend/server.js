@@ -2235,6 +2235,16 @@ app.get('/api/cron/seed-futures', requireRadarKey, async (req, res) => {
   }
 });
 
+app.get('/api/cron/seed-cfb', requireRadarKey, async (req, res) => {
+  try {
+    const { seedCollegeFootball } = require('./jobs/seed-cfb');
+    const result = await seedCollegeFootball({ Market, Outcome, sequelize }, { dryRun: req.query.dry === '1' });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/cron/chart-markets', requireRadarKey, async (req, res) => {
   try {
     const dryRun = req.query.dry === '1';

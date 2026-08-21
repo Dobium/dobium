@@ -20,7 +20,7 @@ const nanoid = (size = 12) => crypto.randomBytes(Math.ceil(size / 2)).toString('
 const SEASON_END = {
   nfl: '2027-02-14',
   nba: '2027-06-30',
-  cfb: '2027-01-20',
+  cfb: '2027-01-26',  // CFP National Championship is Mon Jan 25, 2027 (Las Vegas)
   soccer: '2027-05-31',
   mlb: '2026-11-05',
   nhl: '2027-06-25',
