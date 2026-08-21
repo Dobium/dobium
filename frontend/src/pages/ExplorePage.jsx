@@ -154,9 +154,15 @@ export default function ExplorePage() {
       // 'awards' used to be handled here as a pseudo-filter (any media-bucket
       // market) because it wasn't a real sector. It is one now, so it resolves
       // through the normal classifySector path like every other category.
+      // Prefer a sector stored on the row over guessing from the title — but
+      // only when it actually names a sector. The column predates this taxonomy
+      // and still holds coarse buckets ('entertainment', 'sports', 'trending')
+      // that match no sector, so those rows must keep using the classifier or
+      // they'd vanish from every category page.
+      const stored = SECTORS.some((x) => x.id === m.category) ? m.category : null;
       const categoryMatch = !category
         ? (attentionMode ? m.status === 'active' : true)
-        : classifySector(m.title) === category;
+        : (stored ? stored === category : classifySector(m.title) === category);
       const searchMatch = !search || m.title?.toLowerCase().includes(search.toLowerCase());
       const subMatch = !sub || matchesSubcategory(m.title, sub);
       return categoryMatch && searchMatch && subMatch;

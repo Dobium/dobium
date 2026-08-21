@@ -46,9 +46,18 @@ function humanDate(d) {
 // Current Hot 100 number one, as { song, artist }, or null when unreadable.
 async function fetchHot100NumberOne() {
   const url = `${WIKI_API}?action=query&prop=extracts&explaintext=1&format=json&titles=Billboard%20Hot%20100&origin=*`;
-  const res = await fetch(url, { headers: { 'User-Agent': 'Dobium/1.0 (markets@dobium.com)' } });
-  if (!res.ok) throw new Error(`wikipedia ${res.status}`);
-  const data = await res.json();
+  // Upstream blips (429s, brief 5xx, socket resets) used to throw from here and
+  // surface as a 500 on /api/cron/chart-markets, failing the whole workflow run
+  // — even though an unparseable page already fails closed with null. Treat an
+  // unreachable Wikipedia the same way: skip this tick, run again in 12 hours.
+  let data;
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': 'Dobium/1.0 (markets@dobium.com)' } });
+    if (!res.ok) return null;
+    data = await res.json();
+  } catch {
+    return null;
+  }
   const pages = data?.query?.pages || {};
   const extract = Object.values(pages)[0]?.extract || '';
 
