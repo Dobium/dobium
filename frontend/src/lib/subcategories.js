@@ -20,6 +20,8 @@ export const SUBCATEGORIES = {
   festivals: ['All Festivals', 'Performances & Lineups', 'Headliner', 'Ticket Volatility', 'Festival M&A'],
   gaming: ['All Gaming', 'Console', 'Esports Odds', 'Studio Deals', 'Gaming Hardware'],
   streaming: ['All Streaming', 'Netflix', 'Disney+', 'HBO/Max Releases', 'Prime Video', 'Apple TV', 'Hulu', 'Streaming Charts'],
+  moviecharts: ['All Movie Charts', 'Box Office (Domestic)', 'Box Office (Global)', 'Opening Weekend',
+    'Rotten Tomatoes', 'Critics Score', 'Audience Score', 'Streaming Charts', 'Franchise Performance'],
   awards: ['All Awards', 'The Oscars', 'The Grammys', 'The Emmys', 'The Golden Globes', 'BAFTA', 'Film Festivals'],
 };
 
@@ -95,6 +97,17 @@ export const SUBCATEGORY_RE = {
   'The Golden Globes': /golden globe|globes\b/i,
   BAFTA: /\bbafta\b|british academy/i,
   'Film Festivals': /cannes|sundance|venice film|toronto international|\btiff\b|berlinale|palme d'or|golden lion/i,
+
+  // Movie Charts. 'Streaming Charts' deliberately has no entry here — the key
+  // already exists above for the Streaming sector and this map is flat, so the
+  // two labels share one pattern.
+  'Box Office (Domestic)': /domestic (box office|gross|total|opening)|north american (box office|gross)|\bdomestic\b/i,
+  'Box Office (Global)': /(global|worldwide|international) (box office|gross|total)|\bworldwide\b|overseas gross/i,
+  'Opening Weekend': /opening weekend|opening day|debut weekend|three[- ]day (opening|weekend)|biggest opening/i,
+  'Rotten Tomatoes': /rotten tomatoes|tomatometer|\brt score\b|certified fresh/i,
+  'Critics Score': /critics? score|metacritic|critical (score|rating|reception)|review score/i,
+  'Audience Score': /audience score|popcornmeter|cinemascore|audience (rating|reception)/i,
+  'Franchise Performance': /franchise|sequel|prequel|spin[- ]?off|cinematic universe|\bmcu\b|\bdcu\b|installment|trilogy|reboot/i,
 };
 
 export function subcategoriesFor(sectorId) {

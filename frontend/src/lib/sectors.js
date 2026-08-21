@@ -22,7 +22,7 @@ export const SECTORS = [
   { id: 'streaming', label: 'Streaming',
     re: /netflix|hulu|hbo max|disney\+|paramount\+|peacock|apple tv|prime video|renewal|viewership|weekly views/i },
   { id: 'moviecharts', label: 'Movie Charts',
-    re: /box office|opening weekend|highest[- ]grossing|domestic gross|worldwide gross|movie chart|#1 film|debut(s|ed)? at no\.? ?1|four[- ]quadrant/i },
+    re: /box office|opening weekend|highest[- ]grossing|domestic gross|worldwide gross|overseas gross|movie chart|#1 film|debut(s|ed)? at no\.? ?1|four[- ]quadrant|rotten tomatoes|tomatometer|certified fresh|metacritic|critics? score|audience score|cinemascore|popcornmeter|franchise|cinematic universe|\bmcu\b|\bdcu\b|trilogy|\breboot\b|\binstallment\b/i },
   { id: 'awards', label: 'Awards',
     re: /oscar|academy award|grammy|\bemmys?\b|golden globe|\bbafta\b|tony award|brit award|\bvmas?\b|best picture|best actor|best actress|best director|album of the year|record of the year|song of the year|\bnominations?\b|cannes|sundance|palme d'or|golden lion|berlinale|venice film|toronto international/i },
 ];
