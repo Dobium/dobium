@@ -7,6 +7,8 @@ export const SECTORS = [
     re: /championship|undefeated|super bowl|world cup winner|world series|stanley cup|\bfinals\b|national title|march madness|conference title|win the (title|league|division|cup)|\bplayoffs?\b|season win total|\bpennant\b|golden boot|golden ball|golden glove|young player award|top scorer|\bmvp\b|relegat/i },
   { id: 'tech', label: 'Tech & AI',
     re: /\bai\b|\bgpt\b|\bllm\b|openai|anthropic|\bclaude\b|startup|venture capital|\bvc\b|\bipo\b|spacex|nvidia|silicon valley|y combinator|artificial intelligence|kalshi|polymarket|manifold|prediction market|event contract|tesla|waymo|robotaxi|\buber\b|cruise|autonomous|self.?driving/i },
+  { id: 'science', label: 'Science',
+    re: /\bnasa\b|\besa\b|artemis|lunar landing|moon landing|\bmars\b|asteroid|\bcomet\b|solar eclipse|telescope|james webb|exoplanet|black hole|supernova|solar flare|\baurora borealis\b|climate|global (temperature|warming)|sea level|carbon (capture|emissions)|hurricane season|earthquake|volcan|vaccine|clinical trial|fda approval|\bcrispr\b|gene (therapy|editing)|\bgenome\b|stem cell|antibiotic|\bpandemic\b|nuclear fusion|fusion (energy|reactor)|particle collider|\bcern\b|higgs|nobel prize in (physics|chemistry|medicine)|superconduct/i },
   { id: 'music', label: 'Music',
     re: /kendrick|drake|sza|beyonc|taylor swift|billboard|album|tour(?!nament)|stream(ing)?|spotify|chart|single|mixtape|rapper|grammy nom/i },
   { id: 'trends', label: 'Social Media Trends',
@@ -32,7 +34,7 @@ export const SECTORS = [
 // and "ai" appear in plenty of music and gaming titles — so matching it first
 // would silently reclassify existing markets. Matching keeps the original
 // narrow-to-broad precedence with tech last.
-const MATCH_ORDER = ['sportsfutures', 'awards', 'moviecharts', 'music', 'movies', 'celebrities', 'festivals', 'gaming', 'streaming', 'trends', 'tech'];
+const MATCH_ORDER = ['sportsfutures', 'awards', 'moviecharts', 'music', 'movies', 'celebrities', 'festivals', 'gaming', 'streaming', 'science', 'trends', 'tech'];
 
 export function classifySector(title) {
   for (const id of MATCH_ORDER) {
