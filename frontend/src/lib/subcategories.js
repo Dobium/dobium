@@ -20,6 +20,8 @@ export const SUBCATEGORIES = {
   festivals: ['All Festivals', 'Performances & Lineups', 'Headliner', 'Ticket Volatility', 'Festival M&A'],
   gaming: ['All Gaming', 'Console', 'Esports Odds', 'Studio Deals', 'Gaming Hardware'],
   streaming: ['All Streaming', 'Netflix', 'Disney+', 'HBO/Max Releases', 'Prime Video', 'Apple TV', 'Hulu', 'Streaming Charts'],
+  science: ['All Science', 'Elon Musk', 'AI & Leading Research', 'Biotech & Longevity',
+    'Physics', 'Space Exploration', 'Biology & Health'],
   moviecharts: ['All Movie Charts', 'Box Office (Domestic)', 'Box Office (Global)', 'Opening Weekend',
     'Rotten Tomatoes', 'Critics Score', 'Audience Score', 'Streaming Charts', 'Franchise Performance'],
   awards: ['All Awards', 'The Oscars', 'The Grammys', 'The Emmys', 'The Golden Globes', 'BAFTA', 'Film Festivals'],
@@ -108,6 +110,13 @@ export const SUBCATEGORY_RE = {
   'Critics Score': /critics? score|metacritic|critical (score|rating|reception)|review score/i,
   'Audience Score': /audience score|popcornmeter|cinemascore|audience (rating|reception)/i,
   'Franchise Performance': /franchise|sequel|prequel|spin[- ]?off|cinematic universe|\bmcu\b|\bdcu\b|installment|trilogy|reboot/i,
+
+  'Elon Musk': /elon musk|\belon\b|\bmusk\b/i,
+  'AI & Leading Research': /artificial intelligence|\bagi\b|\bllm\b|\bgpt\b|openai|anthropic|deepmind|neural net|research (lab|breakthrough)|\bai\b/i,
+  'Biotech & Longevity': /biotech|longevity|anti[- ]?aging|lifespan|gene (therapy|editing)|\bcrispr\b|stem cell|clinical trial|fda approval/i,
+  Physics: /physics|\bcern\b|higgs|particle collider|quantum (comput|mechanics|supremacy)|superconduct|nuclear fusion|fusion (energy|reactor)|dark matter|\bneutrino\b/i,
+  'Space Exploration': /\bnasa\b|\besa\b|artemis|lunar landing|moon landing|\bmars\b|asteroid|\bcomet\b|telescope|james webb|exoplanet|black hole|supernova|orbital|crewed (mission|flight)|space station|\bstarship\b|rocket launch/i,
+  'Biology & Health': /vaccine|\bpandemic\b|antibiotic|\bgenome\b|\bvirus\b|outbreak|life expectancy|cancer (drug|treatment|screening)|\bbiology\b/i,
 };
 
 export function subcategoriesFor(sectorId) {
