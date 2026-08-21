@@ -20,7 +20,7 @@ export const SUBCATEGORIES = {
   festivals: ['All Festivals', 'Performances & Lineups', 'Headliner', 'Ticket Volatility', 'Festival M&A'],
   gaming: ['All Gaming', 'Console', 'Esports Odds', 'Studio Deals', 'Gaming Hardware'],
   streaming: ['All Streaming', 'Netflix', 'Disney+', 'HBO/Max Releases', 'Prime Video', 'Apple TV', 'Hulu', 'Streaming Charts'],
-  science: ['All Science', 'Elon Musk', 'AI & Leading Research', 'Biotech & Longevity',
+  science: ['All Science', 'AI & Leading Research', 'Biotech & Longevity',
     'Physics', 'Space Exploration', 'Biology & Health'],
   moviecharts: ['All Movie Charts', 'Box Office (Domestic)', 'Box Office (Global)', 'Opening Weekend',
     'Rotten Tomatoes', 'Critics Score', 'Audience Score', 'Streaming Charts', 'Franchise Performance'],
@@ -111,7 +111,6 @@ export const SUBCATEGORY_RE = {
   'Audience Score': /audience score|popcornmeter|cinemascore|audience (rating|reception)/i,
   'Franchise Performance': /franchise|sequel|prequel|spin[- ]?off|cinematic universe|\bmcu\b|\bdcu\b|installment|trilogy|reboot/i,
 
-  'Elon Musk': /elon musk|\belon\b|\bmusk\b/i,
   'AI & Leading Research': /artificial intelligence|\bagi\b|\bllm\b|\bgpt\b|openai|anthropic|deepmind|neural net|research (lab|breakthrough)|\bai\b/i,
   'Biotech & Longevity': /biotech|longevity|anti[- ]?aging|lifespan|gene (therapy|editing)|\bcrispr\b|stem cell|clinical trial|fda approval/i,
   Physics: /physics|\bcern\b|higgs|particle collider|quantum (comput|mechanics|supremacy)|superconduct|nuclear fusion|fusion (energy|reactor)|dark matter|\bneutrino\b/i,
