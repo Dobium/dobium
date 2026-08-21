@@ -9,6 +9,8 @@ export const SECTORS = [
     re: /\bai\b|\bgpt\b|\bllm\b|openai|anthropic|\bclaude\b|startup|venture capital|\bvc\b|\bipo\b|spacex|nvidia|silicon valley|y combinator|artificial intelligence|kalshi|polymarket|manifold|prediction market|event contract|tesla|waymo|robotaxi|\buber\b|cruise|autonomous|self.?driving/i },
   { id: 'science', label: 'Science',
     re: /\bnasa\b|\besa\b|artemis|lunar landing|moon landing|\bmars\b|asteroid|\bcomet\b|solar eclipse|telescope|james webb|exoplanet|black hole|supernova|solar flare|\baurora borealis\b|climate|global (temperature|warming)|sea level|carbon (capture|emissions)|hurricane season|earthquake|volcan|vaccine|clinical trial|fda approval|\bcrispr\b|gene (therapy|editing)|\bgenome\b|stem cell|antibiotic|\bpandemic\b|nuclear fusion|fusion (energy|reactor)|particle collider|\bcern\b|higgs|\btokamak\b|\biter\b|net energy gain|quantum (comput|mechanics|supremacy)|dark matter|\bneutrino\b|nobel prize in (physics|chemistry|medicine)|superconduct|mathematic|\bmaths?\b|riemann|millennium prize|\btheorem\b|\bconjecture\b/i },
+  { id: 'elonmusk', label: 'Elon Musk',
+    re: /elon musk|\belon\b|\bmusk\b|\bspacex\b|\bstarship\b|\btesla\b|neuralink|boring company|\bxai\b|\bgrok\b|robotaxi|cybertruck|starlink|\boptimus\b/i },
   { id: 'music', label: 'Music',
     re: /kendrick|drake|sza|beyonc|taylor swift|billboard|album|tour(?!nament)|stream(ing)?|spotify|chart|single|mixtape|rapper|grammy nom/i },
   { id: 'trends', label: 'Social Media Trends',
@@ -32,7 +34,7 @@ export const SECTORS = [
 // and "ai" appear in plenty of music and gaming titles — so matching it first
 // would silently reclassify existing markets. Matching keeps the original
 // narrow-to-broad precedence with tech last.
-const MATCH_ORDER = ['sportsfutures', 'awards', 'moviecharts', 'music', 'movies', 'celebrities', 'gaming', 'streaming', 'science', 'trends', 'tech'];
+const MATCH_ORDER = ['sportsfutures', 'awards', 'moviecharts', 'music', 'movies', 'celebrities', 'gaming', 'streaming', 'elonmusk', 'science', 'trends', 'tech'];
 
 export function classifySector(title) {
   for (const id of MATCH_ORDER) {
