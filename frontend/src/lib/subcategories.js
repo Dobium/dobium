@@ -17,7 +17,6 @@ export const SUBCATEGORIES = {
   trends: ['All Trends', 'Google Trends', 'Instagram', 'Reddit', 'X/Twitter', 'Tiktok', 'YouTube'],
   movies: ['All Movies & TV', 'Box Office Hits', 'New Releases', 'Franchises', 'Awards', 'TV Shows', 'Industry Deals'],
   celebrities: ['All Creators', 'YouTube Milestones', 'Twitch Live Streaming', 'Kick Live Streaming', 'Viral Streamers and Events'],
-  festivals: ['All Festivals', 'Performances & Lineups', 'Headliner', 'Ticket Volatility', 'Festival M&A'],
   gaming: ['All Gaming', 'Console', 'Esports Odds', 'Studio Deals', 'Gaming Hardware'],
   streaming: ['All Streaming', 'Netflix', 'Disney+', 'HBO/Max Releases', 'Prime Video', 'Apple TV', 'Hulu', 'Streaming Charts'],
   science: ['All Science', 'AI & Leading Research', 'Biotech & Longevity', 'FDA',
@@ -75,10 +74,6 @@ export const SUBCATEGORY_RE = {
   'Kick Live Streaming': /\bkick\b|adin ross/i,
   'Viral Streamers and Events': /ishowspeed|kai cenat|xqc|viral stream/i,
 
-  'Performances & Lineups': /lineup|perform|set time|festival poster/i,
-  Headliner: /headline|headliner|closing set/i,
-  'Ticket Volatility': /ticket|sold out|resale|presale/i,
-  'Festival M&A': /live nation|\bage\b|festival acquisition|promoter/i,
 
   Console: /playstation|\bps5\b|xbox|nintendo|switch|console/i,
   'Esports Odds': /esports|\bleague of legends\b|valorant|\bcs2\b|dota/i,

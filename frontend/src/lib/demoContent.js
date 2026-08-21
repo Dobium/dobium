@@ -42,7 +42,7 @@ export const DEMO_FEED = [
     id: 'demo-coachella',
     demo: true,
     status: 'active',
-    category: 'festivals', // green chip: FESTIVALS
+    category: 'music', // green chip
     title: 'Will Coachella 2025 sell out in under 3 hours?',
     total_volume: 840000, // VOL: $840K
     created_at: hoursAgo(6),

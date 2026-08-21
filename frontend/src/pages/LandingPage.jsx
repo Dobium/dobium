@@ -48,7 +48,7 @@ function compactVol(v) {
 }
 
 // ── Sector classification ────────────────────────────────────────────────
-const SECTOR_ICONS = { music: 'note', movies: 'film', celebrities: 'people', festivals: 'stage', gaming: 'gamepad', streaming: 'play', trends: 'trend', tech: 'grid', awards: 'trophy', sportsfutures: 'calendar', moviecharts: 'bars', science: 'life' };
+const SECTOR_ICONS = { music: 'note', movies: 'film', celebrities: 'people', gaming: 'gamepad', streaming: 'play', trends: 'trend', tech: 'grid', awards: 'trophy', sportsfutures: 'calendar', moviecharts: 'bars', science: 'life' };
 const SECTORS = SHARED_SECTORS.map((s) => ({ ...s, icon: SECTOR_ICONS[s.id] }));
 
 function classify(title) {
@@ -539,14 +539,14 @@ const GENRE_DEMO = {
   ],
   'Rap': [
     { title: "Cardi B to release her second studio album in 2025?", vol: '$920K', yes: 44, no: 56, tag: 'ALBUM WATCH' },
-    { title: 'Ice Spice to headline a major festival in 2025?', vol: '$410K', yes: 63, no: 37, tag: 'FESTIVALS' },
+    { title: 'Ice Spice to headline a major festival in 2025?', vol: '$410K', yes: 63, no: 37, tag: 'LIVE MUSIC' },
   ],
   'Pop': [
     { title: 'Will Chappell Roan win Best New Artist at the Grammys?', vol: '$780K', yes: 52, no: 48, tag: 'GRAMMYS' },
     { title: 'Dua Lipa to announce a new album before Q3?', vol: '$530K', yes: 41, no: 59, tag: 'ALBUM WATCH' },
   ],
   'Electronic': [
-    { title: 'Calvin Harris to headline a major EDM festival in 2025?', vol: '$390K', yes: 68, no: 32, tag: 'FESTIVALS' },
+    { title: 'Calvin Harris to headline a major EDM festival in 2025?', vol: '$390K', yes: 68, no: 32, tag: 'LIVE MUSIC' },
     { title: 'Marshmello to release a collab album before 2026?', vol: '$210K', yes: 35, no: 65, tag: 'RELEASE DATE' },
   ],
   'Latin': [
@@ -558,7 +558,7 @@ const GENRE_DEMO = {
     { title: 'Zach Bryan to announce a stadium tour in 2025?', vol: '$380K', yes: 58, no: 42, tag: 'TOUR DATA' },
   ],
   'Rock': [
-    { title: 'A rock act to headline a major festival in 2025?', vol: '$290K', yes: 47, no: 53, tag: 'FESTIVALS' },
+    { title: 'A rock act to headline a major festival in 2025?', vol: '$290K', yes: 47, no: 53, tag: 'LIVE MUSIC' },
     { title: 'Foo Fighters to release a new album before 2026?', vol: '$220K', yes: 39, no: 61, tag: 'RELEASE DATE' },
   ],
   'K-Pop': [
@@ -580,51 +580,6 @@ const CREATOR_SUB_ICONS = {
   'All Creators': 'people', 'YouTube Milestones': 'playcircle', 'Twitch Live Streaming': 'play',
   'Kick Live Streaming': 'bolt', 'Viral Streamers and Events': 'trend',
 };
-
-const FESTIVAL_SUBS = ['All Festivals', 'Performances & Lineups', 'Headliner', 'Ticket Volatility', 'Festival M&A'];
-const FESTIVAL_SUB_ICONS = {
-  'All Festivals': 'stage', 'Performances & Lineups': 'calendar', 'Headliner': 'note',
-  'Ticket Volatility': 'ticket', 'Festival M&A': 'briefcase',
-};
-const FESTIVALS_DEMO = [
-  { title: 'Coachella 2025: Rihanna to headline?', vol: '$4.8M', yes: 32, no: 68, tag: 'GOLDENVOICE' },
-  { title: 'Tomorrowland 2025 early bird to sell out in < 5 mins?', vol: '$2.1M', yes: 85, no: 15, tag: 'ID&T' },
-  { title: 'Glastonbury to announce expansion into Asia by EOY?', vol: '$1.2M', yes: 12, no: 88, tag: 'LIVE NATION' },
-  { title: 'Burning Man 2024 total attendance to exceed 80k?', vol: '$3.5M', yes: 55, no: 45, tag: 'BLACK ROCK CITY' },
-];
-const FESTIVAL_SUB_DEMO = {
-  'Performances & Lineups': [
-    { title: 'Full Coachella 2025 lineup announced before February?', vol: '$680K', yes: 74, no: 26, tag: 'LINEUP WATCH' },
-    { title: 'A surprise guest joins a Coachella headliner set?', vol: '$310K', yes: 61, no: 39, tag: 'PERFORMANCES' },
-  ],
-  'Headliner': [
-    { title: 'Beyoncé confirmed as a 2025 festival headliner?', vol: '$1.4M', yes: 48, no: 52, tag: 'HEADLINER WATCH' },
-    { title: 'A K-pop act headlines a major US festival in 2025?', vol: '$390K', yes: 29, no: 71, tag: 'HEADLINER WATCH' },
-  ],
-  'Ticket Volatility': [
-    { title: 'Coachella 2025 resale prices exceed 3x face value?', vol: '$520K', yes: 66, no: 34, tag: 'TICKET VOLATILITY' },
-    { title: 'A major festival sells out in under 10 minutes in 2025?', vol: '$440K', yes: 58, no: 42, tag: 'TICKET VOLATILITY' },
-  ],
-  'Festival M&A': [
-    { title: 'Live Nation to acquire another major festival brand in 2025?', vol: '$610K', yes: 41, no: 59, tag: 'FESTIVAL M&A' },
-    { title: 'A private equity firm buys a stake in a top festival in 2025?', vol: '$280K', yes: 35, no: 65, tag: 'FESTIVAL M&A' },
-  ],
-};
-// Same title-heuristic caveat as the Music/Movies sub-filters — no real
-// per-market category tagging exists yet.
-const FESTIVAL_SUB_RE = {
-  'Performances & Lineups': /lineup|line-up|perform(ance)?|set time|schedule announc/i,
-  'Headliner': /headlin/i,
-  'Ticket Volatility': /ticket|sell.?out|early bird|resale/i,
-  'Festival M&A': /acquir|merger|acquisition|buyout|stake in/i,
-};
-function festivalSubMarkets(markets, sub) {
-  const re = FESTIVAL_SUB_RE[sub];
-  if (!re) return [];
-  return [...(markets || [])]
-    .filter((m) => m.status === 'active' && re.test(m.title || ''))
-    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
-}
 
 function SectorIcon({ kind, color, size = 15 }) {
   const c = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { flexShrink: 0 } };
@@ -964,8 +919,6 @@ export default function LandingPage() {
   const [moviesPlatform, setMoviesPlatform] = useState('All Movies & TV');
   const [creatorsOpen, setCreatorsOpen] = useState(false);
   const [creatorSub, setCreatorSub] = useState('All Creators');
-  const [festivalsOpen, setFestivalsOpen] = useState(false);
-  const [festivalSub, setFestivalSub] = useState('All Festivals');
   const [gamingOpen, setGamingOpen] = useState(false);
   const [gamingSub, setGamingSub] = useState('All Gaming');
   const [streamingOpen, setStreamingOpen] = useState(false);
@@ -982,7 +935,7 @@ export default function LandingPage() {
 
   const refs = {
     attention: useRef(null), music: useRef(null), movies: useRef(null), celebrities: useRef(null),
-    festivals: useRef(null), gaming: useRef(null), streaming: useRef(null),
+    gaming: useRef(null), streaming: useRef(null),
     trends: useRef(null), tech: useRef(null), awards: useRef(null), sportsfutures: useRef(null),
   };
 
@@ -992,7 +945,6 @@ export default function LandingPage() {
     if (id !== 'music') setMusicOpen(false);
     if (id !== 'movies') setMoviesOpen(false);
     if (id !== 'celebrities') setCreatorsOpen(false);
-    if (id !== 'festivals') setFestivalsOpen(false);
     if (id !== 'gaming') setGamingOpen(false);
     if (id !== 'streaming') setStreamingOpen(false);
     if (id !== 'trends') setTrendsOpen(false);
@@ -1009,7 +961,6 @@ export default function LandingPage() {
       setMusicOpen(false);
       setMoviesOpen(false);
       setCreatorsOpen(false);
-      setFestivalsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
@@ -1033,7 +984,6 @@ export default function LandingPage() {
       setMusicOpen(true);
       setMoviesOpen(false);
       setCreatorsOpen(false);
-      setFestivalsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
@@ -1058,7 +1008,6 @@ export default function LandingPage() {
       setMoviesOpen(true);
       setMusicOpen(false);
       setCreatorsOpen(false);
-      setFestivalsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
@@ -1083,7 +1032,6 @@ export default function LandingPage() {
       setCreatorsOpen(true);
       setMusicOpen(false);
       setMoviesOpen(false);
-      setFestivalsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
@@ -1100,31 +1048,6 @@ export default function LandingPage() {
     refs.celebrities?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const toggleFestivals = () => {
-    if (activeSector === 'festivals') {
-      setFestivalsOpen((v) => !v);
-    } else {
-      setActiveSector('festivals');
-      setFestivalsOpen(true);
-      setMusicOpen(false);
-      setMoviesOpen(false);
-      setCreatorsOpen(false);
-      setGamingOpen(false);
-      setStreamingOpen(false);
-      setTrendsOpen(false);
-      setTechOpen(false);
-      setAttentionOpen(false);
-    }
-    refs.festivals?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const selectFestivalSub = (v) => {
-    setFestivalSub(v);
-    setActiveSector('festivals');
-    setFestivalsOpen(true);
-    refs.festivals?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   const toggleGaming = () => {
     if (activeSector === 'gaming') {
       setGamingOpen((v) => !v);
@@ -1134,7 +1057,6 @@ export default function LandingPage() {
       setMusicOpen(false);
       setMoviesOpen(false);
       setCreatorsOpen(false);
-      setFestivalsOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
       setTechOpen(false);
@@ -1159,7 +1081,6 @@ export default function LandingPage() {
       setMusicOpen(false);
       setMoviesOpen(false);
       setCreatorsOpen(false);
-      setFestivalsOpen(false);
       setGamingOpen(false);
       setTrendsOpen(false);
       setTechOpen(false);
@@ -1184,7 +1105,6 @@ export default function LandingPage() {
       setMusicOpen(false);
       setMoviesOpen(false);
       setCreatorsOpen(false);
-      setFestivalsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
@@ -1210,7 +1130,6 @@ export default function LandingPage() {
       setMusicOpen(false);
       setMoviesOpen(false);
       setCreatorsOpen(false);
-      setFestivalsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
       setTechOpen(false);
@@ -1235,7 +1154,6 @@ export default function LandingPage() {
       setMusicOpen(false);
       setMoviesOpen(false);
       setCreatorsOpen(false);
-      setFestivalsOpen(false);
       setGamingOpen(false);
       setStreamingOpen(false);
       setTrendsOpen(false);
@@ -1484,17 +1402,6 @@ export default function LandingPage() {
             onOpen={(id) => navigate(`/markets/${id}`)}
             onViewAll={() => navigate('/explore?filter=celebrities')}
             forwardRef={refs.celebrities}
-          />
-          <TwoCardSection
-            sector={SECTORS.find((s) => s.id === 'festivals')}
-            demo={festivalSub === 'All Festivals' ? FESTIVALS_DEMO : (FESTIVAL_SUB_DEMO[festivalSub] || FESTIVALS_DEMO)}
-            max={4}
-            title={festivalSub === 'All Festivals' ? 'Festival Markets' : `Festival Markets · ${festivalSub}`}
-            pickReal={festivalSub === 'All Festivals' ? undefined : (m) => festivalSubMarkets(m, festivalSub)}
-            markets={markets}
-            onOpen={(id) => navigate(`/markets/${id}`)}
-            onViewAll={() => navigate('/explore?filter=festivals')}
-            forwardRef={refs.festivals}
           />
           <TwoCardSection
             sector={SECTORS.find((s) => s.id === 'gaming')}
