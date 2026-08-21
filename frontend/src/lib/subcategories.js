@@ -19,6 +19,8 @@ export const SUBCATEGORIES = {
   celebrities: ['All Creators', 'YouTube Milestones', 'Twitch Live Streaming', 'Kick Live Streaming', 'Viral Streamers and Events'],
   gaming: ['All Gaming', 'Console', 'Esports Odds', 'Studio Deals', 'Gaming Hardware'],
   streaming: ['All Streaming', 'Netflix', 'Disney+', 'HBO/Max Releases', 'Prime Video', 'Apple TV', 'Hulu', 'Streaming Charts'],
+  elonmusk: ['All Elon Musk', 'Tesla', 'SpaceX', 'X (Twitter)', 'xAI', 'Neuralink',
+    'The Boring Company', 'Global Influence'],
   science: ['All Science', 'AI & Leading Research', 'Biotech & Longevity', 'FDA',
     'Physics & Math', 'Fusion', 'Space Exploration', 'NASA', 'Biology & Health'],
   moviecharts: ['All Movie Charts', 'Box Office (Domestic)', 'Box Office (Global)', 'Opening Weekend',
@@ -114,6 +116,14 @@ export const SUBCATEGORY_RE = {
   NASA: /\bnasa\b|artemis|\bjpl\b|jet propulsion|james webb/i,
   'Space Exploration': /\bnasa\b|\besa\b|artemis|lunar landing|moon landing|\bmars\b|asteroid|\bcomet\b|telescope|james webb|exoplanet|black hole|supernova|orbital|crewed (mission|flight)|space station|\bstarship\b|rocket launch/i,
   'Biology & Health': /vaccine|\bpandemic\b|antibiotic|\bgenome\b|\bvirus\b|outbreak|life expectancy|cancer (drug|treatment|screening)|\bbiology\b/i,
+
+  Tesla: /\btesla\b|cybertruck|robotaxi|\boptimus\b|full self[- ]driving|\bfsd\b|model [3sxy]\b|gigafactory/i,
+  SpaceX: /\bspacex\b|\bstarship\b|starlink|falcon (9|heavy)|crew dragon|\braptor engine\b/i,
+  'X (Twitter)': /\btwitter\b|\bx\.com\b|\bx corp\b|\btweet/i,
+  xAI: /\bxai\b|\bgrok\b/i,
+  Neuralink: /neuralink|brain[- ]computer interface|\bbci\b|brain implant/i,
+  'The Boring Company': /boring company|hyperloop|vegas loop|tunnel/i,
+  'Global Influence': /endorse|politic|net worth|richest|\bdoge\b|government efficiency|lawsuit|antitrust|feud|controvers|influence/i,
 };
 
 export function subcategoriesFor(sectorId) {

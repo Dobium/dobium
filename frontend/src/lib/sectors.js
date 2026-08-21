@@ -10,7 +10,7 @@ export const SECTORS = [
   { id: 'science', label: 'Science',
     re: /\bnasa\b|\besa\b|artemis|lunar landing|moon landing|\bmars\b|asteroid|\bcomet\b|solar eclipse|telescope|james webb|exoplanet|black hole|supernova|solar flare|\baurora borealis\b|climate|global (temperature|warming)|sea level|carbon (capture|emissions)|hurricane season|earthquake|volcan|vaccine|clinical trial|fda approval|\bcrispr\b|gene (therapy|editing)|\bgenome\b|stem cell|antibiotic|\bpandemic\b|nuclear fusion|fusion (energy|reactor)|particle collider|\bcern\b|higgs|\btokamak\b|\biter\b|net energy gain|quantum (comput|mechanics|supremacy)|dark matter|\bneutrino\b|nobel prize in (physics|chemistry|medicine)|superconduct|mathematic|\bmaths?\b|riemann|millennium prize|\btheorem\b|\bconjecture\b/i },
   { id: 'elonmusk', label: 'Elon Musk',
-    re: /elon musk|\belon\b|\bmusk\b|\bspacex\b|\bstarship\b|\btesla\b|neuralink|boring company|\bxai\b|\bgrok\b|robotaxi|cybertruck|starlink|\boptimus\b/i },
+    re: /elon musk|\belon\b|\bmusk\b|\bspacex\b|\bstarship\b|\btesla\b|neuralink|boring company|\bxai\b|\bgrok\b|robotaxi|cybertruck|starlink|\boptimus\b|\bx corp\b/i },
   { id: 'music', label: 'Music',
     re: /kendrick|drake|sza|beyonc|taylor swift|billboard|album|tour(?!nament)|stream(ing)?|spotify|chart|single|mixtape|rapper|grammy nom/i },
   { id: 'trends', label: 'Social Media Trends',
