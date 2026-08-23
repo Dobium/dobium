@@ -131,8 +131,22 @@ async function resolveChartMarkets(models, resolveMarketInstance, { dryRun = fal
   const current = await fetchHot100NumberOne();
   if (!current) return { resolved: [], checked: due.length, error: 'could not read chart — left open' };
 
+  // The scrape reports who is number one *now*, with no chart date attached, so
+  // it can only settle a market whose date is the current chart week. If a run
+  // is late — the endpoint 500'd for five days in Aug 2026 — settling anyway
+  // would judge "still #1 on the 18th" against the 23rd's chart and could
+  // silently resolve backwards. Past this window we stop and hand it to a human
+  // rather than record an answer we can't actually verify.
+  const STALE_DAYS = 3;
+  const staleCutoff = Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000;
+
   const resolved = [];
+  const needsReview = [];
   for (const market of due) {
+    if (new Date(market.resolution_date).getTime() < staleCutoff) {
+      needsReview.push({ id: market.id, title: market.title, due: market.resolution_date });
+      continue;
+    }
     // The song is the quoted portion of the title we wrote.
     const quoted = (market.title.match(/"([^"]+)"/) || [])[1];
     if (!quoted) continue;
@@ -145,7 +159,7 @@ async function resolveChartMarkets(models, resolveMarketInstance, { dryRun = fal
     if (!dryRun) await resolveMarketInstance(market, [winner.id], { resolutionDate: new Date() });
     resolved.push({ id: market.id, title: market.title, outcome: stillNumberOne ? 'Yes' : 'No', chartNumberOne: current.song });
   }
-  return { resolved, checked: due.length, dryRun };
+  return { resolved, needsReview, checked: due.length, dryRun };
 }
 
 module.exports = { ensureWeeklyChartMarkets, resolveChartMarkets, fetchHot100NumberOne, nextChartDate, CHART_KIND };
