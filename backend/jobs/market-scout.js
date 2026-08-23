@@ -481,9 +481,24 @@ async function llmDraft(candidates) {
   if (!key || candidates.length === 0) return null;
   const today = new Date().toISOString().slice(0, 10);
   const list = candidates.map((c, i) => `${i}. [${c.category}] ${c.headline}`).join('\n');
-  const prompt = `Today is ${today}. You screen news headlines for an entertainment prediction market (like Kalshi, but for music/movies/gaming/culture).
+  const prompt = `Today is ${today}. You screen news headlines for a prediction market covering culture, sport, technology and science.
 
-For each numbered headline, decide if it can become a REAL tradeable yes/no market about a verifiable FUTURE event with a public data source (chart position, box office gross, release/launch date, award result, renewal). Recaps of finished events, opinion pieces, power rankings, listicles, and vague narratives ("Can X turn his season around?") are NOT tradeable.
+Each headline is tagged with the section it belongs to. Draft a question that fits THAT section:
+- music — chart position, first-week sales, release dates
+- movies / moviecharts — box office gross, opening weekend, review scores, renewals
+- gaming — release and launch dates, sales milestones, awards
+- streaming — top 10 placement, renewals, subscriber counts
+- sportsfutures — championships, undefeated runs, title fights, season awards
+- tech — product launches, model releases, IPOs, acquisitions, valuations
+- elonmusk — Tesla, SpaceX, Starship, Neuralink, xAI launches and milestones
+- science — mission milestones, FDA decisions, clinical trial results, fusion and physics milestones, published findings
+- celebrities — creator launches, subscriber and viewership milestones
+- awards — nominations and wins
+- trends — whatever is measurably breaking out right now
+
+For each numbered headline, decide if it can become a REAL tradeable yes/no market about a verifiable FUTURE event with a public data source (chart position, box office gross, release or launch date, award result, renewal, official agency decision, published mission or trial result). Recaps of finished events, opinion pieces, power rankings, listicles, and vague narratives ("Can X turn his season around?") are NOT tradeable.
+
+Do not reject a headline merely because it is not about entertainment — science, technology and sport are all in scope. Reject only what is untradeable or unverifiable.
 
 Question rules: start with "Will", name the exact subject, include one concrete measurable threshold, and imply a clear resolution deadline. NEVER reference anyone's personal life, relationships, health, legal trouble, or safety.
 
@@ -782,6 +797,13 @@ async function runMarketScout() {
   } catch (e) {
     console.error('Scout: AI drafting unavailable, using rule templates:', e.message);
   }
+  // Report this in the endpoint's JSON. When ANTHROPIC_API_KEY isn't set the
+  // drafter silently falls back to ~30 entertainment-only rule templates, and
+  // every science/tech/gaming headline is dropped with no error anywhere —
+  // which looks exactly like "the scout is broken".
+  const llmStatus = !process.env.ANTHROPIC_API_KEY
+    ? 'disabled: ANTHROPIC_API_KEY not set — rule templates only (entertainment coverage)'
+    : usedLlm ? 'active' : 'failed — see logs, using rule templates';
 
   let created = 0;
   let dropped = 0;
@@ -829,6 +851,7 @@ async function runMarketScout() {
   }
 
   return {
+    llm: llmStatus,
     scanned: found.length,
     harm_filtered: found.length - noHarm.length,
     not_market_worthy: noHarm.length - relevant.length,
