@@ -2156,8 +2156,16 @@ async function sweepHypeDecay({ dryRun = false } = {}) {
 const AUTOPUBLISH_MIRROR_SCORE = 55;
 const AUTOPUBLISH_DRAFT_SCORE = 72;
 
+// Publishing used to take the global top-N by score, which is why one sector
+// swallowed every slot: music and film out-produce everything else, so they
+// always held the top of the queue and the rest of the taxonomy stayed empty
+// no matter how many feeds fed it. Now the pool is grouped by category and
+// drained round-robin — every sector with a qualifying suggestion gets one
+// before any sector gets two. Score still orders within a sector, so hype
+// still decides *which* market from a sector goes live, just not which
+// sector wins.
 async function autoPublishMirrors(limit = 5) {
-  const mirrors = await MarketSuggestion.findAll({
+  const pool = await MarketSuggestion.findAll({
     where: {
       status: 'pending',
       [Op.or]: [
@@ -2170,8 +2178,24 @@ async function autoPublishMirrors(limit = 5) {
       ],
     },
     order: [['score', 'DESC']],
-    limit,
+    limit: limit * 8,
   });
+
+  const byCategory = new Map();
+  for (const sug of pool) {
+    const key = sug.category || 'uncategorized';
+    if (!byCategory.has(key)) byCategory.set(key, []);
+    byCategory.get(key).push(sug);
+  }
+  const queues = [...byCategory.values()];
+  const mirrors = [];
+  while (mirrors.length < limit && queues.some((q) => q.length)) {
+    for (const q of queues) {
+      if (mirrors.length >= limit) break;
+      const next = q.shift();
+      if (next) mirrors.push(next);
+    }
+  }
   const published = [];
   for (const sug of mirrors) {
     const dupe = await Market.findOne({ where: { title: sug.headline } });
@@ -2826,7 +2850,7 @@ app.get('/api/cron/market-scout', requireRadarKey, async (req, res) => {
   } catch (e) {
     result.scout_error = e.message;
   }
-  try { result.auto_published = await autoPublishMirrors(5); } catch (e) { result.auto_published = { error: e.message }; }
+  try { result.auto_published = await autoPublishMirrors(12); } catch (e) { result.auto_published = { error: e.message }; }
   // Seeding and chart markets run as part of the hourly job rather than
   // needing anything triggered by hand. Both are idempotent — they skip what
   // already exists — so running them every hour costs a handful of lookups.

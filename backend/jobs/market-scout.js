@@ -11,56 +11,71 @@ const { Op } = require('sequelize');
 const UA = 'DobiumMarketScout/1.0 (entertainment prediction markets; contact: team@dobium.com)';
 
 const REDDIT_SOURCES = [
-  { sub: 'movies', category: 'entertainment' },
-  { sub: 'boxoffice', category: 'entertainment' },
-  { sub: 'television', category: 'entertainment' },
+  { sub: 'movies', category: 'movies' },
+  { sub: 'boxoffice', category: 'moviecharts' },
+  { sub: 'television', category: 'movies' },
   { sub: 'popheads', category: 'music' },
   { sub: 'hiphopheads', category: 'music' },
   { sub: 'Music', category: 'music' },
-  { sub: 'Games', category: 'entertainment' },
-  { sub: 'entertainment', category: 'entertainment' },
-  { sub: 'nba', category: 'sports' },
-  { sub: 'nfl', category: 'sports' },
-  { sub: 'soccer', category: 'sports' },
+  { sub: 'Games', category: 'gaming' },
+  { sub: 'entertainment', category: 'movies' },
+  { sub: 'nba', category: 'sportsfutures' },
+  { sub: 'nfl', category: 'sportsfutures' },
+  { sub: 'soccer', category: 'sportsfutures' },
 ];
 
 // Every keyless feed worth scanning. Any single feed failing is non-fatal.
-const RSS_SOURCES = [
-  { name: 'Variety', url: 'https://variety.com/feed/', category: 'entertainment' },
-  { name: 'Hollywood Reporter', url: 'https://www.hollywoodreporter.com/feed/', category: 'entertainment' },
-  { name: 'Deadline', url: 'https://deadline.com/feed/', category: 'entertainment' },
-  { name: 'TheWrap', url: 'https://www.thewrap.com/feed/', category: 'entertainment' },
-  { name: 'EW', url: 'https://ew.com/feed/', category: 'entertainment' },
+const RSS_SOURCES_BASE = [
+  { name: 'Variety', url: 'https://variety.com/feed/', category: 'movies' },
+  { name: 'Hollywood Reporter', url: 'https://www.hollywoodreporter.com/feed/', category: 'movies' },
+  { name: 'Deadline', url: 'https://deadline.com/feed/', category: 'movies' },
+  { name: 'TheWrap', url: 'https://www.thewrap.com/feed/', category: 'movies' },
+  { name: 'EW', url: 'https://ew.com/feed/', category: 'movies' },
   { name: 'Billboard', url: 'https://www.billboard.com/feed/', category: 'music' },
   { name: 'Rolling Stone', url: 'https://www.rollingstone.com/music/feed/', category: 'music' },
   { name: 'Pitchfork', url: 'https://pitchfork.com/feed/feed-news/rss', category: 'music' },
   { name: 'Stereogum', url: 'https://www.stereogum.com/feed/', category: 'music' },
   { name: 'NME', url: 'https://www.nme.com/feed', category: 'music' },
-  { name: 'IGN', url: 'https://feeds.ign.com/ign/all', category: 'entertainment' },
-  { name: 'GameSpot', url: 'https://www.gamespot.com/feeds/news/', category: 'entertainment' },
-  { name: 'Polygon', url: 'https://www.polygon.com/rss/index.xml', category: 'entertainment' },
-  { name: 'ESPN', url: 'https://www.espn.com/espn/rss/news', category: 'sports' },
+  { name: 'IGN', url: 'https://feeds.ign.com/ign/all', category: 'gaming' },
+  { name: 'GameSpot', url: 'https://www.gamespot.com/feeds/news/', category: 'gaming' },
+  { name: 'Polygon', url: 'https://www.polygon.com/rss/index.xml', category: 'gaming' },
+  { name: 'ESPN', url: 'https://www.espn.com/espn/rss/news', category: 'sportsfutures' },
   // Fights: UFC/boxing — the most talk-of-the-town sports content there is
-  { name: 'ESPN MMA', url: 'https://www.espn.com/espn/rss/mma/news', category: 'sports' },
-  { name: 'MMA Fighting', url: 'https://www.mmafighting.com/rss/current', category: 'sports' },
-  { name: 'Google News', url: 'https://news.google.com/rss/search?q=(UFC%20OR%20boxing)%20(fight%20OR%20title%20OR%20headline)&hl=en-US&gl=US&ceid=US:en', category: 'sports' },
+  { name: 'ESPN MMA', url: 'https://www.espn.com/espn/rss/mma/news', category: 'sportsfutures' },
+  { name: 'MMA Fighting', url: 'https://www.mmafighting.com/rss/current', category: 'sportsfutures' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=(UFC%20OR%20boxing)%20(fight%20OR%20title%20OR%20headline)&hl=en-US&gl=US&ceid=US:en', category: 'sportsfutures' },
   // Trending news: tech, business, big culture (Elon, OpenAI, IPOs, launches)
-  { name: 'Google Trends', url: 'https://trends.google.com/trending/rss?geo=US', category: 'trending' },
-  { name: 'TechCrunch', url: 'https://techcrunch.com/feed/', category: 'trending' },
-  { name: 'The Verge', url: 'https://www.theverge.com/rss/index.xml', category: 'trending' },
-  { name: 'Google News Tech', url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en', category: 'trending' },
-  { name: 'Google News Business', url: 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-US&gl=US&ceid=US:en', category: 'trending' },
-  { name: 'Google News', url: 'https://news.google.com/rss/search?q=(SpaceX%20OR%20Tesla%20OR%20OpenAI%20OR%20Apple)%20(launch%20OR%20IPO%20OR%20announces%20OR%20unveils)&hl=en-US&gl=US&ceid=US:en', category: 'trending' },
+  { name: 'Google Trends', url: 'https://trends.google.com/trending/rss?geo=US', category: 'trends' },
+  { name: 'TechCrunch', url: 'https://techcrunch.com/feed/', category: 'tech' },
+  { name: 'The Verge', url: 'https://www.theverge.com/rss/index.xml', category: 'tech' },
+  { name: 'Google News Tech', url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en', category: 'tech' },
+  { name: 'Google News Business', url: 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-US&gl=US&ceid=US:en', category: 'tech' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=(SpaceX%20OR%20Tesla%20OR%20OpenAI%20OR%20Apple)%20(launch%20OR%20IPO%20OR%20announces%20OR%20unveils)&hl=en-US&gl=US&ceid=US:en', category: 'elonmusk' },
   // Google News topic + targeted searches — high-signal, keyless
-  { name: 'Google News Entertainment', url: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=en-US&gl=US&ceid=US:en', category: 'entertainment' },
+  { name: 'Google News Entertainment', url: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=en-US&gl=US&ceid=US:en', category: 'movies' },
   { name: 'Google News', url: 'https://news.google.com/rss/search?q=%22new%20album%22%20announces&hl=en-US&gl=US&ceid=US:en', category: 'music' },
-  { name: 'Google News', url: 'https://news.google.com/rss/search?q=%22opening%20weekend%22%20box%20office&hl=en-US&gl=US&ceid=US:en', category: 'entertainment' },
-  { name: 'Google News', url: 'https://news.google.com/rss/search?q=%22release%20date%22%20(delayed%20OR%20announced%20OR%20confirmed)&hl=en-US&gl=US&ceid=US:en', category: 'entertainment' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=%22opening%20weekend%22%20box%20office&hl=en-US&gl=US&ceid=US:en', category: 'moviecharts' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=%22release%20date%22%20(delayed%20OR%20announced%20OR%20confirmed)&hl=en-US&gl=US&ceid=US:en', category: 'movies' },
   { name: 'Google News', url: 'https://news.google.com/rss/search?q=(tour%20OR%20residency)%20announces%20(singer%20OR%20rapper%20OR%20band)&hl=en-US&gl=US&ceid=US:en', category: 'music' },
 ];
 
 // Apple Music most-played albums — structured JSON, keyless. Hot albums become
 // clean chart-position questions with zero fuzzy parsing.
+// Sectors added after the original four-bucket taxonomy had no source of their
+// own, so nothing could ever land in them no matter what the classifier did.
+const EXTRA_SOURCES = [
+  { name: 'NASA', url: 'https://www.nasa.gov/news-release/feed/', category: 'science' },
+  { name: 'ScienceDaily', url: 'https://www.sciencedaily.com/rss/top/science.xml', category: 'science' },
+  { name: 'Nature News', url: 'https://www.nature.com/nature.rss', category: 'science' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=(%22FDA%20approval%22%20OR%20%22clinical%20trial%22%20OR%20%22fusion%20reactor%22)&hl=en-US&gl=US&ceid=US:en', category: 'science' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=(Elon%20Musk%20OR%20Neuralink%20OR%20Starship%20OR%20xAI%20OR%20robotaxi)&hl=en-US&gl=US&ceid=US:en', category: 'elonmusk' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=(Netflix%20OR%20Hulu%20OR%20%22Disney%2B%22)%20(renewed%20OR%20canceled%20OR%20%22top%2010%22)&hl=en-US&gl=US&ceid=US:en', category: 'streaming' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=%22domestic%20box%20office%22%20OR%20%22highest-grossing%22&hl=en-US&gl=US&ceid=US:en', category: 'moviecharts' },
+  { name: 'Google News', url: 'https://news.google.com/rss/search?q=(MrBeast%20OR%20streamer%20OR%20YouTuber)%20(subscribers%20OR%20launches%20OR%20announces)&hl=en-US&gl=US&ceid=US:en', category: 'celebrities' },
+];
+
+const RSS_SOURCES = [...RSS_SOURCES_BASE, ...EXTRA_SOURCES];
+
 const APPLE_MUSIC_FEED = 'https://rss.applemarketingtools.com/api/v2/us/music/most-played/25/albums.json';
 
 // Anything touching a real person's private life, health, legal trouble, or safety is dropped.
@@ -77,6 +92,23 @@ const AWARDS_KEYWORDS = ['oscar', 'academy award', 'grammy', 'emmy', 'golden glo
 
 // A headline only qualifies as market-worthy if it's actually about a
 // measurable, resolvable outcome — not a meme, opinion, or discussion thread.
+const RELEVANCE_KEYWORDS_ENTERTAINMENT = [
+  'box office', 'opens', 'opening weekend', 'premiere', 'premieres', 'release date',
+  'releases', 'released', 'trailer', 'sequel', 'season', 'renewed', 'cancelled',
+  'canceled', 'rotten tomatoes', 'rating', 'debuts', 'debut', 'streaming', 'no. 1',
+  'number one', '#1', 'top 10', 'nominat',
+];
+const RELEVANCE_KEYWORDS_SPORTS = [
+  'wins', 'win', 'beats', 'defeats', 'signs', 'trade', 'traded', 'playoff', 'playoffs',
+  'finals', 'championship', 'final score', 'vs', 'game', 'season', 'draft', 'injury',
+  'injured', 'return', 'suspension', 'suspended', 'record', 'mvp',
+];
+const RELEVANCE_KEYWORDS_TRENDING = [
+  'ipo', 'launch', 'launches', 'launching', 'unveils', 'announces', 'release date',
+  'acquisition', 'acquires', 'valuation', 'robotaxi', 'starship', 'rocket', 'iphone',
+  'ai model', 'gpt', 'billion', 'ships', 'rollout', 'debut', 'delayed', 'pushed back',
+];
+
 const RELEVANCE_KEYWORDS = {
   entertainment: [
     'box office', 'opens', 'opening weekend', 'premiere', 'premieres', 'release date',
@@ -100,6 +132,15 @@ const RELEVANCE_KEYWORDS = {
     'ai model', 'gpt', 'billion', 'ships', 'rollout', 'debut', 'delayed', 'pushed back',
   ],
   awards: AWARDS_KEYWORDS,
+  movies: RELEVANCE_KEYWORDS_ENTERTAINMENT,
+  moviecharts: ['box office', 'opening weekend', 'gross', 'highest-grossing', 'debut', 'no. 1', '#1'],
+  gaming: ['release date', 'launch', 'delayed', 'game of the year', 'dlc', 'expansion', 'console', 'sales', 'player count'],
+  streaming: ['renewed', 'cancelled', 'canceled', 'top 10', 'season', 'premiere', 'subscribers', 'viewership'],
+  sportsfutures: RELEVANCE_KEYWORDS_SPORTS,
+  tech: RELEVANCE_KEYWORDS_TRENDING,
+  elonmusk: ['launch', 'launches', 'robotaxi', 'starship', 'ipo', 'unveils', 'delayed', 'valuation', 'acquisition', 'trial'],
+  science: ['fda approval', 'clinical trial', 'launch', 'mission', 'discovery', 'study finds', 'breakthrough', 'fusion', 'telescope', 'vaccine', 'approved'],
+  celebrities: ['subscribers', 'launches', 'announces', 'collab', 'returns', 'quits', 'record'],
 };
 
 function isHarmful(text) {
