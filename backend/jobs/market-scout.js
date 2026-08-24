@@ -541,7 +541,41 @@ const ENT_ALLOW = ['album', 'song', 'single', 'billboard', 'rapper', 'singer', '
   // allow keyword, so it stays out naturally)
   'ufc', 'mma', 'boxing', 'heavyweight', 'fight night', 'mcgregor', 'super bowl',
   'nba finals', 'world series', 'stanley cup', 'world cup', 'grand slam',
-  'wimbledon', 'olympics', 'march madness', 'champion'];
+  'wimbledon', 'olympics', 'march madness', 'champion',
+  // Science, tech and Musk — the sectors added later. Mirrored markets are the
+  // cheapest possible source for them: already phrased as tradeable questions,
+  // already carrying a real close date, already resolvable against a public
+  // source. No drafting, no API key, no per-token cost. ENT_EXCLUDE still
+  // strips elections, macro, crypto and geopolitics before any of this runs.
+  'nasa', 'artemis', 'moon landing', 'lunar', 'mars', 'asteroid', 'telescope',
+  'rocket launch', 'orbit', 'astronaut', 'space station',
+  'fda', 'clinical trial', 'vaccine', 'drug approval', 'nobel prize',
+  'fusion', 'quantum', 'superconduct',
+  'openai', 'anthropic', 'chatgpt', 'gpt-5', 'gpt-6', 'gemini', 'llm',
+  'ai model', 'artificial intelligence', 'nvidia gpu', 'ipo',
+  'elon', 'musk', 'tesla', 'spacex', 'starship', 'starlink', 'neuralink',
+  'xai', 'grok', 'robotaxi', 'cybertruck',
+  'steam', 'esports', 'speedrun'];
+
+// Mirrored titles arrive without a sector, and the old ternary could only
+// answer "music or entertainment". Sorting them properly is what lets the
+// round-robin publisher spread them across the taxonomy.
+const MIRROR_SECTOR_RULES = [
+  ['elonmusk', /elon|musk|tesla|spacex|starship|starlink|neuralink|xai|grok|robotaxi|cybertruck/i],
+  ['science', /nasa|artemis|lunar|moon landing|\bmars\b|asteroid|telescope|rocket launch|orbit|astronaut|space station|\bfda\b|clinical trial|vaccine|drug approval|nobel prize|fusion|quantum|superconduct/i],
+  ['moviecharts', /box office|opening weekend|gross|highest-grossing|rotten tomatoes/i],
+  ['music', /album|song|single|billboard|grammy|tour|concert|rapper|singer|spotify/i],
+  ['gaming', /video game|\bgta\b|nintendo|playstation|xbox|game of the year|steam|esports|speedrun/i],
+  ['streaming', /netflix|hulu|disney\+|\bhbo\b|max |top 10|renewed|cancelled|canceled/i],
+  ['awards', /oscar|academy award|emmy|golden globe|bafta/i],
+  ['sportsfutures', /\bufc\b|\bmma\b|boxing|heavyweight|super bowl|nba finals|world series|stanley cup|world cup|grand slam|wimbledon|olympics|march madness|champion/i],
+  ['tech', /openai|anthropic|chatgpt|gpt-|gemini|\bllm\b|ai model|artificial intelligence|\bipo\b/i],
+];
+
+function mirrorSector(title) {
+  for (const [id, re] of MIRROR_SECTOR_RULES) if (re.test(title || '')) return id;
+  return 'movies';
+}
 
 const ENT_EXCLUDE = [
   // Elections & politics: the exact category the CFTC is moving to ban —
@@ -585,7 +619,7 @@ async function fetchExchangeSuggestions() {
           headline: (title.endsWith('?') ? title : `${title}?`).slice(0, 290),
           url: null,
           source: 'Kalshi',
-          category: /album|song|single|billboard|grammy|tour|concert|rapper|singer|spotify/i.test(title) ? 'music' : 'entertainment',
+          category: mirrorSector(title),
           score: volumeScore(m.volume),
           suggested_close_date: close && close > new Date() ? close : null,
           preDrafted: true,
@@ -616,7 +650,7 @@ async function fetchExchangeSuggestions() {
           headline: title.slice(0, 290),
           url: null,
           source: 'Polymarket',
-          category: /album|song|single|billboard|grammy|tour|concert|rapper|singer|spotify/i.test(title) ? 'music' : 'entertainment',
+          category: mirrorSector(title),
           score: volumeScore(m.volumeNum ?? m.volume),
           suggested_close_date: close && close > new Date() ? close : null,
           preDrafted: true,
