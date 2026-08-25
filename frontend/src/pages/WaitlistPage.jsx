@@ -244,6 +244,14 @@ export default function WaitlistPage() {
         <div style={{ marginTop: 10, color: '#FFB4AB', fontSize: 12 }}>{message}</div>
       )}
 
+      {/* Say what the queue does before they hand over an email, not after. */}
+      {!joined && (
+        <p style={{ margin: '14px auto 0', maxWidth: 330, fontSize: 11.5, lineHeight: 1.6, color: '#7C8CA6' }}>
+          You'll get your place in line and a link to share — every friend who joins with it moves you up 25 places.
+          {ref ? ' You were invited, so you already have a head start.' : ''}
+        </p>
+      )}
+
       <div style={{ marginTop: 48, width: '100%', display: 'flex', justifyContent: 'center' }}>
         <PhoneShot />
       </div>

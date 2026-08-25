@@ -2421,12 +2421,33 @@ function makeIconBadge(title, category) {
 }
 
 
+// Production boots with sync({ alter: false }) — it creates missing tables but
+// never adds columns, so a new field on an existing model is simply absent and
+// every insert 500s. Add them explicitly, once per cold start, idempotently.
+let waitlistColumnsReady = null;
+function ensureWaitlistColumns() {
+  if (!waitlistColumnsReady) {
+    waitlistColumnsReady = (async () => {
+      await sequelize.query('ALTER TABLE waitlist_signups ADD COLUMN IF NOT EXISTS referral_code VARCHAR(12)');
+      await sequelize.query('ALTER TABLE waitlist_signups ADD COLUMN IF NOT EXISTS referred_by VARCHAR(12)');
+      await sequelize.query('CREATE UNIQUE INDEX IF NOT EXISTS waitlist_referral_code_idx ON waitlist_signups (referral_code)');
+      await sequelize.query('CREATE INDEX IF NOT EXISTS waitlist_referred_by_idx ON waitlist_signups (referred_by)');
+    })().catch((e) => {
+      waitlistColumnsReady = null; // let the next request retry
+      throw e;
+    });
+  }
+  return waitlistColumnsReady;
+}
+
 app.post('/api/waitlist', async (req, res) => {
   try {
     const email = (req.body?.email || '').trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: 'Enter a valid email address.' });
     }
+    await ensureWaitlistColumns();
+
     // A referral only counts if the code belongs to a real entry and isn't the
     // joiner's own — otherwise the queue is trivially gameable by self-referral.
     const rawRef = (req.body?.ref || '').trim().toUpperCase().slice(0, 12) || null;
@@ -2501,6 +2522,19 @@ app.post('/api/waitlist', async (req, res) => {
     }
   } catch (error) {
     console.error('Waitlist signup error:', error);
+    // Never let the referral machinery cost someone their spot. Save the email
+    // with the plain columns and return a position; they lose the share link,
+    // not the signup.
+    try {
+      const email = (req.body?.email || '').trim().toLowerCase();
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        const [entry, created] = await Waitlist.findOrCreate({ where: { email }, defaults: { email } });
+        const position = await Waitlist.count({ where: { created_at: { [Op.lte]: entry.created_at } } });
+        return res.json({ ok: true, already: !created, position, count: await Waitlist.count() });
+      }
+    } catch (fallbackError) {
+      console.error('Waitlist fallback also failed:', fallbackError.message);
+    }
     res.status(500).json({ error: "Couldn't save your spot — please try again." });
   }
 });
