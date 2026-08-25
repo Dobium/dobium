@@ -46,7 +46,7 @@ export const api = {
   seedCuratedMarkets: (radarKey) => request('/seed/curated-batch', { method: 'POST', headers: { 'x-radar-key': radarKey } }),
   regenerateBadges: (radarKey) => request('/admin/regenerate-badges', { headers: { 'x-radar-key': radarKey } }),
 
-  joinWaitlist: (email) => request('/waitlist', { method: 'POST', body: JSON.stringify({ email }) }),
+  joinWaitlist: (email, ref) => request('/waitlist', { method: 'POST', body: JSON.stringify({ email, ref }) }),
   getMarketNews: (marketId) => request(`/markets/${marketId}/news`),
   adminWaitlist: (radarKey) => request('/admin/waitlist', { headers: { 'x-radar-key': radarKey } }),
   adminDeleteWaitlistEntry: (id, radarKey) => request(`/admin/waitlist/${id}`, { method: 'DELETE', headers: { 'x-radar-key': radarKey } }),

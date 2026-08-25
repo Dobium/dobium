@@ -70,6 +70,9 @@ export default function WaitlistPage() {
   const [status, setStatus] = useState('idle'); // idle | saving | done | already | error
   const [message, setMessage] = useState('');
   const [position, setPosition] = useState(null);
+  const [share, setShare] = useState(null);   // { code, referrals, boost }
+  const [copied, setCopied] = useState(false);
+  const ref = new URLSearchParams(window.location.search).get('ref') || undefined;
 
   const submit = async (e) => {
     e?.preventDefault();
@@ -83,8 +86,15 @@ export default function WaitlistPage() {
     setStatus('saving');
     setMessage('');
     try {
-      const result = await api.joinWaitlist(clean);
+      const result = await api.joinWaitlist(clean, ref);
       if (typeof result?.position === 'number') setPosition(result.position);
+      if (result?.referral_code) {
+        setShare({
+          code: result.referral_code,
+          referrals: result.referrals || 0,
+          boost: result.boost_per_referral || 25,
+        });
+      }
       setStatus(result?.already ? 'already' : 'done');
     } catch (err) {
       setStatus('error');
@@ -146,13 +156,46 @@ export default function WaitlistPage() {
       </p>
 
       {joined ? (
-        <div style={{ marginTop: 26, minHeight: 38 }}>
+        <div style={{ marginTop: 26, width: '100%', maxWidth: 400 }}>
           <div style={{ color: '#4BE176', fontSize: 13.5, fontWeight: 600 }}>
             {status === 'already' ? "You're already on the list." : "You're on the list."}
           </div>
           {position != null && (
-            <div style={{ marginTop: 6, fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.08em', color: BODY }}>
-              POSITION #{position.toLocaleString('en-US')}
+            <div style={{ marginTop: 8, fontFamily: 'var(--mono)', fontSize: 26, color: GOLD }}>
+              #{position.toLocaleString('en-US')}
+            </div>
+          )}
+
+          {share && (
+            <div style={{ marginTop: 18, background: FIELD, border: `1px solid ${FIELD_LINE}`, borderRadius: 6, padding: '14px 14px 16px' }}>
+              <div style={{ fontSize: 12.5, color: BODY, lineHeight: 1.55 }}>
+                {share.referrals > 0
+                  ? `${share.referrals} ${share.referrals === 1 ? 'person has' : 'people have'} joined with your link — that's ${(share.referrals * share.boost).toLocaleString('en-US')} places closer.`
+                  : `Every friend who joins with your link moves you up ${share.boost} places.`}
+              </div>
+              <div
+                style={{
+                  marginTop: 10, fontFamily: 'var(--mono)', fontSize: 11, color: '#FFFFFF',
+                  background: '#0D1A31', border: `1px solid ${FIELD_LINE}`, borderRadius: 4,
+                  padding: '8px 10px', wordBreak: 'break-all', textAlign: 'left',
+                }}
+              >
+                {`${window.location.origin}/waitlist?ref=${share.code}`}
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard
+                    ?.writeText(`${window.location.origin}/waitlist?ref=${share.code}`)
+                    .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
+                    .catch(() => {});
+                }}
+                style={{
+                  marginTop: 10, width: '100%', background: GOLD_BTN, border: 'none', borderRadius: 4,
+                  padding: '9px 16px', cursor: 'pointer', color: '#2A1F00', fontWeight: 700, fontSize: 12.5,
+                }}
+              >
+                {copied ? 'Copied' : 'Copy your link'}
+              </button>
             </div>
           )}
         </div>

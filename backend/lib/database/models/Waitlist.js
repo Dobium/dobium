@@ -17,6 +17,18 @@ const Waitlist = sequelize.define('Waitlist', {
     allowNull: false,
     unique: true,
     validate: { isEmail: true }
+  },
+  // Referral queue. The old waitlist page advertised "share your link to move
+  // up" with nothing behind it — no code was ever issued and no position could
+  // move. These three columns are what make that claim true.
+  referral_code: {
+    type: DataTypes.STRING(12),
+    allowNull: true,
+    unique: true
+  },
+  referred_by: {
+    type: DataTypes.STRING(12),
+    allowNull: true
   }
 }, {
   tableName: 'waitlist_signups',

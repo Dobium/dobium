@@ -2427,13 +2427,56 @@ app.post('/api/waitlist', async (req, res) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: 'Enter a valid email address.' });
     }
-    const [entry, created] = await Waitlist.findOrCreate({ where: { email }, defaults: { email } });
-    // Position = how many people joined at or before this entry (stable across duplicates)
-    const position = await Waitlist.count({
+    // A referral only counts if the code belongs to a real entry and isn't the
+    // joiner's own — otherwise the queue is trivially gameable by self-referral.
+    const rawRef = (req.body?.ref || '').trim().toUpperCase().slice(0, 12) || null;
+    let referredBy = null;
+    if (rawRef) {
+      const referrer = await Waitlist.findOne({ where: { referral_code: rawRef } });
+      if (referrer && referrer.email !== email) referredBy = rawRef;
+    }
+
+    const [entry, created] = await Waitlist.findOrCreate({
+      where: { email },
+      defaults: { email, referred_by: referredBy },
+    });
+
+    // Issue a code on first sight, including for rows that predate this feature.
+    if (!entry.referral_code) {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+        try {
+          entry.referral_code = code;
+          await entry.save();
+          break;
+        } catch {
+          entry.referral_code = null; // collision — try again
+        }
+      }
+    }
+
+    // Rank by join time, then move up BOOST_PER_REFERRAL places for each person
+    // who joined using this code. Never past #1, and never below your own rank
+    // improving as others join behind you.
+    const BOOST_PER_REFERRAL = 25;
+    const rank = await Waitlist.count({
       where: { created_at: { [Op.lte]: entry.created_at } }
     });
+    const referrals = entry.referral_code
+      ? await Waitlist.count({ where: { referred_by: entry.referral_code } })
+      : 0;
+    const position = Math.max(1, rank - referrals * BOOST_PER_REFERRAL);
     const total = await Waitlist.count();
-    res.json({ ok: true, already: !created, position, count: total });
+
+    res.json({
+      ok: true,
+      already: !created,
+      position,
+      count: total,
+      referral_code: entry.referral_code,
+      referrals,
+      boost_per_referral: BOOST_PER_REFERRAL,
+    });
 
     // Fire-and-forget emails — never block or fail the signup on email problems.
     if (created && process.env.EMAIL_PASS) {
