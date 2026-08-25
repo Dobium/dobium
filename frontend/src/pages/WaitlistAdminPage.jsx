@@ -48,6 +48,15 @@ export default function WaitlistAdminPage() {
 
   useEffect(() => { if (key) load(key); }, [key, load]);
 
+  // The total is public (same route the rail badge uses), so the number is
+  // visible immediately. Only the email list needs the key — a page anyone can
+  // open shouldn't publish everyone's address.
+  useEffect(() => {
+    api.getWaitlistCount()
+      .then((r) => { if (typeof r?.count === 'number') setCount((c) => (c == null ? r.count : c)); })
+      .catch(() => {});
+  }, []);
+
   const saveKey = () => {
     const k = draftKey.trim();
     if (!k) return;
@@ -69,13 +78,12 @@ export default function WaitlistAdminPage() {
       <main style={{ flex: 1, padding: '28px 32px', overflowX: 'auto' }}>
         <h1 style={{ color: '#FFFFFF', fontSize: 22, fontWeight: 800, margin: 0 }}>Waitlist Signups</h1>
 
-        {status === 'ok' && (
+        {count != null && (
           <div style={{ display: 'flex', gap: 28, marginTop: 16, flexWrap: 'wrap' }}>
-            {[
-              ['TOTAL', count ?? entries.length],
-              ['VIA REFERRAL', invited],
-              ['ORGANIC', (count ?? entries.length) - invited],
-            ].map(([label, value]) => (
+            {(status === 'ok'
+              ? [['TOTAL', count], ['VIA REFERRAL', invited], ['ORGANIC', count - invited]]
+              : [['TOTAL', count]]
+            ).map(([label, value]) => (
               <div key={label}>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.1em', color: BODY }}>{label}</div>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 24, color: label === 'TOTAL' ? GOLD : '#FFFFFF', marginTop: 4 }}>
@@ -89,7 +97,8 @@ export default function WaitlistAdminPage() {
         {!key || status === 'denied' ? (
           <div style={{ marginTop: 22, background: PANEL, border: `1px solid ${LINE}`, borderRadius: 6, padding: 16, maxWidth: 380 }}>
             <div style={{ color: BODY, fontSize: 12.5, lineHeight: 1.6 }}>
-              Enter your admin key once — it's kept in this browser.
+              The count above is live. Enter your admin key once to see who signed up —
+              it's kept in this browser, so you won't be asked again.
             </div>
             <input
               type="password"
