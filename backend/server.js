@@ -2545,7 +2545,7 @@ app.get('/api/admin/waitlist', requireRadarKey, async (req, res) => {
     const entries = await Waitlist.findAll({ order: [['created_at', 'ASC']] });
     res.json({
       count: entries.length,
-      entries: entries.map((e, i) => ({ id: e.id, email: e.email, created_at: e.created_at, position: i + 1 })),
+      entries: entries.map((e, i) => ({ id: e.id, email: e.email, created_at: e.created_at, position: i + 1, referral_code: e.referral_code, referred_by: e.referred_by })),
     });
   } catch (error) {
     console.error('Admin waitlist error:', error);

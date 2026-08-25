@@ -21,6 +21,7 @@ import TerminalPage from './pages/TerminalPage';
 import MarketDetailPage from './pages/MarketDetailPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminDashboard from './pages/AdminDashboard';
+import WaitlistAdminPage from './pages/WaitlistAdminPage';
 import LeaguesPage from './pages/LeaguesPage';
 import LeagueDetailPage from './pages/LeagueDetailPage';
 import UserProfilePage from './pages/UserProfilePage';
@@ -54,6 +55,7 @@ function AppRoutes() {
               advertised itself. It now lives behind the radar terminal's
               passphrase gate and off any predictable path. */}
           <Route path="/radar/ops" element={<AdminDashboard />} />
+          <Route path="/radar/waitlist" element={<WaitlistAdminPage />} />
           <Route path="/admin" element={<Navigate to="/" replace />} />
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/pulse" element={<PulsePage />} />

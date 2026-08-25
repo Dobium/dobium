@@ -1,7 +1,9 @@
 // ── Shared DOBIUM Market Exchange terminal chrome ──────────────────────────
 // Palette, top bar and source rail, pulled out of RadarPage so the Market
 // Maker page reuses the same chrome instead of a drifting copy.
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { api } from '../api/client';
 
 export const T_PAGE = '#162536';      // field behind panels
 export const T_RAIL = '#010F1F';      // sidebar / deepest insets
@@ -91,6 +93,7 @@ export const SOURCE_GROUPS = [
       { label: 'Reddit', icon: 'chat', to: '/reddit' },
       { label: 'YouTube', icon: 'play', to: '/youtube' },
       { label: 'Google Trends', icon: 'trend', to: '/trends' },
+      { label: 'Waitlist Signups', icon: 'people', to: '/radar/waitlist', live: 'waitlist' },
     ],
   },
   {
@@ -114,6 +117,7 @@ export const SOURCE_GROUPS = [
 export function RailIcon({ kind, color }) {
   const c = { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round', style: { flexShrink: 0 } };
   switch (kind) {
+    case 'people': return <svg {...c}><circle cx="9" cy="8" r="3.2" /><path d="M3 20a6 6 0 0112 0" /><path d="M16 6.5a3 3 0 010 5.6M17 20a6 6 0 00-2-4.4" /></svg>;
     case 'home': return <svg {...c}><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z" /></svg>;
     case 'maker': return <svg {...c}><path d="M4 20V4M4 20h16" /><path d="M8 16l4-6 3 3 5-7" /></svg>;
     case 'news': return <svg {...c}><rect x="3" y="5" width="18" height="15" rx="2" /><path d="M7 9h7M7 13h7M7 17h4M17 9v8" /></svg>;
@@ -134,6 +138,19 @@ export function RailIcon({ kind, color }) {
 export function SourceRail({ source, setSource, active }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  // Live signup count in the rail, so the number is visible without opening
+  // the admin endpoint. Public count route — no key needed. Refreshes each
+  // minute; a failure just leaves the badge off rather than breaking the rail.
+  const [waitlistCount, setWaitlistCount] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    const load = () => api.getWaitlistCount()
+      .then((r) => { if (alive && typeof r?.count === 'number') setWaitlistCount(r.count); })
+      .catch(() => {});
+    load();
+    const t = setInterval(load, 60000);
+    return () => { alive = false; clearInterval(t); };
+  }, []);
   return (
     <aside style={{ width: 250, flexShrink: 0, background: T_RAIL, borderRight: `1px solid ${T_LINE}`, display: 'flex', flexDirection: 'column', padding: '16px 0 0' }}>
       {SOURCE_GROUPS.map((g) => (
@@ -156,7 +173,16 @@ export function SourceRail({ source, setSource, active }) {
                   color: on ? WHITE : '#8FA3BC', fontSize: 12.5, fontWeight: on ? 700 : 500,
                 }}>
                 <RailIcon kind={it.icon} color={on ? WHITE : '#8FA3BC'} />
-                {it.label}
+                <span style={{ flex: 1 }}>{it.label}</span>
+                {it.live === 'waitlist' && waitlistCount != null && (
+                  <span style={{
+                    fontFamily: 'var(--mono)', fontSize: 11, color: GOLD,
+                    background: 'rgba(240,192,74,0.12)', borderRadius: 10,
+                    padding: '1px 7px', flexShrink: 0,
+                  }}>
+                    {waitlistCount.toLocaleString('en-US')}
+                  </span>
+                )}
               </button>
             );
           })}
