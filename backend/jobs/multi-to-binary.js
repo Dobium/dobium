@@ -22,6 +22,25 @@ const nanoid = (size = 12) => crypto.randomBytes(Math.ceil(size / 2)).toString('
 
 const CATCH_ALL = /^(other|any other team|field|none|neither|no one|nobody)$/i;
 
+// multi_single stores each option as a pair of rows — "Bad Bunny (Yes)" and
+// "Bad Bunny (No)" — so iterating outcomes naively yields two markets per
+// option, one of them a nonsense "(No)" title. Keep the Yes side, strip the
+// suffix, and dedupe on the bare option name.
+const YES_SUFFIX = /\s*\((yes)\)\s*$/i;
+const NO_SUFFIX = /\s*\((no)\)\s*$/i;
+
+function distinctOptions(outcomes) {
+  const seen = new Map();
+  for (const o of outcomes) {
+    const raw = (o.title || '').trim();
+    if (NO_SUFFIX.test(raw)) continue;            // the paired negative side
+    const name = raw.replace(YES_SUFFIX, '').trim();
+    if (!name || CATCH_ALL.test(name)) continue;
+    if (!seen.has(name.toLowerCase())) seen.set(name.toLowerCase(), { name, probability: o.probability });
+  }
+  return [...seen.values()];
+}
+
 // "When will X arrive?" / "Who will win Y?" don't survive having an outcome
 // appended, so the binary form is built from the outcome plus the subject
 // rather than by concatenating the original question.
@@ -31,7 +50,12 @@ function binaryTitle(marketTitle, outcomeTitle) {
   const lower = o.charAt(0).toLowerCase() + o.slice(1);
 
   // "Who will win the title?" + "Ohio State" → "Will Ohio State win the title?"
-  let m = q.match(/^who will (win|take|claim|be)\s+(.+)$/i);
+  // "X — who wins?" / "X — which artist wins?" → "Will <option> win X?"
+  let m = q.match(/^(.+?)\s*[—–-]\s*(?:which\s+\w+|who)\s+wins?$/i);
+  if (m) return `Will ${o} win ${m[1].trim()}?`;
+
+  // "Who will acquire Letterboxd?" / "Who will feature on X?" — any verb.
+  m = q.match(/^who will ([a-z]+)\s+(.+)$/i);
   if (m) return `Will ${o} ${m[1].toLowerCase()} ${m[2]}?`;
 
   // "When will the album arrive?" + "Before October 2026"
@@ -78,10 +102,10 @@ async function migrateMultiToBinary(models, { dryRun = false } = {}) {
   const skipped = [];
 
   for (const market of multi) {
-    const outcomes = (market.outcomes || []).filter((o) => !CATCH_ALL.test((o.title || '').trim()));
+    const outcomes = distinctOptions(market.outcomes || []);
 
     for (const o of outcomes) {
-      const title = binaryTitle(market.title, o.title);
+      const title = binaryTitle(market.title, o.name);
       if (await Market.findOne({ where: { title } })) { skipped.push(title); continue; }
       if (dryRun) { created.push(title); continue; }
 
