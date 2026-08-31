@@ -2259,6 +2259,20 @@ app.get('/api/cron/seed-futures', requireRadarKey, async (req, res) => {
   }
 });
 
+app.get('/api/admin/multi-to-binary', requireRadarKey, async (req, res) => {
+  try {
+    const { migrateMultiToBinary } = require('./jobs/multi-to-binary');
+    const result = await migrateMultiToBinary(
+      { Market, Outcome, sequelize },
+      { dryRun: req.query.dry === '1' },
+    );
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    console.error('multi-to-binary failed:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/cron/seed-cfb', requireRadarKey, async (req, res) => {
   try {
     const { seedCollegeFootball } = require('./jobs/seed-cfb');
