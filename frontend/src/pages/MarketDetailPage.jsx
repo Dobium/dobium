@@ -1524,7 +1524,7 @@ export default function MarketDetailPage() {
                 {panelTab === 'buy' ? (
                   <form onSubmit={handleTrade} className="space-y-3">
                     <div style={{ fontFamily: 'var(--mono)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                      <span style={microLabel}>Investment Amount</span>
+                      <span style={microLabel}>Order Amount</span>
                       <span style={{ fontSize: 10, color: LABEL }}>Balance: <span style={{ color: '#C6D3E8' }}>${(safeBuyingPower !== null ? safeBuyingPower : 100000).toFixed(2)}</span></span>
                     </div>
                     <div className="relative">
@@ -1545,25 +1545,31 @@ export default function MarketDetailPage() {
                     {sel && parseFloat(stake) > 0 && (() => {
                       const b = calculatePayoutBounds(parseFloat(stake), sel.probability || 50);
                       return (
-                        /* Summary reads like the reference: shares, then Cost
-                           and a large Max payout as the closing figure, rather
-                           than a boxed four-row table. */
+                        /* Order-ticket summary, not a payout slip. The prize
+                           figure used to be the largest thing on the page in
+                           24px green, which reads as a sportsbook return. Every
+                           row is now the same weight and colour, the way a
+                           broker shows an order preview — the market's own
+                           probability is the number that leads. */
                         <div style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>
+                          <div className="flex justify-between" style={{ padding: '10px 0', borderBottom: `1px solid ${INSET_LINE}` }}>
+                            <span style={{ color: LABEL }}>Market price</span>
+                            <span style={{ color: WHITE }}>{priceOf(sel)}¢ · {priceOf(sel)}% chance</span>
+                          </div>
                           <div className="flex justify-between" style={{ padding: '10px 0', borderBottom: `1px solid ${INSET_LINE}` }}>
                             <span style={{ color: LABEL }}>Shares</span>
                             <span style={{ color: WHITE }}>{(parseFloat(stake) / Math.max(1, priceOf(sel)) * 100).toFixed(0)}</span>
                           </div>
                           <div className="flex justify-between" style={{ padding: '10px 0', borderBottom: `1px solid ${INSET_LINE}` }}>
-                            <span style={{ color: LABEL }}>Avg. price</span>
-                            <span style={{ color: WHITE }}>{priceOf(sel)}¢</span>
-                          </div>
-                          <div className="flex justify-between" style={{ padding: '12px 0 4px' }}>
                             <span style={{ color: LABEL }}>Cost</span>
                             <span style={{ color: WHITE }}>${parseFloat(stake).toFixed(2)}</span>
                           </div>
-                          <div className="flex justify-between items-baseline" style={{ padding: '2px 0 12px' }}>
-                            <span style={{ color: LABEL }}>Max payout</span>
-                            <span style={{ color: GREEN, fontSize: 24, fontWeight: 800 }}>${b.winReturn.toFixed(2)}</span>
+                          <div className="flex justify-between" style={{ padding: '10px 0' }}>
+                            <span style={{ color: LABEL }}>Value if correct</span>
+                            <span style={{ color: WHITE }}>${b.winReturn.toFixed(2)}</span>
+                          </div>
+                          <div style={{ color: LABEL, fontSize: 10, lineHeight: 1.6, paddingBottom: 12 }}>
+                            Settles at $1.00 per share if this outcome happens, $0.00 if it doesn't.
                           </div>
                         </div>
                       );
@@ -1572,7 +1578,7 @@ export default function MarketDetailPage() {
                     <button type="submit" disabled={marketClosed || tradeLoading || !sel || !parseFloat(stake)}
                       className="w-full transition-all disabled:cursor-not-allowed"
                       style={{ background: GOLD, color: ON_GOLD, borderRadius: 4, padding: '13px 0', fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', border: 'none', opacity: (marketClosed || tradeLoading || !sel || !parseFloat(stake)) ? 0.55 : 1 }}>
-                      {tradeLoading ? 'Placing…' : 'Place Trade'}
+                      {tradeLoading ? 'Submitting…' : 'Review Order'}
                     </button>
                     <p style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: LABEL, textAlign: 'center', margin: 0, lineHeight: 1.6 }}>
                       By trading, you agree to the <span style={{ textDecoration: 'underline', textUnderlineOffset: 2, color: '#8AA0C2' }}>Terms of Service</span>.
