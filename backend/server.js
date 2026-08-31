@@ -4513,6 +4513,22 @@ async function initDatabase() {
       await sequelize.sync({ alter: false, force: false });
       console.log('⚡ Production sync complete (missing tables created, existing tables untouched)');
     }
+
+    // One-shot: convert any remaining multi-outcome markets to binary yes/no.
+    // Self-terminating — it only selects status 'active' + market_type
+    // 'multi_single', and closes each one it processes, so after the first
+    // successful pass there is nothing left to find and this is a no-op. Runs
+    // here rather than behind an endpoint so it applies on deploy without
+    // anyone having to call a URL. Never blocks boot.
+    try {
+      const { migrateMultiToBinary } = require('./jobs/multi-to-binary');
+      const r = await migrateMultiToBinary({ Market, Outcome, sequelize }, { dryRun: false });
+      if (r.closed_count || r.created_count) {
+        console.log(`🔁 multi→binary: closed ${r.closed_count}, created ${r.created_count}`);
+      }
+    } catch (e) {
+      console.error('multi→binary migration skipped:', e.message);
+    }
   } catch (error) {
     console.error('❌ Database initialization failed:', error.message);
     console.error('   Markets, predictions, and positions require a PostgreSQL database.');
