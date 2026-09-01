@@ -804,11 +804,15 @@ export default function MarketDetailPage() {
             <div className="flex items-center justify-between flex-wrap gap-2" style={{ padding: '12px 16px', borderBottom: `1px solid ${PANEL_LINE}` }}>
               <div style={{ fontFamily: 'var(--mono)', display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
                 {isBinaryMkt ? (() => {
-                  const leader = [...chartOutcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
-                  const leaderYes = leader && (leader.title || '').toLowerCase().startsWith('yes');
-                  return leader ? (
-                    <span style={{ color: leaderYes ? GREEN : RED, fontSize: 15, fontWeight: 700 }}>
-                      {Math.round(leader.probability || 0)}% {leader.title.replace(/\s*\((Yes|No)\)\s*$/i, '')}
+                  // Always quote the Yes side. Leading with whichever side is
+                  // ahead meant a long-shot market opened in red at "95% No",
+                  // which reads as an alert rather than a probability.
+                  const yesO = chartOutcomes.find(o => (o.title || '').toLowerCase().startsWith('yes')) || chartOutcomes[0];
+                  return yesO ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: 999, background: GREEN }} />
+                      <span style={{ color: LABEL, fontSize: 12 }}>Chance of Yes</span>
+                      <span style={{ color: WHITE, fontSize: 13, fontWeight: 700 }}>{Math.round(yesO.probability || 0)}%</span>
                     </span>
                   ) : null;
                 })() : (
@@ -858,7 +862,7 @@ export default function MarketDetailPage() {
               full-width block below both columns, past Recent Activity. */}
         {/* Full-width Outcomes list (Kalshi-style) — lives below both columns, not squeezed into the sidebar */}
           {market && outcomes.length > 0 && (
-            <div className="px-2 pb-4 mb-4" style={PANEL}>
+            <div className={isBinaryMkt ? 'px-2 pb-1 mb-4' : 'px-2 pb-4 mb-4'} style={PANEL}>
                   {/* "Trade this market" card sits above the options, as in the
                       reference: the resolution criteria in plain words next to
                       the two sides, so the question and the prices are read
@@ -893,7 +897,7 @@ export default function MarketDetailPage() {
                                 background: i === 0 ? GREEN : 'transparent',
                                 border: `1px solid ${b.color}`,
                                 color: i === 0 ? '#062B14' : b.color,
-                                borderRadius: 6, padding: '12px 22px', cursor: 'pointer',
+                                borderRadius: 6, padding: '12px 0', cursor: 'pointer', width: 132,
                                 fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
                               }}>
                               {b.label.toUpperCase()} — {b.price}¢
