@@ -11,23 +11,23 @@ import MarketTicker from '../components/MarketTicker';
 
 // ── Terminal-mock palette (sampled from the reference screenshots) ──────────
 const COLLAPSED_OUTCOMES = 8;   // rows shown before "See more markets"
-const PAGE_BG = '#000A19';      // page field — kept darker than panels so cards lift off it
+const PAGE_BG = '#00132D';      // page field
 // Cards sit at the page colour so the market reads as embedded in the site
 // rather than as a lighter slab floating on it — the treatment Polymarket and
 // Kalshi both use. Separation comes from the border, not a fill change.
-const PANEL_BG = '#0E2244';     // card surfaces — a deliberate step lighter than the page
-const PANEL_LINE = '#22406B';   // card borders / dividers
-const INSET_BG = '#132C55';     // boxes inside cards read as slightly raised
+const PANEL_BG = '#00132D';     // card surfaces — matches the page
+const PANEL_LINE = '#13294A';   // card borders / dividers
+const INSET_BG = '#001F43';     // boxes inside cards read as slightly raised
 const INSET_LINE = '#2A3F63';   // inset borders
 const INPUT_LINE = '#394666';   // input borders
-const BAND_BG = '#00050F';      // nav/ticker/footer band
+const BAND_BG = '#000E24';      // nav/ticker/footer band
 const WHITE = '#F2F6FF';
 const BODY_TEXT = '#A9BAD4';
 const LABEL = '#6B82A6';        // mono uppercase micro-labels
 const AXIS = '#46618A';         // chart axis text
-const GREEN = '#4BE176';
+const GREEN = '#6BFE8F';
 const GREEN_DIM = '#59D882';
-const RED = '#FF6B6B';
+const RED = '#FF9E8E';
 const GOLD = '#FFDF9B';
 const GOLD_TEXT = '#D9C089';
 const ON_GOLD = '#0A1A33';
