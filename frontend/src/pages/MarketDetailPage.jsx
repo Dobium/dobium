@@ -888,7 +888,7 @@ export default function MarketDetailPage() {
                           ];
                           return pair.map((b, i) => (
                             <button key={i}
-                              onClick={() => { setSelectedOutcome(b.o.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                              onClick={() => { setSelectedOutcome(b.o); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                               style={{
                                 background: i === 0 ? GREEN : 'transparent',
                                 border: `1px solid ${b.color}`,
