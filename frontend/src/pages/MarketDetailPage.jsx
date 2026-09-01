@@ -5,7 +5,6 @@ import { useAuth } from '../hooks/useAuth';
 import { useWallet } from '../hooks/useWallet';
 import { api } from '../api/client';
 import MarketIcon from '../components/MarketIcon';
-import CommentsSection from '../components/CommentsSection';
 import { CATEGORY_COLORS, formatCurrency, formatDate } from '../store/storage';
 import { bucketLabel } from '../lib/categories';
 import MarketTicker from '../components/MarketTicker';
@@ -353,6 +352,56 @@ function calcPositionValue(stake, entryProbPct, currentProbPct) {
   } else {
     return stake + (rMax - stake) * ((pCurrent - pEntry) / (1 - pEntry));
   }
+}
+
+// Trading Timeline — the contract's lifecycle, built from this market's own
+// close_date and resolution_date. The reference design lists a maintenance
+// window and a payout SLA; those are another venue's operational facts, so the
+// equivalents here describe what Dobium actually does. Trading is continuous
+// (there is no maintenance window), and settlement happens when the resolver
+// job runs rather than on a promised clock.
+function TradingTimeline({ market }) {
+  const fmt = (d) => {
+    if (!d) return null;
+    const t = new Date(d);
+    if (Number.isNaN(t.getTime())) return null;
+    return t.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  };
+  const closes = fmt(market.close_date);
+  const resolves = fmt(market.resolution_date);
+  const settled = market.status === 'resolved';
+  const closed = market.status === 'closed';
+
+  const rows = [
+    { label: 'Trading hours', body: closed
+        ? 'Closed to new positions. Existing positions still settle.'
+        : 'Open continuously until this market closes.' },
+    closes && { label: 'Trading closes', body: closes },
+    resolves && { label: 'Contract resolves', body: `${resolves} — the outcome is determined and the contract settles.` },
+    { label: 'Payout', body: settled
+        ? 'Settled. Shares on the winning outcome paid $1.00 each.'
+        : 'Each share on the winning outcome pays $1.00; losing shares pay nothing.' },
+  ].filter(Boolean);
+
+  return (
+    <div className="mt-6">
+      <h2 style={{ color: WHITE, fontSize: 15, fontWeight: 700, margin: '0 0 14px' }}>Trading Timeline</h2>
+      <div style={{ paddingLeft: 4 }}>
+        {rows.map((r, i) => (
+          <div key={r.label} style={{ display: 'flex', gap: 14, paddingBottom: i === rows.length - 1 ? 0 : 18 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+              <span style={{ width: 7, height: 7, borderRadius: 999, background: LABEL, marginTop: 5 }} />
+              {i < rows.length - 1 && <span style={{ width: 1, flex: 1, background: INSET_LINE, marginTop: 4 }} />}
+            </div>
+            <div>
+              <div style={{ color: WHITE, fontSize: 12.5, fontWeight: 600 }}>{r.label}</div>
+              <div style={{ color: LABEL, fontSize: 11.5, marginTop: 3, lineHeight: 1.55 }}>{r.body}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function MarketDetailPage() {
@@ -739,17 +788,9 @@ export default function MarketDetailPage() {
           {market.title}
         </h1>
         </div>
-        {/* Row actions, as in the reference. Jump-to-comments and copy-link are
-            real; both act on things this page already has, rather than being
-            decorative icons. */}
+        {/* Row action: copy-link acts on something this page already has,
+            rather than being a decorative icon. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, alignSelf: 'flex-start' }}>
-          <button
-            title="Comments"
-            onClick={() => document.getElementById('market-comments')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, lineHeight: 0, color: LABEL }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><path d="M4 5h16v11H9l-5 4z" /></svg>
-          </button>
           <button
             title={copied ? 'Link copied' : 'Copy link'}
             onClick={() => { navigator.clipboard?.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
@@ -1637,13 +1678,11 @@ export default function MarketDetailPage() {
           )}
         </div>
       </div>
-        {/* Comments sit below the outcomes, as on Kalshi — reading the market
-            and placing a trade come first, discussion after. */}
-        {market && (
-          <div className="mt-6" id="market-comments">
-            <CommentsSection marketId={market.id} />
-          </div>
-        )}
+        {/* Trading Timeline replaces the comments thread: what happens to this
+            contract and when, drawn from the market's own dates rather than
+            copied boilerplate. Every line here is true of this market — no
+            maintenance windows or payout SLAs we don't actually run. */}
+        {market && <TradingTimeline market={market} />}
       </div>
     </div>
   );
