@@ -859,6 +859,51 @@ export default function MarketDetailPage() {
         {/* Full-width Outcomes list (Kalshi-style) — lives below both columns, not squeezed into the sidebar */}
           {market && outcomes.length > 0 && (
             <div className="px-2 pb-4 mb-4" style={PANEL}>
+                  {/* "Trade this market" card sits above the options, as in the
+                      reference: the resolution criteria in plain words next to
+                      the two sides, so the question and the prices are read
+                      together rather than the prices alone. */}
+                  {market.status === 'active'
+                    && !(market.close_date && new Date(market.close_date) < new Date()) && (
+                    <div style={{ background: INSET_BG, border: `1px solid ${PANEL_LINE}`, borderRadius: 8, padding: '18px 20px', display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <div style={{ flex: '1 1 240px', minWidth: 200 }}>
+                        <div style={{ color: WHITE, fontSize: 14.5, fontWeight: 700 }}>Trade this market</div>
+                        <div style={{ color: LABEL, fontSize: 11.5, marginTop: 6, lineHeight: 1.55 }}>
+                          {market.description || market.title}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+                        {(() => {
+                          // Built from `outcomes`, which is in scope here — the
+                          // filtered lists live inside the block below and are
+                          // not visible at this level.
+                          const yes = outcomes.find(o => (o.title || '').toLowerCase().startsWith('yes')) || outcomes[0];
+                          const no = outcomes.find(o => (o.title || '').toLowerCase().startsWith('no')) || outcomes[1];
+                          if (!yes) return null;
+                          const pct = (o) => Math.round(o?.probability || 0);
+                          const p = pct(yes);
+                          const pair = [
+                            { label: yes.title, price: p, color: GREEN, o: yes },
+                            { label: no?.title || 'No', price: no ? pct(no) : 100 - p, color: RED, o: no || yes },
+                          ];
+                          return pair.map((b, i) => (
+                            <button key={i}
+                              onClick={() => { setSelectedOutcome(b.o.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                              style={{
+                                background: i === 0 ? GREEN : 'transparent',
+                                border: `1px solid ${b.color}`,
+                                color: i === 0 ? '#062B14' : b.color,
+                                borderRadius: 6, padding: '12px 22px', cursor: 'pointer',
+                                fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
+                              }}>
+                              {b.label.toUpperCase()} — {b.price}¢
+                            </button>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
             {!isBinaryMkt && outcomes.length >= 10 && (<div className="flex items-center justify-between mb-4">
               {outcomes.length >= 10 && (
                 <div className="relative w-48 sm:w-64">
@@ -1293,46 +1338,6 @@ export default function MarketDetailPage() {
 
               return (
                 <div className="space-y-8">
-                  {/* "Trade this market" card sits above the options, as in the
-                      reference: the resolution criteria in plain words next to
-                      the two sides, so the question and the prices are read
-                      together rather than the prices alone. */}
-                  {unresolvedOutcomesList.length > 0
-                    && market.status === 'active'
-                    && !(market.close_date && new Date(market.close_date) < new Date()) && (
-                    <div style={{ background: INSET_BG, border: `1px solid ${PANEL_LINE}`, borderRadius: 8, padding: '18px 20px', display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <div style={{ flex: '1 1 240px', minWidth: 200 }}>
-                        <div style={{ color: WHITE, fontSize: 14.5, fontWeight: 700 }}>Trade this market</div>
-                        <div style={{ color: LABEL, fontSize: 11.5, marginTop: 6, lineHeight: 1.55 }}>
-                          {market.description || market.title}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
-                        {(() => {
-                          const primary = unresolvedOutcomesList[0];
-                          if (!primary) return null;
-                          const p = priceOf(primary);
-                          const pair = [
-                            { label: primary.title, price: p, color: GREEN, o: primary },
-                            { label: unresolvedOutcomesList[1]?.title || 'No', price: 100 - p, color: RED, o: unresolvedOutcomesList[1] || primary },
-                          ];
-                          return pair.map((b, i) => (
-                            <button key={i}
-                              onClick={() => { setSelectedOutcome(b.o.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                              style={{
-                                background: i === 0 ? GREEN : 'transparent',
-                                border: `1px solid ${b.color}`,
-                                color: i === 0 ? '#062B14' : b.color,
-                                borderRadius: 6, padding: '12px 22px', cursor: 'pointer',
-                                fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
-                              }}>
-                              {b.label.toUpperCase()} — {b.price}¢
-                            </button>
-                          ));
-                        })()}
-                      </div>
-                    </div>
-                  )}
                   {unresolvedOutcomesList.length > 0 && (
                     <div>
                       {isPartiallyResolved && <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Open Options</h3>}
