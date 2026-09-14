@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMarkets } from '../hooks/useMarkets';
 import { api } from '../api/client';
 import { SECTORS as SHARED_SECTORS, classifySector } from '../lib/sectors';
+import { subcategoriesFor } from '../lib/subcategories';
 import FeaturedCarousel from '../components/FeaturedCarousel';
 import FeaturedRail from '../components/FeaturedRail';
 
@@ -48,7 +49,7 @@ function compactVol(v) {
 }
 
 // ── Sector classification ────────────────────────────────────────────────
-const SECTOR_ICONS = { music: 'note', movies: 'film', celebrities: 'people', gaming: 'gamepad', streaming: 'play', trends: 'trend', tech: 'grid', awards: 'trophy', sportsfutures: 'calendar', moviecharts: 'bars', science: 'life', elonmusk: 'rocket' };
+const SECTOR_ICONS = { music: 'note', movies: 'film', celebrities: 'people', gaming: 'gamepad', streaming: 'play', trends: 'trend', tech: 'grid', awards: 'trophy', sportsfutures: 'calendar', culture: 'note', moviecharts: 'bars', science: 'life', elonmusk: 'rocket' };
 const SECTORS = SHARED_SECTORS.map((s) => ({ ...s, icon: SECTOR_ICONS[s.id] }));
 
 function classify(title) {
@@ -845,6 +846,12 @@ function SectorGridCard({ m, onOpen }) {
 }
 
 function TwoCardSection({ sector, markets, demo, max = 2, title, pickReal, onOpen, onViewAll, forwardRef }) {
+  // Sections still exist in the page for sectors that were folded into
+  // Culture — trends, creators, gaming, streaming, awards. SECTORS.find
+  // returns undefined for those, and reading sector.id threw, taking the whole
+  // homepage down. Those sections render nothing now; their markets are
+  // reachable through the Culture row in the rail.
+  if (!sector) return null;
   const pool = pickReal ? pickReal(markets) : sectorMarkets(markets, sector.id);
   const rows = pool.slice(0, max).map((m, i) => toCardShape(m, demo?.[i]?.tag || sector.label.toUpperCase(), i));
 
@@ -913,6 +920,8 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [pulse, setPulse] = useState(null);
   const [activeSector, setActiveSector] = useState('attention');
+  // Which sector row in the rail is expanded to its subcategories.
+  const [openSector, setOpenSector] = useState(null);
   const [attentionOpen, setAttentionOpen] = useState(true);
   const [attentionSub, setAttentionSub] = useState('Trending');
   const [musicOpen, setMusicOpen] = useState(false);
@@ -1233,22 +1242,60 @@ export default function LandingPage() {
             </div>
             {SECTORS.map((s) => {
               const isActive = activeSector === s.id;
-              // Homepage nav is flat: every sector row opens that category's
-              // own page, where its subcategories live in the rail. They used
-              // to be dropdowns here, hiding one or two markets behind each of
-              // roughly forty entries.
-              const onClickHeader = () => navigate(`/explore?filter=${s.id}`);
+              // Sector rows expand to their subcategories rather than jumping
+              // straight to the category page. Culture holds six of them —
+              // music, movies, creators, festivals, streaming and awards — and
+              // a flat row gave no sign any of that was there.
+              const subs = (subcategoriesFor(s.id) || []).slice(1);
+              const expanded = openSector === s.id;
               return (
                 <div key={s.id}>
-                  <button onClick={onClickHeader}
+                  <button
+                    onClick={() =>
+                      subs.length ? setOpenSector(expanded ? null : s.id) : navigate(`/explore?filter=${s.id}`)
+                    }
+                    aria-expanded={subs.length ? expanded : undefined}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: isActive ? '#394666' : 'transparent',
+                      display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                      background: isActive ? '#394666' : 'transparent',
                       border: 'none', borderRadius: 6, padding: '10px 11px', cursor: 'pointer', textAlign: 'left',
                       color: isActive ? '#DCE6F5' : WARM, fontSize: 13, fontWeight: isActive ? 700 : 500,
                     }}>
                     <SectorIcon kind={s.icon} color={isActive ? '#DCE6F5' : WARM} />
                     <span style={{ flex: 1 }}>{s.label}</span>
+                    {subs.length > 0 && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                        stroke={isActive ? '#DCE6F5' : WARM} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                        style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease', flexShrink: 0 }}>
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    )}
                   </button>
+
+                  {expanded && subs.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', marginTop: 2 }}>
+                      <button
+                        onClick={() => navigate(`/explore?filter=${s.id}`)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                          padding: '7px 11px 7px 38px', fontSize: 12.5, color: WARM, fontWeight: 500,
+                        }}>
+                        All {s.label}
+                      </button>
+                      {subs.map((label) => (
+                        <button key={label}
+                          onClick={() => navigate(`/explore?filter=${s.id}&sub=${encodeURIComponent(label)}`)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                            padding: '7px 11px 7px 38px', fontSize: 12.5, color: WARM, fontWeight: 500,
+                          }}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}

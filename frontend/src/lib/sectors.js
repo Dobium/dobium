@@ -1,40 +1,29 @@
-// Shared entertainment-sector taxonomy — classifies a market by its TITLE
-// text rather than its stored `category` field. Used by the homepage's
-// sector dashboard (LandingPage) and Explore's "All Categories" dropdown so
-// both present the exact same seven sectors and agree on what belongs where.
+// Shared sector taxonomy — classifies a market by its TITLE text rather than
+// its stored `category` field. Used by the homepage's sector nav (LandingPage)
+// and Explore's "All Categories" dropdown so both present the same sectors and
+// agree on what belongs where.
+//
+// Four sectors, deliberately. Global Attention is handled separately in
+// LandingPage because it is a time-based cut (trending / breaking / news)
+// rather than a subject one, so it has no regex here.
+//
+// Culture absorbs what used to be six separate sectors — music, movies & TV,
+// creators, festivals, streaming and awards. They are subcategories now, in
+// lib/subcategories.js under `culture`.
 export const SECTORS = [
   { id: 'sportsfutures', label: 'Sports Futures',
     re: /championship|undefeated|super bowl|world cup winner|world series|stanley cup|\bfinals\b|national title|march madness|conference title|win the (title|league|division|cup)|\bplayoffs?\b|season win total|\bpennant\b|golden boot|golden ball|golden glove|young player award|top scorer|\bmvp\b|relegat/i },
   { id: 'tech', label: 'Tech & AI',
     re: /\bai\b|\bgpt\b|\bllm\b|openai|anthropic|\bclaude\b|startup|venture capital|\bvc\b|\bipo\b|spacex|nvidia|silicon valley|y combinator|artificial intelligence|kalshi|polymarket|manifold|prediction market|event contract|tesla|waymo|robotaxi|\buber\b|cruise|autonomous|self.?driving/i },
-  { id: 'science', label: 'Science',
-    re: /\bnasa\b|\besa\b|artemis|lunar landing|moon landing|\bmars\b|asteroid|\bcomet\b|solar eclipse|telescope|james webb|exoplanet|black hole|supernova|solar flare|\baurora borealis\b|climate|global (temperature|warming)|sea level|carbon (capture|emissions)|hurricane season|earthquake|volcan|vaccine|clinical trial|fda approval|\bcrispr\b|gene (therapy|editing)|\bgenome\b|stem cell|antibiotic|\bpandemic\b|nuclear fusion|fusion (energy|reactor)|particle collider|\bcern\b|higgs|\btokamak\b|\biter\b|net energy gain|quantum (comput|mechanics|supremacy)|dark matter|\bneutrino\b|nobel prize in (physics|chemistry|medicine)|superconduct|mathematic|\bmaths?\b|riemann|millennium prize|\btheorem\b|\bconjecture\b/i },
-  { id: 'elonmusk', label: 'Elon Musk',
-    re: /elon musk|\belon\b|\bmusk\b|\bspacex\b|\bstarship\b|\btesla\b|neuralink|boring company|\bxai\b|\bgrok\b|robotaxi|cybertruck|starlink|\boptimus\b|\bx corp\b/i },
-  { id: 'music', label: 'Music',
-    re: /kendrick|drake|sza|beyonc|taylor swift|billboard|album|tour(?!nament)|stream(ing)?|spotify|chart|single|mixtape|rapper|grammy nom/i },
-  { id: 'trends', label: 'Social Media Trends',
-    re: /tiktok|viral|meme|trending on|twitter|\bx\.com\b|instagram|influencer|challenge/i },
-  { id: 'movies', label: 'Movies & TV',
-    re: /movie|film|box office|netflix|hbo|disney|marvel|oscar|premiere|sequel|\bseries\b|renewal|episode|season \d|trailer|rotten tomatoes/i },
-  { id: 'celebrities', label: 'Creators & Streamers',
-    re: /mrbeast|kai cenat|ishowspeed|\bxqc\b|subscriber|subathon|youtuber|content creator/i },
-  { id: 'gaming', label: 'Gaming',
-    re: /\bgame\b|\bgta\b|esports|twitch|streamer|valorant|fortnite|minecraft|playstation|xbox|nintendo|steam|worlds \d|league of legends|call of duty|overwatch/i },
-  { id: 'streaming', label: 'Streaming',
-    re: /netflix|hulu|hbo max|disney\+|paramount\+|peacock|apple tv|prime video|renewal|viewership|weekly views/i },
-  { id: 'moviecharts', label: 'Movie Charts',
-    re: /box office|opening weekend|highest[- ]grossing|domestic gross|worldwide gross|overseas gross|movie chart|#1 film|debut(s|ed)? at no\.? ?1|four[- ]quadrant|rotten tomatoes|tomatometer|certified fresh|metacritic|critics? score|audience score|cinemascore|popcornmeter|franchise|cinematic universe|\bmcu\b|\bdcu\b|trilogy|\breboot\b|\binstallment\b/i },
-  { id: 'awards', label: 'Awards',
-    re: /oscar|academy award|grammy|\bemmys?\b|golden globe|\bbafta\b|tony award|brit award|\bvmas?\b|best picture|best actor|best actress|best director|album of the year|record of the year|song of the year|\bnominations?\b|cannes|sundance|palme d'or|golden lion|berlinale|venice film|toronto international/i },
+  { id: 'culture', label: 'Culture',
+    re: /kendrick|drake|\bsza\b|beyonc|taylor swift|billboard|album|tour(?!nament)|spotify|chart|single|mixtape|rapper|movie|film|box office|opening weekend|highest[- ]grossing|netflix|hulu|hbo|disney|paramount\+|peacock|apple tv|prime video|marvel|premiere|sequel|\bseries\b|renewal|episode|season \d|trailer|rotten tomatoes|tomatometer|metacritic|cinemascore|franchise|cinematic universe|\bmcu\b|\bdcu\b|mrbeast|kai cenat|ishowspeed|\bxqc\b|subscriber|subathon|youtuber|content creator|influencer|\btwitch\b|\bkick\b|viewership|weekly views|coachella|glastonbury|lollapalooza|bonnaroo|\bfestival\b|residency|world tour|sold out|oscar|academy award|grammy|\bemmys?\b|golden globe|\bbafta\b|tony award|brit award|\bvmas?\b|best picture|best actor|best actress|best director|album of the year|record of the year|song of the year|\bnominations?\b|cannes|sundance|palme d'or|berlinale|venice film/i },
 ];
 
 // Display order (the SECTORS array) and match order are deliberately separate.
-// Tech & AI now leads the nav, but its pattern is broad — "streaming", "ipo"
-// and "ai" appear in plenty of music and gaming titles — so matching it first
-// would silently reclassify existing markets. Matching keeps the original
-// narrow-to-broad precedence with tech last.
-const MATCH_ORDER = ['sportsfutures', 'awards', 'moviecharts', 'music', 'movies', 'celebrities', 'gaming', 'streaming', 'elonmusk', 'science', 'trends', 'tech'];
+// Tech's pattern is broad — "ai", "ipo" and "cruise" appear in plenty of
+// culture titles — so matching it first would silently reclassify markets.
+// Sports futures is narrowest, so it goes first; tech stays last.
+const MATCH_ORDER = ['sportsfutures', 'culture', 'tech'];
 
 export function classifySector(title) {
   for (const id of MATCH_ORDER) {

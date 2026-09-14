@@ -135,8 +135,13 @@ export default function ExplorePage() {
   const urlFilter = searchParams.get('filter');
   const urlQuery = searchParams.get('q');
   const [category, setCategory] = useState(() => (SECTORS.some((s) => s.id === urlFilter) ? urlFilter : null));
-  const [sub, setSub] = useState(null);
-  useEffect(() => { setSub(null); }, [category]);
+  const urlSub = searchParams.get('sub');
+  const [sub, setSub] = useState(urlSub || null);
+  // Changing sector clears the subcategory, except on the navigation that
+  // carried one in — otherwise a sidebar link to Culture > Movies & TV would
+  // land on Culture and immediately drop the subcategory.
+  useEffect(() => { setSub(searchParams.get('sub') || null); }, [category]);
+  useEffect(() => { setSub(urlSub || null); }, [urlSub]);
   useEffect(() => {
     if (SECTORS.some((s) => s.id === urlFilter)) setCategory(urlFilter);
   }, [urlFilter]);
@@ -220,7 +225,13 @@ export default function ExplorePage() {
               const isAll = i === 0;
               const on = isAll ? !sub : sub === label;
               return (
-                <button key={label} onClick={() => setSub(isAll ? null : label)}
+                <button key={label} onClick={() => {
+                    const value = isAll ? null : label;
+                    setSub(value);
+                    const next = new URLSearchParams(searchParams);
+                    if (value) next.set('sub', value); else next.delete('sub');
+                    setSearchParams(next, { replace: true });
+                  }}
                   style={{
                     display: 'block', width: '100%', textAlign: 'left',
                     background: 'none', border: 'none', cursor: 'pointer',

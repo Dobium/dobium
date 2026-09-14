@@ -9,6 +9,8 @@
 // landing page uses — no per-market subcategory field exists yet.
 
 export const SUBCATEGORIES = {
+  culture: ['All Culture', 'Music & Albums', 'Movies & TV', 'Celebrities & Creators',
+            'Festivals & Live', 'Streaming Platforms', 'Awards & Honors'],
   // No dropdown on the homepage sidebar (removed in f1af21d) — but the
   // category page has room for the full rail, which is where these belong.
   sportsfutures: ['All Futures', 'NFL Futures', 'NBA Futures', 'College Football Futures', 'Soccer Futures', 'MLB Futures', 'NHL Futures'],
@@ -31,6 +33,12 @@ export const SUBCATEGORIES = {
 // Title patterns for the non-"all" entries. Anything without a pattern simply
 // shows everything in the sector rather than an empty list.
 export const SUBCATEGORY_RE = {
+  'Music & Albums': /album|billboard|spotify|chart|single|mixtape|rapper|kendrick|drake|\bsza\b|beyonc|taylor swift|hot 100|\bep\b|track|streams?\b/i,
+  'Movies & TV': /movie|film|box office|opening weekend|highest[- ]grossing|premiere|sequel|\bseries\b|renewal|episode|season \d|trailer|rotten tomatoes|tomatometer|metacritic|franchise|cinematic universe|\bmcu\b|\bdcu\b/i,
+  'Celebrities & Creators': /mrbeast|kai cenat|ishowspeed|\bxqc\b|subscriber|subathon|youtuber|content creator|influencer|\btwitch\b|\bkick\b|creator/i,
+  'Festivals & Live': /coachella|glastonbury|lollapalooza|bonnaroo|\bfestival\b|residency|world tour|tour(?!nament)|sold out|live show|arena|stadium show/i,
+  'Streaming Platforms': /netflix|hulu|hbo|max\b|disney\+|paramount\+|peacock|apple tv|prime video|viewership|weekly views|streaming chart/i,
+  'Awards & Honors': /oscar|academy award|grammy|\bemmys?\b|golden globe|\bbafta\b|tony award|brit award|\bvmas?\b|best picture|best actor|best actress|best director|album of the year|record of the year|song of the year|\bnominations?\b|cannes|sundance|palme d'or|berlinale|venice film/i,
   'NFL Futures': /\bnfl\b|super bowl|afc\b|nfc\b/i,
   'NBA Futures': /\bnba\b|finals mvp|eastern conference|western conference/i,
   'College Football Futures': /college football|\bcfb\b|\bncaa\b|heisman|bowl game|\bsec\b|big ten|big 12|\bacc\b/i,
