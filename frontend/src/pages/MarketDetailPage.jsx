@@ -93,7 +93,7 @@ function PriceChart({ history, series, fallback }) {
   const rawMax = all.length ? Math.max(...all) : fallback;
 
   const niceStep = (r) => [1, 2, 5, 10, 20, 25, 50].find((n) => r / n <= 4) ?? 100;
-  const breathe = Math.max(4, (rawMax - rawMin) * 0.6) / 2;
+  const breathe = Math.max(2.5, (rawMax - rawMin) * 0.45) / 2;
   const step = niceStep(Math.min(100, rawMax + breathe) - Math.max(0, rawMin - breathe));
   const lo = Math.max(0, Math.floor((rawMin - breathe) / step) * step);
   const hi = Math.min(100, Math.ceil((rawMax + breathe) / step) * step);
@@ -337,19 +337,17 @@ export default function MarketDetailPage() {
     );
   }
 
-  const crumbs = ['Prediction markets', market.category, market.short_title].filter(Boolean);
+  const titleCase = (t) =>
+    String(t).replace(/\S+/g, (w) => w[0].toUpperCase() + w.slice(1));
+  const crumbs = ['Prediction markets', market.category && titleCase(market.category), market.short_title]
+    .filter(Boolean);
   const contracts = showAll || outcomes.length <= 8 ? outcomes : outcomes.slice(0, 8);
 
   const timeline = [
-    { label: 'Trading hours', value: 'Open continuously until this market closes.' },
+    { label: 'Trading hours', value: '24 hours a day, except Thursday 3AM-5AM ET' },
     fmtDate(market.close_date) && { label: 'Event day', value: fmtDate(market.close_date) },
-    {
-      label: 'Contract resolves',
-      value: fmtDate(market.resolution_date)
-        ? `${fmtDate(market.resolution_date)} — determines the outcome of the contract.`
-        : 'Determines the outcome of the contract.',
-    },
-    { label: 'Payout', value: 'Each share of the winning contract pays $1.00; losing shares pay nothing.' },
+    { label: 'Contract resolves', value: 'Determines the outcome of the contract' },
+    { label: 'Payout', value: 'Usually within 1 hour of event resolution' },
   ].filter(Boolean);
 
   return (
@@ -407,7 +405,11 @@ export default function MarketDetailPage() {
           </div>
 
           <div style={{ marginTop: 14 }}>
-            <PriceChart history={market.price_history} series={legend} fallback={price} />
+            <PriceChart
+              history={market.price_history}
+              series={binary ? legend.filter((l) => l.selected) : legend}
+              fallback={price}
+            />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
