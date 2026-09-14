@@ -19,6 +19,10 @@ const PAGE_BG = '#00132D';
 const PANEL_BG = '#09192E';
 const ROW_BG = '#05172C';
 const LINE = '#0E2744';
+// Dividers *inside* the ticket sit only a few shades off the panel. Using the
+// same LINE as the outer border made them roughly three times too bright
+// against the panel fill, which read as the card being the wrong colour.
+const TICKET_LINE = '#0B1D34';
 const HAIRLINE = '#122E50';
 const WHITE = '#FFFFFF';
 const MUTED = '#7E91A8';
@@ -166,7 +170,7 @@ function Row({ label, sub, info, children, last }) {
         justifyContent: 'space-between',
         gap: 12,
         padding: '13px 18px',
-        borderBottom: last ? 'none' : `1px solid ${LINE}`,
+        borderBottom: last ? 'none' : `1px solid ${TICKET_LINE}`,
       }}
     >
       <span style={{ minWidth: 0 }}>
@@ -500,7 +504,7 @@ export default function MarketDetailPage() {
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: 18, padding: '0 18px', borderBottom: `1px solid ${LINE}` }}>
+            <div style={{ display: 'flex', gap: 18, padding: '0 18px' }}>
               {(complement ? ['Yes', 'No'] : ['Yes']).map((t) => {
                 const on = sideName === t.toUpperCase();
                 return (
@@ -544,7 +548,7 @@ export default function MarketDetailPage() {
 
             <div style={{ padding: '4px 18px 18px' }}>
               {!isOpen && (
-                <div style={{ border: `1px solid ${LINE}`, borderRadius: 8, padding: '10px 12px', marginBottom: 12, color: MUTED, fontSize: 12, lineHeight: 1.5 }}>
+                <div style={{ border: `1px solid ${TICKET_LINE}`, borderRadius: 8, padding: '10px 12px', marginBottom: 12, color: MUTED, fontSize: 12, lineHeight: 1.5 }}>
                   This market has closed and is awaiting resolution. Trading is disabled.
                 </div>
               )}
