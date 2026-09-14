@@ -117,7 +117,7 @@ export default function Footer() {
   }
 
 const HOME_COLUMNS = [
-  { title: 'Sectors', links: ['Music Intel', 'Cinema Index', 'Event Rumors', 'Tech/Gaming'] },
+  { title: 'Sectors', links: ['Global Attention', 'Sports Futures', 'Tech & AI', 'Culture'] },
   { title: 'Resources', links: ['Trade API', 'Market Rules', 'Security', 'Status'] },
 ];
 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMarkets } from '../hooks/useMarkets';
 import { api } from '../api/client';
 import { SECTORS as SHARED_SECTORS, classifySector } from '../lib/sectors';
-import { subcategoriesFor } from '../lib/subcategories';
+import { subcategoriesFor, matchesSubcategory, SUBCATEGORIES } from '../lib/subcategories';
 import FeaturedCarousel from '../components/FeaturedCarousel';
 import FeaturedRail from '../components/FeaturedRail';
 
@@ -52,8 +52,18 @@ function compactVol(v) {
 const SECTOR_ICONS = { music: 'note', movies: 'film', celebrities: 'people', gaming: 'gamepad', streaming: 'play', trends: 'trend', tech: 'grid', awards: 'trophy', sportsfutures: 'calendar', culture: 'note', moviecharts: 'bars', science: 'life', elonmusk: 'rocket' };
 const SECTORS = SHARED_SECTORS.map((s) => ({ ...s, icon: SECTOR_ICONS[s.id] }));
 
+// The six Culture subcategories, read from the shared taxonomy so the rail and
+// the sidebar can't drift apart.
+const CULTURE_SUBS = SUBCATEGORIES.culture;
+
 function classify(title) {
   return classifySector(title);
+}
+
+function cultureSubMarkets(markets, sub) {
+  const pool = sectorMarkets(markets, 'culture');
+  if (!sub || sub === 'All Culture') return pool;
+  return pool.filter((m) => matchesSubcategory(m.title, sub));
 }
 
 function sectorMarkets(markets, id) {
@@ -920,6 +930,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [pulse, setPulse] = useState(null);
   const [activeSector, setActiveSector] = useState('attention');
+  const [cultureSub, setCultureSub] = useState('All Culture');
   // Which sector row in the rail is expanded to its subcategories.
   const [openSector, setOpenSector] = useState(null);
   const [attentionOpen, setAttentionOpen] = useState(true);
@@ -944,10 +955,12 @@ export default function LandingPage() {
   const fetchPulse = useCallback(() => { api.getPulse().then((r) => setPulse(r)).catch(() => {}); }, []);
   useEffect(() => { fetchPulse(); const t = setInterval(fetchPulse, 20000); return () => clearInterval(t); }, [fetchPulse]);
 
+  // One ref per section that actually renders: the four sectors and nothing
+  // else. The music / movies / celebrities / gaming / streaming / awards /
+  // trends refs pointed at sections that no longer exist.
   const refs = {
-    attention: useRef(null), music: useRef(null), movies: useRef(null), celebrities: useRef(null),
-    gaming: useRef(null), streaming: useRef(null),
-    trends: useRef(null), tech: useRef(null), awards: useRef(null), sportsfutures: useRef(null),
+    attention: useRef(null), sportsfutures: useRef(null),
+    tech: useRef(null), culture: useRef(null),
   };
 
   const goTo = (id) => {
@@ -1403,89 +1416,54 @@ export default function LandingPage() {
                 onViewAll={() => navigate('/explore?filter=tech')}
               />
             )}
-            <MusicSection markets={markets} genre={musicGenre} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore?filter=music')} forwardRef={refs.music} />
-          <div ref={refs.trends} style={{ scrollMarginTop: 90 }}>
-            {trendsSub === 'Google Trends' ? (
-              <>
-                <TwoCardSection
-                  sector={{ id: 'trends', icon: 'trend', label: 'Viral Challenges' }}
-                  demo={VIRAL_CHALLENGES_DEMO}
-                  max={2}
-                  pickReal={viralChallengeMarkets}
-                  markets={markets}
-                  onOpen={(id) => navigate(`/markets/${id}`)}
-                  onViewAll={() => navigate('/explore?filter=trends')}
-                />
-                <TwoCardSection
-                  sector={{ id: 'trends', icon: 'bars', label: 'Creator Milestones' }}
-                  demo={CREATOR_MILESTONES_DEMO}
-                  max={2}
-                  pickReal={creatorMilestoneMarkets}
-                  markets={markets}
-                  onOpen={(id) => navigate(`/markets/${id}`)}
-                  onViewAll={() => navigate('/explore?filter=trends')}
-                />
-              </>
-            ) : (
-              <TwoCardSection
-                sector={SECTORS.find((s) => s.id === 'trends')}
-                demo={TRENDS_PLATFORM_DEMO[trendsSub] || VIRAL_CHALLENGES_DEMO}
-                max={4}
-                title={`Social Media Trends · ${trendsSub}`}
-                pickReal={(m) => trendsPlatformMarkets(m, trendsSub)}
-                markets={markets}
-                onOpen={(id) => navigate(`/markets/${id}`)}
-                onViewAll={() => navigate('/explore?filter=trends')}
-              />
-            )}
           </div>
-          <MoviesSection markets={markets} platform={moviesPlatform} onOpen={(id) => navigate(`/markets/${id}`)} onViewAll={() => navigate('/explore?filter=movies')} forwardRef={refs.movies} />
 
-          <TwoCardSection
-            sector={SECTORS.find((s) => s.id === 'celebrities')}
-            demo={creatorSub === 'All Creators' ? CREATORS_DEMO : (CREATOR_SUB_DEMO[creatorSub] || CREATORS_DEMO)}
-            max={4}
-            title={creatorSub === 'All Creators' ? 'Creators & Streamers' : `Creators & Streamers · ${creatorSub}`}
-            pickReal={creatorSub === 'All Creators' ? undefined : (m) => creatorSubMarkets(m, creatorSub)}
-            markets={markets}
-            onOpen={(id) => navigate(`/markets/${id}`)}
-            onViewAll={() => navigate('/explore?filter=celebrities')}
-            forwardRef={refs.celebrities}
-          />
-          <TwoCardSection
-            sector={SECTORS.find((s) => s.id === 'gaming')}
-            demo={gamingSub === 'All Gaming' ? GAMING_MARKETS_DEMO : (GAMING_SUB_DEMO[gamingSub] || GAMING_MARKETS_DEMO)}
-            max={4}
-            title={gamingSub === 'All Gaming' ? 'Gaming Markets' : `Gaming Markets · ${gamingSub}`}
-            pickReal={gamingSub === 'All Gaming' ? undefined : (m) => gamingSubMarkets(m, gamingSub)}
-            markets={markets}
-            onOpen={(id) => navigate(`/markets/${id}`)}
-            onViewAll={() => navigate('/explore?filter=gaming')}
-            forwardRef={refs.gaming}
-          />
-          <TwoCardSection
-            sector={SECTORS.find((s) => s.id === 'streaming')}
-            demo={streamingSub === 'All Streaming' ? STREAMING_DEMO : (STREAMING_SUB_DEMO[streamingSub] || STREAMING_DEMO)}
-            max={4}
-            title={streamingSub === 'All Streaming' ? 'Streaming Markets' : `Streaming Markets · ${streamingSub}`}
-            pickReal={streamingSub === 'All Streaming' ? undefined : (m) => streamingSubMarkets(m, streamingSub)}
-            markets={markets}
-            onOpen={(id) => navigate(`/markets/${id}`)}
-            onViewAll={() => navigate('/explore?filter=streaming')}
-            forwardRef={refs.streaming}
-          />
+          {/* Culture. Music, movies & TV, creators, festivals, streaming and
+              awards used to be six top-level sections plus a separate Social
+              Media Trends and Gaming. They are subcategories of Culture now,
+              matching the sidebar, so the homepage and the nav agree on what
+              exists. */}
+          <div ref={refs.culture} style={{ scrollMarginTop: 90 }}>
+            <div
+              style={{
+                display: 'flex', gap: 8, marginBottom: 16, paddingBottom: 4,
+                overflowX: 'auto', scrollbarWidth: 'none',
+              }}
+            >
+              {CULTURE_SUBS.map((sub) => {
+                const on = cultureSub === sub;
+                return (
+                  <button key={sub} onClick={() => setCultureSub(sub)}
+                    style={{
+                      background: on ? '#394666' : CARD_BG,
+                      border: `1px solid ${on ? '#4C5F85' : CARD_LINE}`,
+                      color: on ? '#DCE6F5' : WARM,
+                      borderRadius: 999, padding: '7px 13px', cursor: 'pointer',
+                      fontSize: 12.5, fontWeight: on ? 700 : 500, whiteSpace: 'nowrap', flexShrink: 0,
+                    }}>
+                    {sub}
+                  </button>
+                );
+              })}
+            </div>
 
-          <TwoCardSection
-            sector={SECTORS.find((s) => s.id === 'awards')}
-            markets={markets}
-            demo={AWARDS_DEMO}
-            title={awardsSub === 'All Awards' ? 'Awards' : `Awards · ${awardsSub}`}
-            pickReal={awardsSub === 'All Awards' ? undefined : (m) => awardsSubMarkets(m, awardsSub)}
-            onOpen={(id) => navigate(`/markets/${id}`)}
-            onViewAll={() => navigate('/explore?filter=awards')}
-            forwardRef={refs.awards}
-          />
-        </div>
+            <TwoCardSection
+              sector={SECTORS.find((s) => s.id === 'culture')}
+              demo={MUSIC_DEMO}
+              max={4}
+              title={cultureSub === 'All Culture' ? 'Culture' : `Culture · ${cultureSub}`}
+              pickReal={(m) => cultureSubMarkets(m, cultureSub)}
+              markets={markets}
+              onOpen={(id) => navigate(`/markets/${id}`)}
+              onViewAll={() =>
+                navigate(
+                  cultureSub === 'All Culture'
+                    ? '/explore?filter=culture'
+                    : `/explore?filter=culture&sub=${encodeURIComponent(cultureSub)}`,
+                )
+              }
+            />
+          </div>
         </main>
       </div>
       </div>
