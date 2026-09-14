@@ -7,35 +7,28 @@ import { api } from '../api/client';
 
 // ── Market detail page ─────────────────────────────────────────────────────
 //
-// Rebuilt to the reference design. What the previous version did and this one
-// deliberately does not:
+// Built to the reference: breadcrumb and volume, title over question, a legend
+// of the live contracts, one multi-series chart, a "Select a contract" list,
+// and a Timeline. The order ticket sits to the right.
 //
-//   · Two large pill buttons, YES in green beside NO in red, at equal weight.
-//     That is a betting slip. This page quotes one side at a time.
-//   · "Chance of Yes 86%". A percentage framed as a chance is odds language.
-//     This shows a price — 86¢ — the same number saying a different thing:
-//     what the contract costs, not how likely you are to win.
-//   · A green price line. Green is a result colour. The line is gold, which is
-//     the page's only accent, so nothing on the chart reads as winning.
-//   · A "Recent Activity" feed of other people's trades. Watching strangers
-//     bet is a casino floor, not a quote screen.
-//   · A four-step "Trading Timeline" bulleted down the page. The same facts
-//     now sit folded into Resolution and Trading hours, available when wanted
-//     rather than narrated at you.
-//
-// The trade flow underneath is unchanged: same useMarket, same wallet hook,
-// same api.createPrediction. Only presentation moved.
+// What this page deliberately doesn't do, carried over from the last rebuild:
+// no YES-in-green beside NO-in-red pill pair, no "Chance of Yes 86%" (a price
+// is shown instead of odds), and no feed of other people's trades.
 
-const PAGE_BG = '#00132D';   // matches the site page field
-const PANEL_BG = '#09192E';  // order ticket surface
-const LINE = '#0E2744';      // panel borders, dividers
-const HAIRLINE = '#122E50';  // chart grid
+const PAGE_BG = '#00132D';
+const PANEL_BG = '#09192E';
+const ROW_BG = '#05172C';
+const LINE = '#0E2744';
+const HAIRLINE = '#122E50';
 const WHITE = '#FFFFFF';
 const MUTED = '#7E91A8';
 const DIM = '#62778F';
 const GOLD = '#FFDF9B';
-const GOLD_BTN = '#FFDF9B';
 const ON_GOLD = '#00132D';
+
+// The selected contract is always gold; the rest cycle. Sampled off the
+// reference legend.
+const SERIES = ['#FF7068', '#00E475', '#6FA8FF', '#C792EA', '#FFB454', '#4DD0E1'];
 
 const MONO = "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
 const SANS = "'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -45,6 +38,7 @@ const RANGES = ['1D', '1W', '1M', '3M', 'ALL'];
 // ── helpers ────────────────────────────────────────────────────────────────
 
 const cents = (p) => Math.min(99, Math.max(1, Math.round(Number(p) || 0)));
+const outcomeLabel = (o) => String(o?.name || o?.title || '').trim() || 'YES';
 
 function formatVolume(v) {
   const n = Number(v) || 0;
@@ -60,65 +54,40 @@ function fmtDate(d) {
   return dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-// The reference header is a short subject line above a short question
-// ("Penn State — 2027 CFP" / "Win the championship?"). That needs a
-// short_title on the market. Where one exists we use it; otherwise the full
-// question is the heading.
+// The reference header is a short subject over a short question ("Penn State —
+// 2027 CFP" / "Win the championship?"). That needs a short_title on the market.
+// Where one exists we use it; otherwise the full question is the heading.
 function splitHeading(market) {
   if (!market) return { heading: '', sub: null };
   if (market.short_title) return { heading: market.short_title, sub: market.subtitle || market.title };
   if (market.subtitle) return { heading: market.title, sub: market.subtitle };
-  // No short_title on this market: show the question whole rather than
-  // guessing where to cut it.
   return { heading: String(market.title || '').trim(), sub: null };
-}
-
-// Quote the leading side. Bid/ask only when the market actually carries a
-// book — no synthetic spread painted around the mid to fill the line out.
-function quoteFor(outcome) {
-  if (!outcome) return null;
-  const bid = Number(outcome.best_bid ?? outcome.bid);
-  const ask = Number(outcome.best_ask ?? outcome.ask);
-  const hasBook = Number.isFinite(bid) && Number.isFinite(ask);
-  return {
-    side: String(outcome.name || outcome.title || 'YES').toUpperCase(),
-    price: cents(outcome.probability),
-    bid: hasBook ? cents(bid) : null,
-    ask: hasBook ? cents(ask) : null,
-    hasBook,
-  };
 }
 
 // ── chart ──────────────────────────────────────────────────────────────────
 
-function PriceChart({ history, outcomeId, fallbackPrice }) {
+function PriceChart({ history, series, fallback }) {
   const W = 640;
-  const H = 240;
+  const H = 220;
   const PAD_R = 40;
-  const PAD_B = 26;
+  const PAD_B = 24;
 
-  const series = useMemo(() => {
-    if (Array.isArray(history) && history.length >= 2) {
-      return history.map((snap) => ({
-        t: snap.timestamp,
-        v: Number(snap.prices?.[outcomeId] ?? fallbackPrice) || 0,
-      }));
-    }
-    // A market with no trades yet is a flat line at its opening price. Drawing
-    // an invented squiggle here would be showing price action that never
-    // happened.
-    return [
-      { t: null, v: fallbackPrice },
-      { t: null, v: fallbackPrice },
-    ];
-  }, [history, outcomeId, fallbackPrice]);
+  const lines = useMemo(() => {
+    const hasHistory = Array.isArray(history) && history.length >= 2;
+    return series.map((s) => ({
+      ...s,
+      points: hasHistory
+        ? history.map((snap) => ({ t: snap.timestamp, v: Number(snap.prices?.[s.id] ?? s.price) || 0 }))
+        // A market with no trades yet is a flat line at its opening price.
+        // Drawing a squiggle would be showing price action that never happened.
+        : [{ t: null, v: s.price }, { t: null, v: s.price }],
+    }));
+  }, [history, series]);
 
-  const vals = series.map((s) => s.v);
-  const rawMin = Math.min(...vals);
-  const rawMax = Math.max(...vals);
+  const all = lines.flatMap((l) => l.points.map((p) => p.v));
+  const rawMin = all.length ? Math.min(...all) : fallback;
+  const rawMax = all.length ? Math.max(...all) : fallback;
 
-  // Pick a step that gives about four gridlines, then snap the bounds to it,
-  // so labels always land on round numbers.
   const niceStep = (r) => [1, 2, 5, 10, 20, 25, 50].find((n) => r / n <= 4) ?? 100;
   const breathe = Math.max(4, (rawMax - rawMin) * 0.6) / 2;
   const step = niceStep(Math.min(100, rawMax + breathe) - Math.max(0, rawMin - breathe));
@@ -128,53 +97,57 @@ function PriceChart({ history, outcomeId, fallbackPrice }) {
 
   const plotW = W - PAD_R;
   const plotH = H - PAD_B;
-  const x = (i) => (series.length === 1 ? 0 : (i / (series.length - 1)) * plotW);
+  const n = lines[0]?.points.length || 2;
+  const x = (i) => (n === 1 ? 0 : (i / (n - 1)) * plotW);
   const y = (v) => plotH - ((v - lo) / span) * plotH;
-
-  const d = series.map((s, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(s.v).toFixed(1)}`).join(' ');
 
   const gridlines = [];
   for (let v = lo; v <= hi + 0.001; v += step) gridlines.push(Math.round(v));
 
   const xTicks = [];
-  if (series[0].t) {
-    const n = Math.min(5, series.length);
-    for (let k = 0; k < n; k += 1) {
-      const idx = Math.round((k / Math.max(1, n - 1)) * (series.length - 1));
-      const dt = new Date(series[idx].t);
+  const stamps = lines[0]?.points || [];
+  if (stamps[0]?.t) {
+    const k = Math.min(5, stamps.length);
+    for (let i = 0; i < k; i += 1) {
+      const idx = Math.round((i / Math.max(1, k - 1)) * (stamps.length - 1));
+      const dt = new Date(stamps[idx].t);
       if (!Number.isNaN(dt.getTime())) {
         xTicks.push({ x: x(idx), label: dt.toLocaleDateString('en-US', { month: 'short' }) });
       }
     }
   }
 
-  const last = series[series.length - 1];
-
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', overflow: 'visible' }} aria-hidden="true">
-      <rect x="0" y="0" width={plotW} height={plotH} fill="none" stroke={HAIRLINE} strokeWidth="1" />
       {gridlines.map((v) => (
         <g key={v}>
           <line x1="0" x2={plotW} y1={y(v)} y2={y(v)} stroke={HAIRLINE} strokeWidth="1" />
-          <text x={plotW + 8} y={y(v) + 3.5} fill={DIM} fontSize="10.5" fontFamily={MONO}>
+          <text x={plotW + 8} y={y(v) + 3.5} fill={DIM} fontSize="10" fontFamily={MONO}>
             {v}%
           </text>
         </g>
       ))}
 
-      <path d={d} fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={x(series.length - 1)} cy={y(last.v)} r="3.5" fill={GOLD} />
+      {lines.map((l) => {
+        const d = l.points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.v).toFixed(1)}`).join(' ');
+        return (
+          <g key={l.id}>
+            <path
+              d={d}
+              fill="none"
+              stroke={l.color}
+              strokeWidth={l.selected ? 2 : 1.3}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={l.selected ? 1 : 0.75}
+            />
+            {l.selected && <circle cx={x(l.points.length - 1)} cy={y(l.points.at(-1).v)} r="3.5" fill={l.color} />}
+          </g>
+        );
+      })}
 
       {xTicks.map((t, i) => (
-        <text
-          key={i}
-          x={t.x}
-          y={H - 6}
-          fill={DIM}
-          fontSize="10.5"
-          fontFamily={MONO}
-          textAnchor={i === 0 ? 'start' : 'middle'}
-        >
+        <text key={i} x={t.x} y={H - 6} fill={DIM} fontSize="10" fontFamily={MONO} textAnchor={i === 0 ? 'start' : 'middle'}>
           {t.label}
         </text>
       ))}
@@ -182,176 +155,30 @@ function PriceChart({ history, outcomeId, fallbackPrice }) {
   );
 }
 
-const outcomeLabel = (o) => String(o?.name || o?.title || '').trim() || 'YES';
+// ── ticket row ─────────────────────────────────────────────────────────────
 
-const AVATAR_BG = '#2C3C52';
-
-function initials(name) {
-  const w = String(name || '').trim().split(/\s+/).filter(Boolean);
-  if (!w.length) return '?';
-  if (w.length === 1) return w[0].slice(0, 3).toUpperCase();
-  return w.slice(0, 3).map((x) => x[0]).join('').toUpperCase();
-}
-
-// ── outcomes ───────────────────────────────────────────────────────────────
-//
-// Every outcome is listed on the page. The previous version put them behind a
-// caret on the order ticket, so a market with 21 teams in it showed one and
-// gave no sign the other twenty existed.
-function OutcomeList({ outcomes, selectedId, onSelect }) {
-  const binary = outcomes.length === 2;
-  const [showAll, setShowAll] = useState(false);
-  const LIMIT = 8;
-  const rows = outcomes.length <= 2 || showAll ? outcomes : outcomes.slice(0, LIMIT);
-
-  return (
-    <div style={{ marginTop: 32 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {rows.map((o) => {
-          const on = o.id === selectedId;
-          const name = outcomeLabel(o);
-          const price = cents(o.probability);
-          return (
-            <div
-              key={o.id}
-              onClick={() => onSelect(o.id)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onSelect(o.id);
-                }
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                background: PANEL_BG,
-                border: `1px solid ${on ? GOLD : LINE}`,
-                borderRadius: 10,
-                padding: '13px 14px',
-                cursor: 'pointer',
-              }}
-            >
-              <span
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 999,
-                  background: AVATAR_BG,
-                  color: '#C6D3E4',
-                  fontFamily: MONO,
-                  fontSize: 10,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                {initials(name)}
-              </span>
-
-              <span style={{ minWidth: 0, flex: 1 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span
-                    style={{
-                      color: WHITE,
-                      fontSize: 14.5,
-                      fontWeight: 600,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {name}
-                  </span>
-                  {on && (
-                    <span
-                      style={{
-                        fontFamily: MONO,
-                        fontSize: 8.5,
-                        letterSpacing: '.07em',
-                        color: GOLD,
-                        border: `1px solid ${GOLD}44`,
-                        borderRadius: 3,
-                        padding: '2px 6px',
-                        flexShrink: 0,
-                      }}
-                    >
-                      SELECTED
-                    </span>
-                  )}
-                </span>
-                <span style={{ display: 'block', color: DIM, fontFamily: MONO, fontSize: 10.5, marginTop: 4 }}>
-                  Prob {price}%{o.total_stake ? ` · Vol ${formatVolume(o.total_stake)}` : ''}
-                </span>
-              </span>
-
-              <span style={{ fontFamily: MONO, fontSize: 15, color: WHITE, fontWeight: 600, flexShrink: 0 }}>
-                {price}¢
-              </span>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelect(o.id);
-                }}
-                style={{
-                  flexShrink: 0,
-                  background: on ? GOLD : 'transparent',
-                  border: `1px solid ${on ? GOLD : LINE}`,
-                  color: on ? ON_GOLD : WHITE,
-                  borderRadius: 7,
-                  padding: '8px 12px',
-                  cursor: 'pointer',
-                  fontFamily: SANS,
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                Buy {binary ? name : 'Yes'} {price}¢
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      {outcomes.length > LIMIT && (
-        <button
-          onClick={() => setShowAll((v) => !v)}
-          style={{
-            width: '100%',
-            marginTop: 10,
-            background: 'none',
-            border: `1px solid ${LINE}`,
-            borderRadius: 9,
-            padding: '12px 16px',
-            cursor: 'pointer',
-            color: MUTED,
-            fontFamily: SANS,
-            fontSize: 13.5,
-            fontWeight: 500,
-          }}
-        >
-          {showAll ? 'Show fewer' : `View all ${outcomes.length} options`}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function Row({ label, sub, children, last }) {
+function Row({ label, sub, info, children, last }) {
   return (
     <div
       style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-        padding: '13px 18px', borderBottom: last ? 'none' : `1px solid ${LINE}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        padding: '13px 18px',
+        borderBottom: last ? 'none' : `1px solid ${LINE}`,
       }}
     >
       <span style={{ minWidth: 0 }}>
-        <span style={{ display: 'block', color: MUTED, fontSize: 13 }}>{label}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: MUTED, fontSize: 13 }}>
+          {label}
+          {info && (
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={DIM} strokeWidth="2.2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 16v-5M12 8h.01" strokeLinecap="round" />
+            </svg>
+          )}
+        </span>
         {sub && <span style={{ display: 'block', color: DIM, fontFamily: MONO, fontSize: 10, marginTop: 3 }}>{sub}</span>}
       </span>
       <span style={{ flexShrink: 0 }}>{children}</span>
@@ -359,52 +186,26 @@ function Row({ label, sub, children, last }) {
   );
 }
 
-// ── disclosure panel ───────────────────────────────────────────────────────
+// ── timeline ───────────────────────────────────────────────────────────────
 
-function Disclosure({ label, children }) {
-  const [open, setOpen] = useState(false);
-  if (!children) return null;
+function Timeline({ items }) {
   return (
-    <div style={{ borderBottom: `1px solid ${LINE}` }}>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        style={{
-          width: '100%',
-          background: 'none',
-          border: 'none',
-          padding: '20px 2px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'pointer',
-          color: WHITE,
-          fontFamily: SANS,
-          fontSize: 15.5,
-          fontWeight: 500,
-          textAlign: 'left',
-        }}
-      >
-        {label}
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke={MUTED}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .16s ease', flexShrink: 0 }}
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
-      {open && (
-        <div style={{ padding: '0 2px 18px', color: MUTED, fontSize: 14.5, lineHeight: 1.7, maxWidth: '72ch' }}>
-          {children}
-        </div>
-      )}
+    <div style={{ marginTop: 34 }}>
+      <h2 style={{ color: WHITE, fontSize: 14.5, fontWeight: 600, margin: '0 0 16px' }}>Timeline</h2>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {items.map((it, i) => (
+          <div key={it.label} style={{ display: 'flex', gap: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+              <span style={{ width: 7, height: 7, borderRadius: 999, background: GOLD, marginTop: 5 }} />
+              {i < items.length - 1 && <span style={{ width: 1, flex: 1, background: LINE, marginTop: 4 }} />}
+            </div>
+            <div style={{ paddingBottom: i < items.length - 1 ? 20 : 0, minWidth: 0 }}>
+              <div style={{ color: WHITE, fontSize: 13, fontWeight: 600 }}>{it.label}</div>
+              <div style={{ color: MUTED, fontSize: 12.5, marginTop: 3, lineHeight: 1.5 }}>{it.value}</div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -415,20 +216,18 @@ export default function MarketDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { market, loading, error } = useMarket(id);
-  const { session } = useAuth();
-  // useWallet exposes this as `balance`; aliasing rather than renaming so the
-  // guard below actually receives a number instead of undefined.
+  const { session, openAuthModal } = useAuth();
   const { balance: buyingPower, refetch: refetchWallet } = useWallet();
 
   const [outcomeId, setOutcomeId] = useState(null);
   const [shares, setShares] = useState('100');
   const [range, setRange] = useState('ALL');
+  const [showAll, setShowAll] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState('');
 
   const outcomes = useMemo(() => (Array.isArray(market?.outcomes) ? market.outcomes : []), [market]);
 
-  // Default to the leading side, which is what the reference quotes.
   useEffect(() => {
     if (!outcomeId && outcomes.length) {
       const lead = outcomes.reduce((a, b) => ((b.probability || 0) > (a?.probability || 0) ? b : a), null);
@@ -437,21 +236,50 @@ export default function MarketDetailPage() {
   }, [outcomes, outcomeId]);
 
   const selected = outcomes.find((o) => o.id === outcomeId) || null;
-  // A NO contract only exists where the market carries the opposite leg. On a
-  // field of 21 teams there is no complement, so no No tab is offered.
-  const complement = outcomes.length === 2 ? outcomes.find((o) => o.id !== outcomeId) : null;
-  const side = outcomes.length === 2 ? outcomeLabel(selected).toUpperCase() : 'YES';
-  const quote = quoteFor(selected);
+  const price = selected ? cents(selected.probability) : 50;
   const { heading, sub } = splitHeading(market);
 
+  // A NO contract only exists where the market carries the opposite leg. On a
+  // field of 21 teams there is nothing to sell, so no No tab is offered.
+  const binary = outcomes.length === 2;
+  const complement = binary ? outcomes.find((o) => o.id !== outcomeId) : null;
+  const sideName = binary ? outcomeLabel(selected).toUpperCase() : 'YES';
+
+  // The reference quotes the opposite side of the selected contract: Penn State
+  // at 5c shows "NO Price 95c". Bid/ask only where the market carries a book.
+  const rawBid = Number(selected?.best_bid ?? selected?.bid);
+  const rawAsk = Number(selected?.best_ask ?? selected?.ask);
+  const hasBook = Number.isFinite(rawBid) && Number.isFinite(rawAsk);
+  const noPrice = 100 - price;
+
+  // Legend and chart share one list so a colour can't mean two things.
+  const legend = useMemo(() => {
+    const ranked = [...outcomes].sort((a, b) => (b.probability || 0) - (a.probability || 0)).slice(0, 4);
+    if (selected && !ranked.some((o) => o.id === selected.id)) ranked[ranked.length - 1] = selected;
+    let c = 0;
+    return ranked.map((o) => ({
+      id: o.id,
+      name: outcomeLabel(o),
+      price: cents(o.probability),
+      selected: o.id === outcomeId,
+      color: o.id === outcomeId ? GOLD : SERIES[c++ % SERIES.length],
+    }));
+  }, [outcomes, outcomeId, selected]);
+
   const shareCount = Math.max(0, Math.floor(Number(shares) || 0));
-  const cost = quote ? (shareCount * quote.price) / 100 : 0;
+  const cost = (shareCount * price) / 100;
   const payout = shareCount;
 
   const isOpen = market?.status === 'active';
+  const signedIn = Boolean(session?.user?.id);
   const canAfford = buyingPower == null || cost <= buyingPower;
+  const disabled = submitting || !isOpen || shareCount <= 0;
 
   async function submit() {
+    if (!signedIn) {
+      openAuthModal('signup');
+      return;
+    }
     if (!market || !selected || shareCount <= 0 || submitting) return;
     if (!canAfford) {
       setMsg(`Not enough buying power. This order costs $${cost.toFixed(2)}.`);
@@ -465,11 +293,11 @@ export default function MarketDetailPage() {
         outcome_id: selected.id,
         stake_amount: Number(cost.toFixed(2)),
         odds_at_prediction: selected.probability || 50,
-        user_id: session?.user?.id || 'demo_user',
+        user_id: session.user.id,
       });
-      setMsg(`Order filled. ${shareCount} ${quote.side} at ${quote.price}¢.`);
+      setMsg(`Order filled. ${shareCount} ${outcomeLabel(selected)} at ${price}¢.`);
       window.dispatchEvent(new CustomEvent('dobium:trade'));
-      if (session?.user?.id && session.user.id !== 'demo_user') await refetchWallet();
+      await refetchWallet();
     } catch (err) {
       setMsg(err.message || 'That order did not go through. Nothing was charged.');
     } finally {
@@ -488,23 +316,15 @@ export default function MarketDetailPage() {
   if (error || !market) {
     return (
       <div style={{ background: PAGE_BG, minHeight: '100vh', padding: 40, fontFamily: SANS }}>
-        <div style={{ color: WHITE, fontSize: 17, fontWeight: 600, marginBottom: 8 }}>
-          This market could not be loaded.
-        </div>
+        <div style={{ color: WHITE, fontSize: 17, fontWeight: 600, marginBottom: 8 }}>This market could not be loaded.</div>
         <div style={{ color: MUTED, fontSize: 14, marginBottom: 20 }}>
           {error || 'It may have been removed, or the link may be wrong.'}
         </div>
         <button
           onClick={() => navigate('/')}
           style={{
-            background: 'none',
-            border: `1px solid ${LINE}`,
-            color: WHITE,
-            borderRadius: 8,
-            padding: '9px 15px',
-            cursor: 'pointer',
-            fontFamily: SANS,
-            fontSize: 13.5,
+            background: 'none', border: `1px solid ${LINE}`, color: WHITE, borderRadius: 8,
+            padding: '9px 15px', cursor: 'pointer', fontFamily: SANS, fontSize: 13.5,
           }}
         >
           Back to markets
@@ -513,37 +333,63 @@ export default function MarketDetailPage() {
     );
   }
 
-  const disabled = submitting || !isOpen || shareCount <= 0;
+  const crumbs = ['Prediction markets', market.category, market.short_title].filter(Boolean);
+  const contracts = showAll || outcomes.length <= 8 ? outcomes : outcomes.slice(0, 8);
+
+  const timeline = [
+    { label: 'Trading hours', value: 'Open continuously until this market closes.' },
+    fmtDate(market.close_date) && { label: 'Event day', value: fmtDate(market.close_date) },
+    {
+      label: 'Contract resolves',
+      value: fmtDate(market.resolution_date)
+        ? `${fmtDate(market.resolution_date)} — determines the outcome of the contract.`
+        : 'Determines the outcome of the contract.',
+    },
+    { label: 'Payout', value: 'Each share of the winning contract pays $1.00; losing shares pay nothing.' },
+  ].filter(Boolean);
 
   return (
     <div style={{ background: PAGE_BG, minHeight: '100vh', fontFamily: SANS }}>
       <div className="dbm-market-grid">
         {/* ── left column ── */}
         <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24 }}>
-            <div style={{ minWidth: 0, maxWidth: '40ch' }}>
-              <h1 style={{ color: WHITE, fontSize: 30, fontWeight: 600, letterSpacing: '-.02em', margin: 0, lineHeight: 1.25 }}>
-                {heading}
-              </h1>
-              {sub && <div style={{ color: MUTED, fontSize: 15, marginTop: 7 }}>{sub}</div>}
-            </div>
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.15em', color: DIM }}>VOLUME</div>
-              <div style={{ fontFamily: MONO, fontSize: 15, color: WHITE, marginTop: 4 }}>
-                {formatVolume(market.total_volume)}
-              </div>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 20 }}>
+            <span style={{ color: DIM, fontSize: 11.5, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {crumbs.join('  /  ')}
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 8, flexShrink: 0 }}>
+              <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.15em', color: DIM }}>VOLUME</span>
+              <span style={{ fontFamily: MONO, fontSize: 13, color: WHITE }}>{formatVolume(market.total_volume)}</span>
+            </span>
           </div>
 
+          <h1 style={{ color: WHITE, fontSize: 26, fontWeight: 600, letterSpacing: '-.02em', margin: '10px 0 0', lineHeight: 1.25, maxWidth: '34ch' }}>
+            {heading}
+          </h1>
+          {sub && <div style={{ color: MUTED, fontSize: 14, marginTop: 6 }}>{sub}</div>}
+
+          {/* contract legend — same colours the chart uses */}
+          {legend.length > 1 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', marginTop: 16 }}>
+              {legend.map((l) => (
+                <span key={l.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 999, background: l.color, flexShrink: 0 }} />
+                  <span style={{ color: MUTED, fontSize: 12.5 }}>{l.name}</span>
+                  <span style={{ fontFamily: MONO, fontSize: 12.5, color: WHITE, fontWeight: 600 }}>{l.price}¢</span>
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* the quote */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginTop: 22, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ width: 5, height: 5, borderRadius: 999, background: GOLD, alignSelf: 'center' }} />
-              <span style={{ fontFamily: MONO, fontSize: 13, color: MUTED }}>{quote?.side} Price</span>
-              <span style={{ fontFamily: MONO, fontSize: 16, color: WHITE, fontWeight: 600 }}>{quote?.price}¢</span>
-              {quote?.hasBook && (
-                <span style={{ fontFamily: MONO, fontSize: 12, color: DIM }}>
-                  Bid {quote.bid}¢ · Ask {quote.ask}¢
+              <span style={{ fontFamily: MONO, fontSize: 12, color: MUTED }}>NO Price</span>
+              <span style={{ fontFamily: MONO, fontSize: 14, color: WHITE, fontWeight: 600 }}>{noPrice}¢</span>
+              {hasBook && (
+                <span style={{ fontFamily: MONO, fontSize: 11, color: DIM }}>
+                  Bid {cents(100 - rawAsk)}¢ · Ask {cents(100 - rawBid)}¢
                 </span>
               )}
             </div>
@@ -556,28 +402,21 @@ export default function MarketDetailPage() {
             </span>
           </div>
 
-          <div style={{ marginTop: 16 }}>
-            <PriceChart history={market.price_history} outcomeId={outcomeId} fallbackPrice={quote?.price ?? 50} />
+          <div style={{ marginTop: 14 }}>
+            <PriceChart history={market.price_history} series={legend} fallback={price} />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-            <span style={{ fontFamily: MONO, fontSize: 12, color: DIM }}>{formatVolume(market.total_volume)} vol</span>
+            <span style={{ fontFamily: MONO, fontSize: 11.5, color: DIM }}>{formatVolume(market.total_volume)} vol</span>
             <div style={{ display: 'flex', gap: 3 }}>
               {RANGES.map((r) => (
                 <button
                   key={r}
                   onClick={() => setRange(r)}
                   style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '5px 9px',
-                    borderRadius: 5,
-                    fontFamily: MONO,
-                    fontSize: 11.5,
-                    letterSpacing: '.04em',
-                    color: range === r ? WHITE : DIM,
-                    fontWeight: range === r ? 600 : 400,
+                    background: 'none', border: 'none', cursor: 'pointer', padding: '5px 8px', borderRadius: 5,
+                    fontFamily: MONO, fontSize: 11, letterSpacing: '.04em',
+                    color: range === r ? WHITE : DIM, fontWeight: range === r ? 600 : 400,
                   }}
                 >
                   {r}
@@ -586,77 +425,88 @@ export default function MarketDetailPage() {
             </div>
           </div>
 
-          <OutcomeList
-            outcomes={outcomes}
-            selectedId={outcomeId}
-            onSelect={(oid) => {
-              setOutcomeId(oid);
-              setMsg('');
-            }}
-          />
-
-          {/* disclosures */}
-          <div style={{ marginTop: 44, borderTop: `1px solid ${LINE}` }}>
-            <Disclosure label="About this market">
-              {market.description || 'No description has been published for this market yet.'}
-            </Disclosure>
-
-            <Disclosure label="Resolution">
-              <p style={{ margin: '0 0 12px' }}>
-                {market.description || 'Resolution criteria have not been published for this market yet.'}
-              </p>
-              {fmtDate(market.resolution_date) && (
-                <p style={{ margin: 0, color: DIM }}>
-                  The contract resolves on {fmtDate(market.resolution_date)}. Each share of the winning outcome pays
-                  $1.00; losing shares pay nothing.
-                </p>
-              )}
-            </Disclosure>
-
-            <Disclosure label="Trading hours">
-              <p style={{ margin: '0 0 8px' }}>Open continuously until this market closes.</p>
-              {fmtDate(market.close_date) && (
-                <p style={{ margin: 0, color: DIM }}>Trading closes {fmtDate(market.close_date)}.</p>
-              )}
-            </Disclosure>
-          </div>
-        </div>
-
-        {/* ── order panel ── */}
-        <aside style={{ minWidth: 0 }}>
-          <div style={{ background: PANEL_BG, border: `1px solid ${LINE}`, borderRadius: 12, position: 'sticky', top: 28 }}>
-            {/* selected outcome + market tag */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '16px 18px' }}>
-              <span
+          {/* ── select a contract ── */}
+          <div style={{ marginTop: 34 }}>
+            <h2 style={{ color: WHITE, fontSize: 14.5, fontWeight: 600, margin: '0 0 14px' }}>Select a contract</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {contracts.map((o) => {
+                const on = o.id === outcomeId;
+                return (
+                  <button
+                    key={o.id}
+                    onClick={() => { setOutcomeId(o.id); setMsg(''); }}
+                    aria-pressed={on}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                      background: on ? PANEL_BG : ROW_BG,
+                      border: `1px solid ${on ? GOLD : LINE}`,
+                      borderRadius: 9, padding: '15px 16px', cursor: 'pointer',
+                      textAlign: 'left', fontFamily: SANS,
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                      <span style={{ color: WHITE, fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {outcomeLabel(o)}
+                      </span>
+                      {on && (
+                        <span
+                          style={{
+                            fontFamily: MONO, fontSize: 8, letterSpacing: '.07em', color: GOLD,
+                            border: `1px solid ${GOLD}44`, borderRadius: 3, padding: '2px 5px', flexShrink: 0,
+                          }}
+                        >
+                          SELECTED
+                        </span>
+                      )}
+                    </span>
+                    <span style={{ fontFamily: MONO, fontSize: 13.5, color: WHITE, flexShrink: 0 }}>{cents(o.probability)}¢</span>
+                  </button>
+                );
+              })}
+            </div>
+            {outcomes.length > 8 && (
+              <button
+                onClick={() => setShowAll((v) => !v)}
                 style={{
-                  color: WHITE, fontSize: 15, fontWeight: 600, minWidth: 0,
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  width: '100%', marginTop: 8, background: 'none', border: `1px solid ${LINE}`,
+                  borderRadius: 9, padding: '12px 16px', cursor: 'pointer',
+                  color: MUTED, fontFamily: SANS, fontSize: 13, fontWeight: 500,
                 }}
               >
+                {showAll ? 'Show fewer' : `View all ${outcomes.length} contracts`}
+              </button>
+            )}
+          </div>
+
+          <Timeline items={timeline} />
+        </div>
+
+        {/* ── order ticket ── */}
+        <aside style={{ minWidth: 0 }}>
+          <div style={{ background: PANEL_BG, border: `1px solid ${LINE}`, borderRadius: 12, position: 'sticky', top: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '16px 18px' }}>
+              <span style={{ color: WHITE, fontSize: 15, fontWeight: 600, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {selected ? outcomeLabel(selected) : '—'}
               </span>
-              {market.category && (
+              {(market.short_title || market.category) && (
                 <span
                   style={{
                     fontFamily: MONO, fontSize: 9, letterSpacing: '.06em', color: GOLD,
                     border: `1px solid ${GOLD}44`, borderRadius: 4, padding: '3px 7px', flexShrink: 0,
                   }}
                 >
-                  {String(market.category).toUpperCase()}
+                  {String(market.short_title || market.category).toUpperCase()}
                 </span>
               )}
             </div>
 
-            {/* side tabs. A NO contract only exists where the market carries a
-                complementary outcome; on a field of 21 teams there is nothing
-                to sell you, so the tab isn't offered. */}
             <div style={{ display: 'flex', gap: 18, padding: '0 18px', borderBottom: `1px solid ${LINE}` }}>
               {(complement ? ['Yes', 'No'] : ['Yes']).map((t) => {
-                const on = side === t.toUpperCase();
+                const on = sideName === t.toUpperCase();
                 return (
                   <button
                     key={t}
-                    onClick={() => { if (complement) setOutcomeId(on ? outcomeId : complement.id); setMsg(''); }}
+                    onClick={() => { if (complement && !on) setOutcomeId(complement.id); setMsg(''); }}
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 10px',
                       color: on ? GOLD : MUTED, fontFamily: SANS, fontSize: 13.5, fontWeight: 600,
@@ -675,14 +525,13 @@ export default function MarketDetailPage() {
                 onChange={(e) => { setShares(e.target.value); setMsg(''); }}
                 style={{
                   background: PAGE_BG, border: `1px solid ${LINE}`, borderRadius: 7, outline: 'none',
-                  textAlign: 'right', color: WHITE, fontFamily: MONO, fontSize: 13.5,
-                  width: 78, padding: '7px 10px',
+                  textAlign: 'right', color: WHITE, fontFamily: MONO, fontSize: 13.5, width: 78, padding: '7px 10px',
                 }}
               />
             </Row>
 
-            <Row label="Price" sub={quote?.hasBook ? `Bid ${quote.bid}¢ · Ask ${quote.ask}¢` : null}>
-              <span style={{ fontFamily: MONO, fontSize: 14, color: WHITE }}>{quote?.price}¢</span>
+            <Row label="Price" info>
+              <span style={{ fontFamily: MONO, fontSize: 14, color: WHITE }}>{price}¢</span>
             </Row>
 
             <Row label="Est. cost" sub="$0.00 commissions & fees">
@@ -690,17 +539,12 @@ export default function MarketDetailPage() {
             </Row>
 
             <Row label={`Payout if ${selected ? outcomeLabel(selected) : 'this'} is correct`} last>
-              <span style={{ fontFamily: MONO, fontSize: 16, color: GOLD, fontWeight: 600 }}>${payout.toFixed(2)}</span>
+              <span style={{ fontFamily: MONO, fontSize: 15, color: WHITE, fontWeight: 600 }}>${payout.toFixed(2)}</span>
             </Row>
 
             <div style={{ padding: '4px 18px 18px' }}>
               {!isOpen && (
-                <div
-                  style={{
-                    border: `1px solid ${LINE}`, borderRadius: 8, padding: '10px 12px',
-                    marginBottom: 12, color: MUTED, fontSize: 12, lineHeight: 1.5,
-                  }}
-                >
+                <div style={{ border: `1px solid ${LINE}`, borderRadius: 8, padding: '10px 12px', marginBottom: 12, color: MUTED, fontSize: 12, lineHeight: 1.5 }}>
                   This market has closed and is awaiting resolution. Trading is disabled.
                 </div>
               )}
@@ -709,12 +553,12 @@ export default function MarketDetailPage() {
                 disabled={disabled}
                 style={{
                   width: '100%', padding: '13px 16px', borderRadius: 9, border: 'none',
-                  background: disabled ? '#5C5236' : GOLD_BTN, color: ON_GOLD,
+                  background: disabled ? '#5C5236' : GOLD, color: ON_GOLD,
                   fontFamily: SANS, fontSize: 14.5, fontWeight: 600,
                   cursor: disabled ? 'default' : 'pointer',
                 }}
               >
-                {!isOpen ? 'Market closed' : submitting ? 'Placing order…' : 'Confirm Order'}
+                {!isOpen ? 'Market closed' : submitting ? 'Placing order…' : signedIn ? 'Confirm Order' : 'Sign up to trade'}
               </button>
               {msg && <div style={{ marginTop: 12, fontSize: 12.5, lineHeight: 1.5, color: MUTED }}>{msg}</div>}
             </div>
@@ -726,14 +570,14 @@ export default function MarketDetailPage() {
         .dbm-market-grid {
           max-width: 1240px;
           margin: 0 auto;
-          padding: 38px 28px 80px;
+          padding: 30px 28px 80px;
           display: grid;
           grid-template-columns: minmax(0, 1fr);
           gap: 28px;
         }
         @media (min-width: 900px) {
           .dbm-market-grid {
-            grid-template-columns: minmax(0, 1fr) 340px;
+            grid-template-columns: minmax(0, 1fr) 330px;
             gap: 52px;
           }
         }

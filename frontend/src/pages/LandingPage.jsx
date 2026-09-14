@@ -1204,7 +1204,9 @@ export default function LandingPage() {
     : marketVol;
   const activeTraders = Number.isFinite(Number(pulse?.users))
     ? Number(pulse.users).toLocaleString('en-US')
-    : '12,492';
+    // No invented figure. If /pulse hasn't answered we show a dash rather than
+    // a plausible-looking number nobody can source.
+    : '—';
 
   return (
     <div style={{ background: PAGE_BG, minHeight: '100%' }}>
