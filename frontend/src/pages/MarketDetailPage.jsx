@@ -184,86 +184,141 @@ function PriceChart({ history, outcomeId, fallbackPrice }) {
 
 const outcomeLabel = (o) => String(o?.name || o?.title || '').trim() || 'YES';
 
+const AVATAR_BG = '#2C3C52';
+
+function initials(name) {
+  const w = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!w.length) return '?';
+  if (w.length === 1) return w[0].slice(0, 3).toUpperCase();
+  return w.slice(0, 3).map((x) => x[0]).join('').toUpperCase();
+}
+
 // ── outcomes ───────────────────────────────────────────────────────────────
 //
 // Every outcome is listed on the page. The previous version put them behind a
-// caret on the order ticket, which meant a market with 21 teams in it showed
-// exactly one of them and gave no hint the other twenty existed.
+// caret on the order ticket, so a market with 21 teams in it showed one and
+// gave no sign the other twenty existed.
 function OutcomeList({ outcomes, selectedId, onSelect }) {
+  const binary = outcomes.length === 2;
   const [showAll, setShowAll] = useState(false);
-  const binary = outcomes.length <= 2;
   const LIMIT = 8;
-  const rows = binary || showAll ? outcomes : outcomes.slice(0, LIMIT);
+  const rows = outcomes.length <= 2 || showAll ? outcomes : outcomes.slice(0, LIMIT);
 
   return (
     <div style={{ marginTop: 32 }}>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: binary ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)',
-          gap: binary ? 14 : 8,
-        }}
-      >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {rows.map((o) => {
           const on = o.id === selectedId;
+          const name = outcomeLabel(o);
+          const price = cents(o.probability);
           return (
-            <button
+            <div
               key={o.id}
               onClick={() => onSelect(o.id)}
-              aria-pressed={on}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelect(o.id);
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
+                gap: 14,
                 background: PANEL_BG,
                 border: `1px solid ${on ? GOLD : LINE}`,
-                borderRadius: 9,
-                padding: '14px 16px',
+                borderRadius: 10,
+                padding: '13px 14px',
                 cursor: 'pointer',
-                textAlign: 'left',
-                fontFamily: SANS,
               }}
             >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-                <span
-                  style={{
-                    color: WHITE,
-                    fontSize: 14.5,
-                    fontWeight: 500,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {binary ? `Buy ${outcomeLabel(o).toUpperCase()}` : outcomeLabel(o)}
-                </span>
-                {on && (
+              <span
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 999,
+                  background: AVATAR_BG,
+                  color: '#C6D3E4',
+                  fontFamily: MONO,
+                  fontSize: 10,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                {initials(name)}
+              </span>
+
+              <span style={{ minWidth: 0, flex: 1 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span
                     style={{
-                      fontFamily: MONO,
-                      fontSize: 9,
-                      letterSpacing: '.08em',
-                      color: GOLD,
-                      border: `1px solid ${GOLD}44`,
-                      borderRadius: 3,
-                      padding: '2px 6px',
-                      flexShrink: 0,
+                      color: WHITE,
+                      fontSize: 14.5,
+                      fontWeight: 600,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    ACTIVE
+                    {name}
                   </span>
-                )}
+                  {on && (
+                    <span
+                      style={{
+                        fontFamily: MONO,
+                        fontSize: 8.5,
+                        letterSpacing: '.07em',
+                        color: GOLD,
+                        border: `1px solid ${GOLD}44`,
+                        borderRadius: 3,
+                        padding: '2px 6px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      SELECTED
+                    </span>
+                  )}
+                </span>
+                <span style={{ display: 'block', color: DIM, fontFamily: MONO, fontSize: 10.5, marginTop: 4 }}>
+                  Prob {price}%{o.total_stake ? ` · Vol ${formatVolume(o.total_stake)}` : ''}
+                </span>
               </span>
-              <span style={{ fontFamily: MONO, fontSize: 15, color: on ? GOLD : WHITE, fontWeight: 600, flexShrink: 0 }}>
-                {cents(o.probability)}¢
+
+              <span style={{ fontFamily: MONO, fontSize: 15, color: WHITE, fontWeight: 600, flexShrink: 0 }}>
+                {price}¢
               </span>
-            </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect(o.id);
+                }}
+                style={{
+                  flexShrink: 0,
+                  background: on ? GOLD : 'transparent',
+                  border: `1px solid ${on ? GOLD : LINE}`,
+                  color: on ? ON_GOLD : WHITE,
+                  borderRadius: 7,
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  fontFamily: SANS,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Buy {binary ? name : 'Yes'} {price}¢
+              </button>
+            </div>
           );
         })}
       </div>
 
-      {!binary && outcomes.length > LIMIT && (
+      {outcomes.length > LIMIT && (
         <button
           onClick={() => setShowAll((v) => !v)}
           style={{
@@ -283,6 +338,23 @@ function OutcomeList({ outcomes, selectedId, onSelect }) {
           {showAll ? 'Show fewer' : `View all ${outcomes.length} options`}
         </button>
       )}
+    </div>
+  );
+}
+
+function Row({ label, sub, children, last }) {
+  return (
+    <div
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+        padding: '13px 18px', borderBottom: last ? 'none' : `1px solid ${LINE}`,
+      }}
+    >
+      <span style={{ minWidth: 0 }}>
+        <span style={{ display: 'block', color: MUTED, fontSize: 13 }}>{label}</span>
+        {sub && <span style={{ display: 'block', color: DIM, fontFamily: MONO, fontSize: 10, marginTop: 3 }}>{sub}</span>}
+      </span>
+      <span style={{ flexShrink: 0 }}>{children}</span>
     </div>
   );
 }
@@ -365,6 +437,10 @@ export default function MarketDetailPage() {
   }, [outcomes, outcomeId]);
 
   const selected = outcomes.find((o) => o.id === outcomeId) || null;
+  // A NO contract only exists where the market carries the opposite leg. On a
+  // field of 21 teams there is no complement, so no No tab is offered.
+  const complement = outcomes.length === 2 ? outcomes.find((o) => o.id !== outcomeId) : null;
+  const side = outcomes.length === 2 ? outcomeLabel(selected).toUpperCase() : 'YES';
   const quote = quoteFor(selected);
   const { heading, sub } = splitHeading(market);
 
@@ -548,98 +624,100 @@ export default function MarketDetailPage() {
 
         {/* ── order panel ── */}
         <aside style={{ minWidth: 0 }}>
-          <div style={{ background: PANEL_BG, border: `1px solid ${LINE}`, borderRadius: 12, padding: 22, position: 'sticky', top: 28 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <span style={{ color: WHITE, fontFamily: SANS, fontSize: 17, fontWeight: 600, minWidth: 0,
-                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                Buy {quote?.side}
-              </span>
-              <span style={{ fontFamily: MONO, fontSize: 17, color: GOLD, fontWeight: 600 }}>{quote?.price}¢</span>
-            </div>
-
-            {!isOpen && (
-              <div
+          <div style={{ background: PANEL_BG, border: `1px solid ${LINE}`, borderRadius: 12, position: 'sticky', top: 28 }}>
+            {/* selected outcome + market tag */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '16px 18px' }}>
+              <span
                 style={{
-                  marginTop: 16,
-                  border: `1px solid ${LINE}`,
-                  borderRadius: 9,
-                  padding: '11px 13px',
-                  color: MUTED,
-                  fontSize: 12.5,
-                  lineHeight: 1.5,
+                  color: WHITE, fontSize: 15, fontWeight: 600, minWidth: 0,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}
               >
-                This market has closed and is awaiting resolution. Trading is disabled.
-              </div>
-            )}
+                {selected ? outcomeLabel(selected) : '—'}
+              </span>
+              {market.category && (
+                <span
+                  style={{
+                    fontFamily: MONO, fontSize: 9, letterSpacing: '.06em', color: GOLD,
+                    border: `1px solid ${GOLD}44`, borderRadius: 4, padding: '3px 7px', flexShrink: 0,
+                  }}
+                >
+                  {String(market.category).toUpperCase()}
+                </span>
+              )}
+            </div>
 
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-                background: PAGE_BG,
-                border: `1px solid ${LINE}`,
-                borderRadius: 9,
-                padding: '14px 15px',
-                marginTop: 20,
-              }}
-            >
-              <span style={{ color: MUTED, fontSize: 14.5 }}>Shares</span>
+            {/* side tabs. A NO contract only exists where the market carries a
+                complementary outcome; on a field of 21 teams there is nothing
+                to sell you, so the tab isn't offered. */}
+            <div style={{ display: 'flex', gap: 18, padding: '0 18px', borderBottom: `1px solid ${LINE}` }}>
+              {(complement ? ['Yes', 'No'] : ['Yes']).map((t) => {
+                const on = side === t.toUpperCase();
+                return (
+                  <button
+                    key={t}
+                    onClick={() => { if (complement) setOutcomeId(on ? outcomeId : complement.id); setMsg(''); }}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 10px',
+                      color: on ? GOLD : MUTED, fontFamily: SANS, fontSize: 13.5, fontWeight: 600,
+                      borderBottom: `2px solid ${on ? GOLD : 'transparent'}`, marginBottom: -1,
+                    }}
+                  >
+                    Buy {t}
+                  </button>
+                );
+              })}
+            </div>
+
+            <Row label="Quantity">
               <input
-                type="number"
-                min="1"
-                step="1"
-                value={shares}
-                onChange={(e) => {
-                  setShares(e.target.value);
-                  setMsg('');
-                }}
+                type="number" min="1" step="1" value={shares}
+                onChange={(e) => { setShares(e.target.value); setMsg(''); }}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  outline: 'none',
-                  textAlign: 'right',
-                  color: WHITE,
-                  fontFamily: MONO,
-                  fontSize: 15,
-                  width: 95,
+                  background: PAGE_BG, border: `1px solid ${LINE}`, borderRadius: 7, outline: 'none',
+                  textAlign: 'right', color: WHITE, fontFamily: MONO, fontSize: 13.5,
+                  width: 78, padding: '7px 10px',
                 }}
               />
-            </label>
+            </Row>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18 }}>
-              <span style={{ color: MUTED, fontSize: 14.5 }}>Estimated Cost</span>
-              <span style={{ fontFamily: MONO, fontSize: 14.5, color: WHITE }}>${cost.toFixed(2)}</span>
+            <Row label="Price" sub={quote?.hasBook ? `Bid ${quote.bid}¢ · Ask ${quote.ask}¢` : null}>
+              <span style={{ fontFamily: MONO, fontSize: 14, color: WHITE }}>{quote?.price}¢</span>
+            </Row>
+
+            <Row label="Est. cost" sub="$0.00 commissions & fees">
+              <span style={{ fontFamily: MONO, fontSize: 14, color: WHITE }}>${cost.toFixed(2)}</span>
+            </Row>
+
+            <Row label={`Payout if ${selected ? outcomeLabel(selected) : 'this'} is correct`} last>
+              <span style={{ fontFamily: MONO, fontSize: 16, color: GOLD, fontWeight: 600 }}>${payout.toFixed(2)}</span>
+            </Row>
+
+            <div style={{ padding: '4px 18px 18px' }}>
+              {!isOpen && (
+                <div
+                  style={{
+                    border: `1px solid ${LINE}`, borderRadius: 8, padding: '10px 12px',
+                    marginBottom: 12, color: MUTED, fontSize: 12, lineHeight: 1.5,
+                  }}
+                >
+                  This market has closed and is awaiting resolution. Trading is disabled.
+                </div>
+              )}
+              <button
+                onClick={submit}
+                disabled={disabled}
+                style={{
+                  width: '100%', padding: '13px 16px', borderRadius: 9, border: 'none',
+                  background: disabled ? '#5C5236' : GOLD_BTN, color: ON_GOLD,
+                  fontFamily: SANS, fontSize: 14.5, fontWeight: 600,
+                  cursor: disabled ? 'default' : 'pointer',
+                }}
+              >
+                {!isOpen ? 'Market closed' : submitting ? 'Placing order…' : 'Confirm Order'}
+              </button>
+              {msg && <div style={{ marginTop: 12, fontSize: 12.5, lineHeight: 1.5, color: MUTED }}>{msg}</div>}
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 15 }}>
-              <span style={{ color: MUTED, fontSize: 14.5 }}>If {quote?.side} wins</span>
-              <span style={{ fontFamily: MONO, fontSize: 22, color: GOLD, fontWeight: 600 }}>${payout.toFixed(2)}</span>
-            </div>
-
-            <button
-              onClick={submit}
-              disabled={disabled}
-              style={{
-                width: '100%',
-                marginTop: 20,
-                padding: '14px 16px',
-                borderRadius: 9,
-                border: 'none',
-                background: disabled ? '#5C5236' : GOLD_BTN,
-                color: ON_GOLD,
-                fontFamily: SANS,
-                fontSize: 15.5,
-                fontWeight: 600,
-                cursor: disabled ? 'default' : 'pointer',
-              }}
-            >
-              {!isOpen ? 'Market closed' : submitting ? 'Placing order…' : 'Confirm Order'}
-            </button>
-
-            {msg && <div style={{ marginTop: 12, fontSize: 12.5, lineHeight: 1.5, color: MUTED }}>{msg}</div>}
           </div>
         </aside>
       </div>
