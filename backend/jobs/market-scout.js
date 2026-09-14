@@ -468,6 +468,78 @@ function draftQuestion(headline, category) {
   if ((quoted || lead) && /(on pace|on track|projected|expected to)/.test(t) && /(record|no\.? ?1|million|billion|chart)/.test(t)) {
     return `Will ${quoted ? `'${quoted}'` : lead} hit the projected mark by [DATE]?`;
   }
+
+  // ── Science, tech, sport and gaming templates ───────────────────────────
+  // Everything above this line is entertainment: albums, box office, sequels,
+  // renewals, fight cards. A NASA or FDA headline matched nothing and was
+  // dropped silently, which is why those sectors stayed empty however many
+  // feeds fed them. These cover the same shapes for the rest of the taxonomy.
+
+  // Space missions and launches with a scheduled date
+  if ((quoted || lead) && /(launch|liftoff|lift-off|mission|orbit|docking|landing|flyby|splashdown)/.test(t)
+      && /(nasa|spacex|starship|artemis|falcon|blue origin|rocket lab|esa|isro|crew|probe|lander|rover)/.test(t)) {
+    const subject = quoted ? `'${quoted}'` : lead;
+    return `Will ${subject} launch on or before [DATE]?`;
+  }
+
+  // Regulatory decisions — FDA and equivalents have a public decision date
+  if ((quoted || lead) && /(fda|ema|regulator|approval|approve|authorization|authorisation|clearance)/.test(t)) {
+    const drug = (h.match(/(?:approval|approve[sd]?|clearance|authoriz\w+)\s+(?:for|of)\s+([A-Z][\w.'-]+(?:\s+[A-Z][\w.'-]+){0,2})/i) || [])[1];
+    const subject = drug || quoted || lead;
+    return `Will ${subject} receive regulatory approval before [DATE]?`;
+  }
+
+  // Trial and study results
+  if ((quoted || lead) && /(clinical trial|phase [123i]{1,3}|trial results|study finds|peer[- ]reviewed)/.test(t)) {
+    return `Will ${quoted ? `'${quoted}'` : lead} report positive trial results before [DATE]?`;
+  }
+
+  // Physics and energy milestones
+  if ((quoted || lead) && /(fusion|tokamak|net energy gain|quantum|qubit|superconduct|collider|neutrino)/.test(t)
+      && /(milestone|record|achieve|reach|first|breakthrough|demonstrat)/.test(t)) {
+    return `Will ${quoted ? `'${quoted}'` : lead} hit the reported milestone before [DATE]?`;
+  }
+
+  // AI model releases — the single most common tech headline shape
+  if ((quoted || lead) && /(model|gpt|llm|gemini|claude|llama|frontier)/.test(t)
+      && /(release|releases|launch|ship|unveil|announce|next version|successor)/.test(t)) {
+    const subject = quoted ? `'${quoted}'` : lead;
+    return `Will ${subject} release its next flagship model before [DATE]?`;
+  }
+
+  // Benchmark and leaderboard claims
+  if ((quoted || lead) && /(benchmark|leaderboard|state of the art|sota|outperform|tops? the)/.test(t)) {
+    return `Will ${quoted ? `'${quoted}'` : lead} top the leaderboard on [DATE]?`;
+  }
+
+  // Funding rounds and valuations
+  if (lead && /(raises|raising|funding round|series [a-f]\b|valuation|valued at|ipo|going public)/.test(t)) {
+    if (/(ipo|going public)/.test(t)) return `Will ${lead} complete its IPO before [DATE]?`;
+    return `Will ${lead} close the reported funding round before [DATE]?`;
+  }
+
+  // Game releases and delays
+  // Keyed off the sector, not the word "game" — a title like 'Silksong' never
+  // contains it, which is most game headlines.
+  if ((quoted || lead) && (category === 'gaming' || /(video game|dlc|expansion|early access)/.test(t))
+      && /(release|releases|launch|out on|arrives|drops)/.test(t)) {
+    return `Will ${quoted ? `'${quoted}'` : lead} release on or before [DATE]?`;
+  }
+
+  // Player counts and sales milestones
+  if ((quoted || lead) && /(copies|units|players|concurrent|downloads|installs)/.test(t) && /(million|record|passes|hits|tops)/.test(t)) {
+    return `Will ${quoted ? `'${quoted}'` : lead} pass the reported milestone before [DATE]?`;
+  }
+
+  // Season-long sport outcomes — undefeated runs, titles, playoff berths
+  if (lead && /(undefeated|perfect season|unbeaten)/.test(t)) {
+    return `Will ${lead} finish the season undefeated?`;
+  }
+  if (lead && /(championship|title|playoff|finals|super bowl|world series|stanley cup|world cup)/.test(t)
+      && /(win|wins|clinch|reach|advance|favourite|favorite|odds)/.test(t)) {
+    return `Will ${lead} win the title this season?`;
+  }
+
   return null;
 }
 
