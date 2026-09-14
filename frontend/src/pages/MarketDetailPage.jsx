@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMarket } from '../hooks/useMarkets';
 import { useAuth } from '../hooks/useAuth';
@@ -182,6 +182,111 @@ function PriceChart({ history, outcomeId, fallbackPrice }) {
   );
 }
 
+const outcomeLabel = (o) => String(o?.name || o?.title || '').trim() || 'YES';
+
+// ── outcomes ───────────────────────────────────────────────────────────────
+//
+// Every outcome is listed on the page. The previous version put them behind a
+// caret on the order ticket, which meant a market with 21 teams in it showed
+// exactly one of them and gave no hint the other twenty existed.
+function OutcomeList({ outcomes, selectedId, onSelect }) {
+  const [showAll, setShowAll] = useState(false);
+  const binary = outcomes.length <= 2;
+  const LIMIT = 8;
+  const rows = binary || showAll ? outcomes : outcomes.slice(0, LIMIT);
+
+  return (
+    <div style={{ marginTop: 32 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: binary ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)',
+          gap: binary ? 14 : 8,
+        }}
+      >
+        {rows.map((o) => {
+          const on = o.id === selectedId;
+          return (
+            <button
+              key={o.id}
+              onClick={() => onSelect(o.id)}
+              aria-pressed={on}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                background: PANEL_BG,
+                border: `1px solid ${on ? GOLD : LINE}`,
+                borderRadius: 9,
+                padding: '14px 16px',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontFamily: SANS,
+              }}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                <span
+                  style={{
+                    color: WHITE,
+                    fontSize: 14.5,
+                    fontWeight: 500,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {binary ? `Buy ${outcomeLabel(o).toUpperCase()}` : outcomeLabel(o)}
+                </span>
+                {on && (
+                  <span
+                    style={{
+                      fontFamily: MONO,
+                      fontSize: 9,
+                      letterSpacing: '.08em',
+                      color: GOLD,
+                      border: `1px solid ${GOLD}44`,
+                      borderRadius: 3,
+                      padding: '2px 6px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    ACTIVE
+                  </span>
+                )}
+              </span>
+              <span style={{ fontFamily: MONO, fontSize: 15, color: on ? GOLD : WHITE, fontWeight: 600, flexShrink: 0 }}>
+                {cents(o.probability)}¢
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {!binary && outcomes.length > LIMIT && (
+        <button
+          onClick={() => setShowAll((v) => !v)}
+          style={{
+            width: '100%',
+            marginTop: 10,
+            background: 'none',
+            border: `1px solid ${LINE}`,
+            borderRadius: 9,
+            padding: '12px 16px',
+            cursor: 'pointer',
+            color: MUTED,
+            fontFamily: SANS,
+            fontSize: 13.5,
+            fontWeight: 500,
+          }}
+        >
+          {showAll ? 'Show fewer' : `View all ${outcomes.length} options`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── disclosure panel ───────────────────────────────────────────────────────
 
 function Disclosure({ label, children }) {
@@ -248,8 +353,6 @@ export default function MarketDetailPage() {
   const [range, setRange] = useState('ALL');
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState('');
-  const [sideMenuOpen, setSideMenuOpen] = useState(false);
-  const sideMenuRef = useRef(null);
 
   const outcomes = useMemo(() => (Array.isArray(market?.outcomes) ? market.outcomes : []), [market]);
 
@@ -260,14 +363,6 @@ export default function MarketDetailPage() {
       setOutcomeId(lead?.id ?? outcomes[0].id);
     }
   }, [outcomes, outcomeId]);
-
-  useEffect(() => {
-    const close = (e) => {
-      if (sideMenuRef.current && !sideMenuRef.current.contains(e.target)) setSideMenuOpen(false);
-    };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, []);
 
   const selected = outcomes.find((o) => o.id === outcomeId) || null;
   const quote = quoteFor(selected);
@@ -415,8 +510,17 @@ export default function MarketDetailPage() {
             </div>
           </div>
 
+          <OutcomeList
+            outcomes={outcomes}
+            selectedId={outcomeId}
+            onSelect={(oid) => {
+              setOutcomeId(oid);
+              setMsg('');
+            }}
+          />
+
           {/* disclosures */}
-          <div style={{ marginTop: 56, borderTop: `1px solid ${LINE}` }}>
+          <div style={{ marginTop: 44, borderTop: `1px solid ${LINE}` }}>
             <Disclosure label="About this market">
               {market.description || 'No description has been published for this market yet.'}
             </Disclosure>
@@ -446,84 +550,10 @@ export default function MarketDetailPage() {
         <aside style={{ minWidth: 0 }}>
           <div style={{ background: PANEL_BG, border: `1px solid ${LINE}`, borderRadius: 12, padding: 22, position: 'sticky', top: 28 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              {/* The reference shows a single "Buy NO" heading. A page where you
-                  can only ever buy one side isn't a market, so the heading is
-                  the side picker — same two words, plus a caret. */}
-              <div ref={sideMenuRef} style={{ position: 'relative' }}>
-                <button
-                  onClick={() => outcomes.length > 1 && setSideMenuOpen((o) => !o)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    cursor: outcomes.length > 1 ? 'pointer' : 'default',
-                    color: WHITE,
-                    fontFamily: SANS,
-                    fontSize: 17,
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  Buy {quote?.side}
-                  {outcomes.length > 1 && (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2.2" strokeLinecap="round">
-                      <path d="M6 9l6 6 6-6" />
-                    </svg>
-                  )}
-                </button>
-                {sideMenuOpen && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      marginTop: 8,
-                      zIndex: 20,
-                      background: PANEL_BG,
-                      border: `1px solid ${LINE}`,
-                      borderRadius: 8,
-                      minWidth: 200,
-                      maxHeight: 260,
-                      overflowY: 'auto',
-                      padding: 4,
-                      boxShadow: '0 10px 30px rgba(0,0,0,.45)',
-                    }}
-                  >
-                    {outcomes.map((o) => (
-                      <button
-                        key={o.id}
-                        onClick={() => {
-                          setOutcomeId(o.id);
-                          setSideMenuOpen(false);
-                          setMsg('');
-                        }}
-                        style={{
-                          display: 'flex',
-                          width: '100%',
-                          justifyContent: 'space-between',
-                          gap: 12,
-                          background: o.id === outcomeId ? '#1B3A5C' : 'transparent',
-                          border: 'none',
-                          borderRadius: 6,
-                          padding: '9px 10px',
-                          cursor: 'pointer',
-                          color: WHITE,
-                          fontFamily: SANS,
-                          fontSize: 13,
-                          textAlign: 'left',
-                        }}
-                      >
-                        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {o.name || o.title}
-                        </span>
-                        <span style={{ fontFamily: MONO, color: MUTED, flexShrink: 0 }}>{cents(o.probability)}¢</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <span style={{ color: WHITE, fontFamily: SANS, fontSize: 17, fontWeight: 600, minWidth: 0,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                Buy {quote?.side}
+              </span>
               <span style={{ fontFamily: MONO, fontSize: 17, color: GOLD, fontWeight: 600 }}>{quote?.price}¢</span>
             </div>
 
