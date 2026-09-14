@@ -60,34 +60,17 @@ function fmtDate(d) {
   return dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-// The reference header is a short subject line above a short question:
-//
-//     Penn State — 2027 CFP
-//     Win the championship?
-//
-// Most titles in the database are one long sentence instead ("Will Notre Dame
-// go undefeated in the 2026 college football regular season?"). Where a market
-// carries an explicit short_title/subtitle we use them. Otherwise we split the
-// sentence at its subject when the pattern is unambiguous, and fall back to
-// the title as written. No invented wording either way — the split only ever
-// reorders the market's own words.
+// The reference header is a short subject line above a short question
+// ("Penn State — 2027 CFP" / "Win the championship?"). That needs a
+// short_title on the market. Where one exists we use it; otherwise the full
+// question is the heading.
 function splitHeading(market) {
   if (!market) return { heading: '', sub: null };
   if (market.short_title) return { heading: market.short_title, sub: market.subtitle || market.title };
   if (market.subtitle) return { heading: market.title, sub: market.subtitle };
-
-  const t = String(market.title || '').trim();
-  const m = t.match(
-    /^Will\s+(.+?)\s+(go|win|be|become|reach|hit|finish|release|launch|exceed|make|sign|announce)\b\s*(.*)\?$/i,
-  );
-  if (m) {
-    const subject = m[1];
-    const rest = `${m[2]} ${m[3]}`.replace(/\s+/g, ' ').trim();
-    if (subject.length <= 42 && rest.length > 0) {
-      return { heading: subject, sub: `${rest.charAt(0).toUpperCase()}${rest.slice(1)}?` };
-    }
-  }
-  return { heading: t, sub: null };
+  // No short_title on this market: show the question whole rather than
+  // guessing where to cut it.
+  return { heading: String(market.title || '').trim(), sub: null };
 }
 
 // Quote the leading side. Bid/ask only when the market actually carries a
@@ -110,9 +93,9 @@ function quoteFor(outcome) {
 
 function PriceChart({ history, outcomeId, fallbackPrice }) {
   const W = 640;
-  const H = 210;
-  const PAD_R = 34;
-  const PAD_B = 22;
+  const H = 240;
+  const PAD_R = 40;
+  const PAD_B = 26;
 
   const series = useMemo(() => {
     if (Array.isArray(history) && history.length >= 2) {
@@ -133,10 +116,15 @@ function PriceChart({ history, outcomeId, fallbackPrice }) {
   const vals = series.map((s) => s.v);
   const rawMin = Math.min(...vals);
   const rawMax = Math.max(...vals);
-  const pad = Math.max(6, (rawMax - rawMin) * 0.35);
-  const lo = Math.max(0, Math.floor((rawMin - pad) / 10) * 10);
-  const hi = Math.min(100, Math.ceil((rawMax + pad) / 10) * 10);
-  const span = Math.max(10, hi - lo);
+
+  // Pick a step that gives about four gridlines, then snap the bounds to it,
+  // so labels always land on round numbers.
+  const niceStep = (r) => [1, 2, 5, 10, 20, 25, 50].find((n) => r / n <= 4) ?? 100;
+  const breathe = Math.max(4, (rawMax - rawMin) * 0.6) / 2;
+  const step = niceStep(Math.min(100, rawMax + breathe) - Math.max(0, rawMin - breathe));
+  const lo = Math.max(0, Math.floor((rawMin - breathe) / step) * step);
+  const hi = Math.min(100, Math.ceil((rawMax + breathe) / step) * step);
+  const span = Math.max(step, hi - lo);
 
   const plotW = W - PAD_R;
   const plotH = H - PAD_B;
@@ -146,7 +134,7 @@ function PriceChart({ history, outcomeId, fallbackPrice }) {
   const d = series.map((s, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(s.v).toFixed(1)}`).join(' ');
 
   const gridlines = [];
-  for (let v = lo; v <= hi + 0.001; v += span / 4) gridlines.push(Math.round(v));
+  for (let v = lo; v <= hi + 0.001; v += step) gridlines.push(Math.round(v));
 
   const xTicks = [];
   if (series[0].t) {
@@ -167,14 +155,14 @@ function PriceChart({ history, outcomeId, fallbackPrice }) {
       {gridlines.map((v) => (
         <g key={v}>
           <line x1="0" x2={plotW} y1={y(v)} y2={y(v)} stroke={HAIRLINE} strokeWidth="1" />
-          <text x={plotW + 8} y={y(v) + 3.5} fill={DIM} fontSize="9" fontFamily={MONO}>
+          <text x={plotW + 8} y={y(v) + 3.5} fill={DIM} fontSize="10.5" fontFamily={MONO}>
             {v}%
           </text>
         </g>
       ))}
 
-      <path d={d} fill="none" stroke={GOLD} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={x(series.length - 1)} cy={y(last.v)} r="3" fill={GOLD} />
+      <path d={d} fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={x(series.length - 1)} cy={y(last.v)} r="3.5" fill={GOLD} />
 
       {xTicks.map((t, i) => (
         <text
@@ -182,7 +170,7 @@ function PriceChart({ history, outcomeId, fallbackPrice }) {
           x={t.x}
           y={H - 6}
           fill={DIM}
-          fontSize="9"
+          fontSize="10.5"
           fontFamily={MONO}
           textAnchor={i === 0 ? 'start' : 'middle'}
         >
@@ -207,22 +195,22 @@ function Disclosure({ label, children }) {
           width: '100%',
           background: 'none',
           border: 'none',
-          padding: '17px 2px',
+          padding: '20px 2px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           cursor: 'pointer',
           color: WHITE,
           fontFamily: SANS,
-          fontSize: 14,
+          fontSize: 15.5,
           fontWeight: 500,
           textAlign: 'left',
         }}
       >
         {label}
         <svg
-          width="14"
-          height="14"
+          width="16"
+          height="16"
           viewBox="0 0 24 24"
           fill="none"
           stroke={MUTED}
@@ -235,7 +223,7 @@ function Disclosure({ label, children }) {
         </svg>
       </button>
       {open && (
-        <div style={{ padding: '0 2px 18px', color: MUTED, fontSize: 13.5, lineHeight: 1.65, maxWidth: '72ch' }}>
+        <div style={{ padding: '0 2px 18px', color: MUTED, fontSize: 14.5, lineHeight: 1.7, maxWidth: '72ch' }}>
           {children}
         </div>
       )}
@@ -361,15 +349,15 @@ export default function MarketDetailPage() {
         {/* ── left column ── */}
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24 }}>
-            <div style={{ minWidth: 0 }}>
-              <h1 style={{ color: WHITE, fontSize: 23, fontWeight: 600, letterSpacing: '-.015em', margin: 0, lineHeight: 1.25 }}>
+            <div style={{ minWidth: 0, maxWidth: '40ch' }}>
+              <h1 style={{ color: WHITE, fontSize: 30, fontWeight: 600, letterSpacing: '-.02em', margin: 0, lineHeight: 1.25 }}>
                 {heading}
               </h1>
-              {sub && <div style={{ color: MUTED, fontSize: 13.5, marginTop: 5 }}>{sub}</div>}
+              {sub && <div style={{ color: MUTED, fontSize: 15, marginTop: 7 }}>{sub}</div>}
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '.15em', color: DIM }}>VOLUME</div>
-              <div style={{ fontFamily: MONO, fontSize: 13, color: WHITE, marginTop: 3 }}>
+              <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.15em', color: DIM }}>VOLUME</div>
+              <div style={{ fontFamily: MONO, fontSize: 15, color: WHITE, marginTop: 4 }}>
                 {formatVolume(market.total_volume)}
               </div>
             </div>
@@ -379,10 +367,10 @@ export default function MarketDetailPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginTop: 22, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ width: 5, height: 5, borderRadius: 999, background: GOLD, alignSelf: 'center' }} />
-              <span style={{ fontFamily: MONO, fontSize: 11.5, color: MUTED }}>{quote?.side} Price</span>
-              <span style={{ fontFamily: MONO, fontSize: 14, color: WHITE, fontWeight: 600 }}>{quote?.price}¢</span>
+              <span style={{ fontFamily: MONO, fontSize: 13, color: MUTED }}>{quote?.side} Price</span>
+              <span style={{ fontFamily: MONO, fontSize: 16, color: WHITE, fontWeight: 600 }}>{quote?.price}¢</span>
               {quote?.hasBook && (
-                <span style={{ fontFamily: MONO, fontSize: 10.5, color: DIM }}>
+                <span style={{ fontFamily: MONO, fontSize: 12, color: DIM }}>
                   Bid {quote.bid}¢ · Ask {quote.ask}¢
                 </span>
               )}
@@ -401,7 +389,7 @@ export default function MarketDetailPage() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-            <span style={{ fontFamily: MONO, fontSize: 10.5, color: DIM }}>{formatVolume(market.total_volume)} vol</span>
+            <span style={{ fontFamily: MONO, fontSize: 12, color: DIM }}>{formatVolume(market.total_volume)} vol</span>
             <div style={{ display: 'flex', gap: 3 }}>
               {RANGES.map((r) => (
                 <button
@@ -411,10 +399,10 @@ export default function MarketDetailPage() {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    padding: '4px 7px',
-                    borderRadius: 4,
+                    padding: '5px 9px',
+                    borderRadius: 5,
                     fontFamily: MONO,
-                    fontSize: 10,
+                    fontSize: 11.5,
                     letterSpacing: '.04em',
                     color: range === r ? WHITE : DIM,
                     fontWeight: range === r ? 600 : 400,
@@ -455,7 +443,7 @@ export default function MarketDetailPage() {
 
         {/* ── order panel ── */}
         <aside style={{ minWidth: 0 }}>
-          <div style={{ background: PANEL_BG, border: `1px solid ${LINE}`, borderRadius: 12, padding: 20, position: 'sticky', top: 24 }}>
+          <div style={{ background: PANEL_BG, border: `1px solid ${LINE}`, borderRadius: 12, padding: 22, position: 'sticky', top: 28 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
               {/* The reference shows a single "Buy NO" heading. A page where you
                   can only ever buy one side isn't a market, so the heading is
@@ -470,7 +458,7 @@ export default function MarketDetailPage() {
                     cursor: outcomes.length > 1 ? 'pointer' : 'default',
                     color: WHITE,
                     fontFamily: SANS,
-                    fontSize: 15.5,
+                    fontSize: 17,
                     fontWeight: 600,
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -535,7 +523,7 @@ export default function MarketDetailPage() {
                   </div>
                 )}
               </div>
-              <span style={{ fontFamily: MONO, fontSize: 15, color: GOLD, fontWeight: 600 }}>{quote?.price}¢</span>
+              <span style={{ fontFamily: MONO, fontSize: 17, color: GOLD, fontWeight: 600 }}>{quote?.price}¢</span>
             </div>
 
             {!isOpen && (
@@ -562,11 +550,11 @@ export default function MarketDetailPage() {
                 gap: 12,
                 border: `1px solid ${LINE}`,
                 borderRadius: 9,
-                padding: '13px 14px',
-                marginTop: 18,
+                padding: '14px 15px',
+                marginTop: 20,
               }}
             >
-              <span style={{ color: MUTED, fontSize: 13.5 }}>Shares</span>
+              <span style={{ color: MUTED, fontSize: 14.5 }}>Shares</span>
               <input
                 type="number"
                 min="1"
@@ -583,20 +571,20 @@ export default function MarketDetailPage() {
                   textAlign: 'right',
                   color: WHITE,
                   fontFamily: MONO,
-                  fontSize: 14,
-                  width: 90,
+                  fontSize: 15,
+                  width: 95,
                 }}
               />
             </label>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18 }}>
-              <span style={{ color: MUTED, fontSize: 13.5 }}>Estimated Cost</span>
-              <span style={{ fontFamily: MONO, fontSize: 13.5, color: WHITE }}>${cost.toFixed(2)}</span>
+              <span style={{ color: MUTED, fontSize: 14.5 }}>Estimated Cost</span>
+              <span style={{ fontFamily: MONO, fontSize: 14.5, color: WHITE }}>${cost.toFixed(2)}</span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 15 }}>
-              <span style={{ color: MUTED, fontSize: 13.5 }}>If {quote?.side} wins</span>
-              <span style={{ fontFamily: MONO, fontSize: 19, color: GOLD, fontWeight: 600 }}>${payout.toFixed(2)}</span>
+              <span style={{ color: MUTED, fontSize: 14.5 }}>If {quote?.side} wins</span>
+              <span style={{ fontFamily: MONO, fontSize: 22, color: GOLD, fontWeight: 600 }}>${payout.toFixed(2)}</span>
             </div>
 
             <button
@@ -605,13 +593,13 @@ export default function MarketDetailPage() {
               style={{
                 width: '100%',
                 marginTop: 20,
-                padding: '13px 16px',
+                padding: '14px 16px',
                 borderRadius: 9,
                 border: 'none',
                 background: disabled ? '#5C5236' : GOLD_BTN,
                 color: ON_GOLD,
                 fontFamily: SANS,
-                fontSize: 14.5,
+                fontSize: 15.5,
                 fontWeight: 600,
                 cursor: disabled ? 'default' : 'pointer',
               }}
@@ -626,17 +614,17 @@ export default function MarketDetailPage() {
 
       <style>{`
         .dbm-market-grid {
-          max-width: 1080px;
+          max-width: 1240px;
           margin: 0 auto;
-          padding: 30px 24px 80px;
+          padding: 38px 28px 80px;
           display: grid;
           grid-template-columns: minmax(0, 1fr);
           gap: 28px;
         }
         @media (min-width: 900px) {
           .dbm-market-grid {
-            grid-template-columns: minmax(0, 1fr) 310px;
-            gap: 44px;
+            grid-template-columns: minmax(0, 1fr) 340px;
+            gap: 52px;
           }
         }
       `}</style>
