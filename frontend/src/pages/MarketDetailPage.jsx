@@ -26,16 +26,16 @@ import { api } from '../api/client';
 // The trade flow underneath is unchanged: same useMarket, same wallet hook,
 // same api.createPrediction. Only presentation moved.
 
-const PAGE_BG = '#0D1B2E';
-const PANEL_BG = '#142B45';
-const LINE = '#1E3350';
-const HAIRLINE = '#1B3050';
+const PAGE_BG = '#00132D';   // matches the site page field
+const PANEL_BG = '#09192E';  // order ticket surface
+const LINE = '#0E2744';      // panel borders, dividers
+const HAIRLINE = '#122E50';  // chart grid
 const WHITE = '#FFFFFF';
-const MUTED = '#8FA3BC';
+const MUTED = '#7E91A8';
 const DIM = '#62778F';
-const GOLD = '#F5CE85';
-const GOLD_BTN = '#F7D08A';
-const ON_GOLD = '#10233C';
+const GOLD = '#FFDF9B';
+const GOLD_BTN = '#FFDF9B';
+const ON_GOLD = '#00132D';
 
 const MONO = "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
 const SANS = "'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -152,6 +152,7 @@ function PriceChart({ history, outcomeId, fallbackPrice }) {
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', overflow: 'visible' }} aria-hidden="true">
+      <rect x="0" y="0" width={plotW} height={plotH} fill="none" stroke={HAIRLINE} strokeWidth="1" />
       {gridlines.map((v) => (
         <g key={v}>
           <line x1="0" x2={plotW} y1={y(v)} y2={y(v)} stroke={HAIRLINE} strokeWidth="1" />
@@ -548,6 +549,7 @@ export default function MarketDetailPage() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: 12,
+                background: PAGE_BG,
                 border: `1px solid ${LINE}`,
                 borderRadius: 9,
                 padding: '14px 15px',
