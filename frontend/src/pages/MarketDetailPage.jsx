@@ -16,13 +16,13 @@ import { api } from '../api/client';
 // is shown instead of odds), and no feed of other people's trades.
 
 const PAGE_BG = '#00132D';
-const PANEL_BG = '#09192E';
-const ROW_BG = '#05172C';
+const PANEL_BG = '#091934';
+const ROW_BG = '#051732';
 const LINE = '#0E2744';
 // Dividers *inside* the ticket sit only a few shades off the panel. Using the
 // same LINE as the outer border made them roughly three times too bright
 // against the panel fill, which read as the card being the wrong colour.
-const TICKET_LINE = '#0B1D34';
+const TICKET_LINE = '#0B1D3A';
 const HAIRLINE = '#122E50';
 const WHITE = '#FFFFFF';
 const MUTED = '#7E91A8';
