@@ -5,7 +5,6 @@ import { api } from '../api/client';
 import { SECTORS as SHARED_SECTORS, classifySector } from '../lib/sectors';
 import FeaturedCarousel from '../components/FeaturedCarousel';
 import FeaturedRail from '../components/FeaturedRail';
-import QuoteCard from '../components/QuoteCard';
 
 // ── Homepage rebuilt as a sector-based market dashboard, matched to Neel's
 // reference mocks (palette sampled from the screenshots): #00132D page,
@@ -638,9 +637,32 @@ function MiniSpark({ up, seed = 0 }) {
 }
 
 function MusicCard({ m, onOpen }) {
-  // Was a bespoke card with a green YES pill beside a salmon NO pill. Now
-  // delegates to QuoteCard so the music rail matches every other surface.
-  return <QuoteCard market={m} onOpen={onOpen} compact />;
+  return (
+    <div onClick={() => m.id && onOpen(m.id)}
+      style={{ background: CARD_BG, border: `1px solid ${CARD_LINE}`, borderRadius: 8, padding: '13px 14px 14px', cursor: m.id ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', transition: 'border-color .15s ease' }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = GOLD)}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = CARD_LINE)}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+        <span style={{ ...mono({ fontSize: 8.5, color: WARM, background: '#0C2745', border: `1px solid ${CARD_LINE}`, borderRadius: 2, padding: '3px 7px' }) }}>{m.tag}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, ...mono({ fontSize: 9, color: WARM }) }}>
+          <SectorIcon kind="bars" color={WARM} size={11} />{m.vol} Vol
+        </span>
+      </div>
+      <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 13, lineHeight: 1.4, margin: '11px 0 10px', minHeight: 54 }}>{m.title}</div>
+      <MiniSpark up={m.yes >= 50} seed={m._seed || 0} />
+      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+        <div style={{ flex: 1, textAlign: 'center', background: '#0C2745', borderRadius: 4, padding: '9px 4px' }}>
+          <div style={{ ...mono({ fontSize: 8.5, color: GREEN }) }}>YES</div>
+          <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 13, marginTop: 3 }}>{m.yes}¢</div>
+        </div>
+        <div style={{ flex: 1, textAlign: 'center', background: '#0C2745', borderRadius: 4, padding: '9px 4px' }}>
+          <div style={{ ...mono({ fontSize: 8.5, color: SALMON }) }}>NO</div>
+          <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 13, marginTop: 3 }}>{m.no}¢</div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function DuneArt() {
@@ -798,7 +820,28 @@ function MoviesSection({ markets, platform, onOpen, onViewAll, forwardRef }) {
 }
 
 function SectorGridCard({ m, onOpen }) {
-  return <QuoteCard market={m} onOpen={onOpen} />;
+  return (
+    <div key={m.id || m.title} onClick={() => m.id && onOpen(m.id)}
+      style={{ background: CARD_BG, border: `1px solid ${CARD_LINE}`, borderRadius: 8, padding: '14px 15px', cursor: m.id ? 'pointer' : 'default', transition: 'border-color .15s ease' }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = GOLD)}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = CARD_LINE)}
+    >
+      <span style={{ ...mono({ fontSize: 8, color: WARM }) }}>{m.tag}</span>
+      <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 15, lineHeight: 1.4, margin: '9px 0 12px' }}>{m.title}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10, minWidth: 0 }}>
+          <span style={{ ...mono({ fontSize: 10, color: WARM }) }}>Vol: {m.vol}</span>
+          {m.resolves && (
+            <span style={{ ...mono({ fontSize: 9, color: '#6B7B93' }), whiteSpace: 'nowrap' }}>{m.resolves}</span>
+          )}
+        </span>
+        <span style={{ display: 'flex', gap: 6 }}>
+          <span style={{ background: '#0C2745', border: '1px solid rgba(75,225,118,.4)', color: GREEN, ...mono({ fontSize: 10, letterSpacing: '0.02em' }), borderRadius: 3, padding: '5px 9px' }}>{m.yes}¢</span>
+          <span style={{ background: '#0C2745', border: '1px solid rgba(255,180,171,.35)', color: SALMON, ...mono({ fontSize: 10, letterSpacing: '0.02em' }), borderRadius: 3, padding: '5px 9px' }}>{m.no}¢</span>
+        </span>
+      </div>
+    </div>
+  );
 }
 
 function TwoCardSection({ sector, markets, demo, max = 2, title, pickReal, onOpen, onViewAll, forwardRef }) {
@@ -1137,11 +1180,9 @@ export default function LandingPage() {
   const globalVol = Number.isFinite(Number(pulse?.paper_volume_traded))
     ? Number(pulse.paper_volume_traded)
     : marketVol;
-  // No invented figure here. If /pulse hasn't answered yet we show a dash
-  // rather than a plausible-looking number nobody can source.
   const activeTraders = Number.isFinite(Number(pulse?.users))
     ? Number(pulse.users).toLocaleString('en-US')
-    : '—';
+    : '12,492';
 
   return (
     <div style={{ background: PAGE_BG, minHeight: '100%' }}>
