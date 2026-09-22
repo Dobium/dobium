@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 
@@ -66,7 +66,24 @@ function PhoneShot() {
 export default function WaitlistPage() {
   const navigate = useNavigate();
   const emailRef = useRef(null);
-  const [email, setEmail] = useState('');
+  // ?email= pre-fills the field so people invited by email don't retype an
+  // address they've already given us. It only fills the box — they still
+  // choose to press join.
+  const [email, setEmail] = useState(
+    () => new URLSearchParams(window.location.search).get('email') || '',
+  );
+
+  // Strip the address back out of the URL once read, so it doesn't sit in
+  // browser history or ride along if someone copies the link to share it.
+  // ?ref= is kept, since that's what credits the referrer.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('email')) {
+      params.delete('email');
+      const qs = params.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+    }
+  }, []);
   const [status, setStatus] = useState('idle'); // idle | saving | done | already | error
   const [message, setMessage] = useState('');
   const [position, setPosition] = useState(null);
