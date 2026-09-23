@@ -63,6 +63,30 @@ function PhoneShot() {
   );
 }
 
+// Where people actually share. A copy button asks someone to leave the page,
+// open an app and paste; these open the app with the message already written.
+function shareTargets(url) {
+  const msg = `I just joined the waitlist for Dobium — a prediction market exchange. Trade the probability of real-world outcomes.`;
+  const u = encodeURIComponent(url);
+  const m = encodeURIComponent(msg);
+  return [
+    { id: 'x', label: 'X', href: `https://twitter.com/intent/tweet?text=${m}&url=${u}` },
+    { id: 'sms', label: 'Message', href: `sms:?&body=${encodeURIComponent(`${msg} ${url}`)}` },
+    { id: 'wa', label: 'WhatsApp', href: `https://wa.me/?text=${encodeURIComponent(`${msg} ${url}`)}` },
+    { id: 'mail', label: 'Email', href: `mailto:?subject=${encodeURIComponent('Dobium — early access')}&body=${encodeURIComponent(`${msg}\n\n${url}`)}` },
+  ];
+}
+
+// A concrete target beats "refer friends". Someone at #412 being told four
+// invites puts them in the top 300 has a reason to send four.
+function nextTarget(position, boost) {
+  const tiers = [100, 50, 25, 10, 1];
+  const tier = tiers.find((t) => position > t);
+  if (!tier) return null;
+  const needed = Math.ceil((position - tier) / boost);
+  return { tier, needed };
+}
+
 export default function WaitlistPage() {
   const navigate = useNavigate();
   const emailRef = useRef(null);
@@ -89,6 +113,15 @@ export default function WaitlistPage() {
   const [position, setPosition] = useState(null);
   const [share, setShare] = useState(null);   // { code, referrals, boost }
   const [copied, setCopied] = useState(false);
+  const [total, setTotal] = useState(null);
+
+  // "412 already in line" does more work than any amount of copy. Silent on
+  // failure — a missing number should never block the form.
+  useEffect(() => {
+    api.getWaitlistCount()
+      .then((r) => { if (typeof r?.count === 'number' && r.count > 0) setTotal(r.count); })
+      .catch(() => {});
+  }, []);
   const ref = new URLSearchParams(window.location.search).get('ref') || undefined;
 
   const submit = async (e) => {
@@ -183,38 +216,88 @@ export default function WaitlistPage() {
             </div>
           )}
 
-          {share && (
-            <div style={{ marginTop: 18, background: FIELD, border: `1px solid ${FIELD_LINE}`, borderRadius: 6, padding: '14px 14px 16px' }}>
-              <div style={{ fontSize: 12.5, color: BODY, lineHeight: 1.55 }}>
-                {share.referrals > 0
-                  ? `${share.referrals} ${share.referrals === 1 ? 'person has' : 'people have'} joined with your link — that's ${(share.referrals * share.boost).toLocaleString('en-US')} places closer.`
-                  : `Every friend who joins with your link moves you up ${share.boost} places.`}
+          {share && (() => {
+            const link = `${window.location.origin}/waitlist?ref=${share.code}`;
+            const goal = position != null ? nextTarget(position, share.boost) : null;
+            return (
+              <div style={{ marginTop: 18, background: FIELD, border: `1px solid ${FIELD_LINE}`, borderRadius: 6, padding: '14px 14px 16px' }}>
+                <div style={{ fontSize: 12.5, color: BODY, lineHeight: 1.55 }}>
+                  {share.referrals > 0
+                    ? `${share.referrals} ${share.referrals === 1 ? 'person has' : 'people have'} joined with your link — that's ${(share.referrals * share.boost).toLocaleString('en-US')} places closer.`
+                    : `Every friend who joins with your link moves you up ${share.boost} places.`}
+                </div>
+
+                {goal && (
+                  <div style={{ marginTop: 8, fontSize: 12.5, color: GOLD, lineHeight: 1.55 }}>
+                    {goal.needed === 1
+                      ? `One more invite puts you in the top ${goal.tier.toLocaleString('en-US')}.`
+                      : `${goal.needed} invites puts you in the top ${goal.tier.toLocaleString('en-US')}.`}
+                  </div>
+                )}
+
+                <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                  {shareTargets(link).map((t) => (
+                    <a
+                      key={t.id}
+                      href={t.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'block', textAlign: 'center', textDecoration: 'none',
+                        background: '#0D1A31', border: `1px solid ${FIELD_LINE}`, borderRadius: 4,
+                        padding: '9px 4px', color: '#FFFFFF', fontSize: 11.5, fontWeight: 600,
+                      }}
+                    >
+                      {t.label}
+                    </a>
+                  ))}
+                </div>
+
+                {/* On a phone this is the one that matters — it opens the OS
+                    share sheet, so their own most-used app is one tap away. */}
+                {typeof navigator !== 'undefined' && navigator.share && (
+                  <button
+                    onClick={() => navigator.share({ title: 'Dobium', text: 'I just joined the waitlist for Dobium — a prediction market exchange.', url: link }).catch(() => {})}
+                    style={{
+                      marginTop: 6, width: '100%', background: GOLD_BTN, border: 'none', borderRadius: 4,
+                      padding: '9px 16px', cursor: 'pointer', color: '#2A1F00', fontWeight: 700, fontSize: 12.5,
+                    }}
+                  >
+                    Share your link
+                  </button>
+                )}
+
+                <div
+                  style={{
+                    marginTop: 10, fontFamily: 'var(--mono)', fontSize: 11, color: '#FFFFFF',
+                    background: '#0D1A31', border: `1px solid ${FIELD_LINE}`, borderRadius: 4,
+                    padding: '8px 10px', wordBreak: 'break-all', textAlign: 'left',
+                  }}
+                >
+                  {link}
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard
+                      ?.writeText(link)
+                      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
+                      .catch(() => {});
+                  }}
+                  style={{
+                    marginTop: 8, width: '100%', background: 'none', border: `1px solid ${FIELD_LINE}`,
+                    borderRadius: 4, padding: '9px 16px', cursor: 'pointer', color: BODY,
+                    fontWeight: 600, fontSize: 12.5,
+                  }}
+                >
+                  {copied ? 'Copied' : 'Copy link'}
+                </button>
               </div>
-              <div
-                style={{
-                  marginTop: 10, fontFamily: 'var(--mono)', fontSize: 11, color: '#FFFFFF',
-                  background: '#0D1A31', border: `1px solid ${FIELD_LINE}`, borderRadius: 4,
-                  padding: '8px 10px', wordBreak: 'break-all', textAlign: 'left',
-                }}
-              >
-                {`${window.location.origin}/waitlist?ref=${share.code}`}
-              </div>
-              <button
-                onClick={() => {
-                  navigator.clipboard
-                    ?.writeText(`${window.location.origin}/waitlist?ref=${share.code}`)
-                    .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
-                    .catch(() => {});
-                }}
-                style={{
-                  marginTop: 10, width: '100%', background: GOLD_BTN, border: 'none', borderRadius: 4,
-                  padding: '9px 16px', cursor: 'pointer', color: '#2A1F00', fontWeight: 700, fontSize: 12.5,
-                }}
-              >
-                {copied ? 'Copied' : 'Copy your link'}
-              </button>
-            </div>
-          )}
+            );
+          })()}
+
+          <p style={{ margin: '16px auto 0', maxWidth: 330, fontSize: 11.5, lineHeight: 1.6, color: '#7C8CA6' }}>
+            We'll email you when early access opens. Nothing to pay, and no trading until we're ready.
+          </p>
         </div>
       ) : (
         <form className="wl-form" onSubmit={submit} style={{ marginTop: 26 }}>
@@ -266,6 +349,12 @@ export default function WaitlistPage() {
         <p style={{ margin: '14px auto 0', maxWidth: 330, fontSize: 11.5, lineHeight: 1.6, color: '#7C8CA6' }}>
           You'll get your place in line and a link to share — every friend who joins with it moves you up 25 places.
           {ref ? ' You were invited, so you already have a head start.' : ''}
+        </p>
+      )}
+
+      {!joined && total != null && (
+        <p style={{ margin: '10px auto 0', fontFamily: 'var(--mono)', fontSize: 11.5, color: GOLD }}>
+          {total.toLocaleString('en-US')} already in line
         </p>
       )}
 
