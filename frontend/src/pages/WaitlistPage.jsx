@@ -128,17 +128,9 @@ export default function WaitlistPage() {
   const [position, setPosition] = useState(null);
   const [share, setShare] = useState(null);   // { code, referrals, boost }
   const [copied, setCopied] = useState(false);
-  const [total, setTotal] = useState(null);
   const [reservedFor, setReservedFor] = useState('');
   const [shareNote, setShareNote] = useState('');
 
-  // "412 already in line" does more work than any amount of copy. Silent on
-  // failure — a missing number should never block the form.
-  useEffect(() => {
-    api.getWaitlistCount()
-      .then((r) => { if (typeof r?.count === 'number' && r.count > 0) setTotal(r.count); })
-      .catch(() => {});
-  }, []);
   const ref = new URLSearchParams(window.location.search).get('ref') || undefined;
 
   const submit = async (e) => {
@@ -401,11 +393,6 @@ export default function WaitlistPage() {
         </p>
       )}
 
-      {!joined && total != null && (
-        <p style={{ margin: '10px auto 0', fontFamily: 'var(--mono)', fontSize: 11.5, color: GOLD }}>
-          {total.toLocaleString('en-US')} already in line
-        </p>
-      )}
 
       <div style={{ marginTop: 48, width: '100%', display: 'flex', justifyContent: 'center' }}>
         <PhoneShot />
