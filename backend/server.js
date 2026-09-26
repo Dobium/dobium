@@ -189,6 +189,18 @@ app.get('/config/supabase.js', (req, res) => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.VITE_SUPABASE_ANON_KEY ||
     '';
+  // This script is render-blocking: index.html loads it before the app, so
+  // nothing on the page draws until it returns. It was sent with no cache
+  // headers, so every reload went back to the serverless function — and when
+  // that function was idle, the request first had to boot all of server.js
+  // and open a database connection. That was the blank "buffering" on reload.
+  //
+  // The URL and anon key are public by design and change only if the key is
+  // rotated. So: browsers keep it 5 minutes, Vercel's edge keeps it a day and
+  // serves the cached copy while refreshing in the background for a week.
+  // A new deployment purges the edge cache, so a rotated key goes out with the
+  // next deploy.
+  res.set('Cache-Control', 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800');
   res.type('application/javascript').send(`window.SUPABASE_CONFIG = { url: ${JSON.stringify(url)}, anonKey: ${JSON.stringify(anonKey)} };`);
 });
 app.get('/config/stripe.js', (req, res) => {

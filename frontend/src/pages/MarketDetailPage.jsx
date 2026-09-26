@@ -220,7 +220,7 @@ export default function MarketDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { market, loading, error } = useMarket(id);
-  const { session, openAuthModal } = useAuth();
+  const { session, openAuthModal, loading: authLoading } = useAuth();
   const { balance: buyingPower, refetch: refetchWallet } = useWallet();
 
   const [outcomeId, setOutcomeId] = useState(null);
@@ -277,7 +277,9 @@ export default function MarketDetailPage() {
   const isOpen = market?.status === 'active';
   const signedIn = Boolean(session?.user?.id);
   const canAfford = buyingPower == null || cost <= buyingPower;
-  const disabled = submitting || !isOpen || shareCount <= 0;
+  // While the login check is in flight, hold the button rather than showing a
+  // signed-in trader 'Sign up to trade' for a moment.
+  const disabled = submitting || !isOpen || shareCount <= 0 || authLoading;
 
   async function submit() {
     if (!signedIn) {
@@ -564,7 +566,7 @@ export default function MarketDetailPage() {
                   cursor: disabled ? 'default' : 'pointer',
                 }}
               >
-                {!isOpen ? 'Market closed' : submitting ? 'Placing order…' : signedIn ? 'Confirm Order' : 'Sign up to trade'}
+                {!isOpen ? 'Market closed' : submitting ? 'Placing order…' : authLoading ? 'Confirm Order' : signedIn ? 'Confirm Order' : 'Sign up to trade'}
               </button>
               {msg && <div style={{ marginTop: 12, fontSize: 12.5, lineHeight: 1.5, color: MUTED }}>{msg}</div>}
             </div>

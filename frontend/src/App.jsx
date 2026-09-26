@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './hooks/useAuth';
+import { AuthProvider } from './hooks/useAuth';
 import Layout from './components/Layout';
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
@@ -30,15 +30,13 @@ import WaitlistPage from './pages/WaitlistPage';
 
 
 function AppRoutes() {
-  const { session, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-        <div className="spinner" />
-      </div>
-    );
-  }
+  // No app-wide wait for the login check. The whole site used to sit behind a
+  // full-screen spinner until supabase.auth.getSession() resolved — on every
+  // load, for every visitor, including people who have never made an account.
+  // With a saved but expired session that meant a network round-trip to
+  // Supabase before anything drew, which is the "buffering on reload". No
+  // route depends on the session to render; the components that do skip their
+  // work until it arrives and re-run when it does.
 
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
