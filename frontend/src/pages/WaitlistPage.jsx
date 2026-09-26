@@ -220,7 +220,7 @@ export default function WaitlistPage() {
           color: BODY,
         }}
       >
-        Predictions made tradeable. Trade information as fast as it moves.
+        The world's $0-commission prediction exchange. Trade predictions. Pay $0 in commissions.
       </p>
 
       {joined ? (
