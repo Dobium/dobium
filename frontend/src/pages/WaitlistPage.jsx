@@ -38,9 +38,11 @@ function PhoneShot() {
         <rect x="20" y="20" width="26" height="4" rx="2" fill="#31465F" />
         <rect x="150" y="20" width="14" height="4" rx="2" fill="#31465F" />
 
-        {/* price */}
-        <text x="20" y="52" fill="#FFFFFF" fontFamily="var(--mono), monospace" fontSize="19" fontWeight="700">$888.88</text>
-        <text x="20" y="66" fill="#4BE176" fontFamily="var(--mono), monospace" fontSize="8">▲ 12.4%</text>
+        {/* quote — a contract price, the way the market page shows it. This used
+            to be a green "$888.88 ▲ 12.4%", which reads as winnings. */}
+        <text x="20" y="40" fill="#62778F" fontFamily="var(--mono), monospace" fontSize="7" letterSpacing="1">YES PRICE</text>
+        <text x="20" y="62" fill="#FFFFFF" fontFamily="var(--mono), monospace" fontSize="21" fontWeight="700">62¢</text>
+        <text x="64" y="62" fill="#7E91A8" fontFamily="var(--mono), monospace" fontSize="7.5">Bid 61¢ · Ask 62¢</text>
 
         {/* chart */}
         <path
@@ -53,11 +55,10 @@ function PhoneShot() {
         />
         <circle cx="166" cy="68" r="3.2" fill={GOLD} />
 
-        {/* buy / sell */}
-        <rect x="18" y="150" width="72" height="22" rx="5" fill="#1D8F4E" />
-        <text x="54" y="165" fill="#FFFFFF" fontFamily="var(--mono), monospace" fontSize="8.5" fontWeight="700" textAnchor="middle">BUY</text>
-        <rect x="100" y="150" width="72" height="22" rx="5" fill="#22344F" />
-        <text x="136" y="165" fill="#9FB2CC" fontFamily="var(--mono), monospace" fontSize="8.5" fontWeight="700" textAnchor="middle">SELL</text>
+        {/* One gold order button, matching the live ticket, instead of a green
+            BUY beside a grey SELL. */}
+        <rect x="18" y="150" width="154" height="22" rx="5" fill={GOLD} />
+        <text x="95" y="165" fill="#00132D" fontFamily="var(--mono), monospace" fontSize="8.5" fontWeight="700" textAnchor="middle">Confirm Order</text>
       </g>
     </svg>
   );
