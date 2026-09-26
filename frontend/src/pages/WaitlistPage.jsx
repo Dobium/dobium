@@ -66,19 +66,29 @@ function PhoneShot() {
 
 // Where people actually share. A copy button asks someone to leave the page,
 // open an app and paste; these open the app with the message already written.
+const SHARE_MSG = "I just joined the waitlist for Dobium — The world's $0-commission prediction exchange.";
+
 function shareTargets(url) {
-  const msg = `I just joined the waitlist for Dobium — a prediction market exchange. Trade the probability of real-world outcomes.`;
+  const full = `${SHARE_MSG} ${url}`;
   const u = encodeURIComponent(url);
   return [
-    { id: 'x', label: 'X', href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(msg)}&url=${u}` },
+    { id: 'x', label: 'X', href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_MSG)}&url=${u}` },
     // Instagram has no share-by-link URL: nothing can pre-fill a post or a
-    // story from the web. So this copies the link and opens Instagram, and the
-    // card says so, rather than a button that silently does nothing useful.
-    { id: 'ig', label: 'Instagram', href: 'https://www.instagram.com/', copyFirst: true },
-    { id: 'mail', label: 'Email', href: `mailto:?subject=${encodeURIComponent('Dobium — early access')}&body=${encodeURIComponent(`${msg}\n\n${url}`)}` },
-    // LinkedIn's share endpoint takes the URL only; the preview card comes from
-    // the Open Graph tags on the page.
-    { id: 'li', label: 'LinkedIn', href: `https://www.linkedin.com/sharing/share-offsite/?url=${u}` },
+    // story from the web. Copy the link, open Instagram, and say so.
+    {
+      id: 'ig', label: 'Instagram', href: 'https://www.instagram.com/',
+      copy: url, note: 'Link copied — paste it into your story or bio.',
+    },
+    { id: 'mail', label: 'Email', href: `mailto:?subject=${encodeURIComponent('Dobium — early access')}&body=${encodeURIComponent(full)}` },
+    // LinkedIn's documented share endpoint (share-offsite) accepts a URL only
+    // and discards any text, so the message never appeared. The feed composer
+    // takes pre-filled text. It isn't officially documented, so the message is
+    // also copied: if LinkedIn ever stops honouring the text, it's one paste.
+    {
+      id: 'li', label: 'LinkedIn',
+      href: `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(full)}`,
+      copy: full, note: 'Message copied — if it isn\'t already in the post, just paste it.',
+    },
   ];
 }
 
@@ -120,7 +130,7 @@ export default function WaitlistPage() {
   const [copied, setCopied] = useState(false);
   const [total, setTotal] = useState(null);
   const [reservedFor, setReservedFor] = useState('');
-  const [igCopied, setIgCopied] = useState(false);
+  const [shareNote, setShareNote] = useState('');
 
   // "412 already in line" does more work than any amount of copy. Silent on
   // failure — a missing number should never block the form.
@@ -270,10 +280,10 @@ export default function WaitlistPage() {
                       target="_blank"
                       rel="noreferrer"
                       onClick={() => {
-                        if (t.copyFirst) {
-                          navigator.clipboard?.writeText(link).then(() => {
-                            setIgCopied(true);
-                            setTimeout(() => setIgCopied(false), 4000);
+                        if (t.copy) {
+                          navigator.clipboard?.writeText(t.copy).then(() => {
+                            setShareNote(t.note);
+                            setTimeout(() => setShareNote(''), 5000);
                           }).catch(() => {});
                         }
                       }}
@@ -288,17 +298,15 @@ export default function WaitlistPage() {
                   ))}
                 </div>
 
-                {igCopied && (
-                  <div style={{ marginTop: 8, fontSize: 11.5, color: GOLD }}>
-                    Link copied — paste it into your story or bio.
-                  </div>
+                {shareNote && (
+                  <div style={{ marginTop: 8, fontSize: 11.5, color: GOLD }}>{shareNote}</div>
                 )}
 
                 {/* On a phone this is the one that matters — it opens the OS
                     share sheet, so their own most-used app is one tap away. */}
                 {typeof navigator !== 'undefined' && navigator.share && (
                   <button
-                    onClick={() => navigator.share({ title: 'Dobium', text: 'I just joined the waitlist for Dobium — a prediction market exchange.', url: link }).catch(() => {})}
+                    onClick={() => navigator.share({ title: 'Dobium', text: SHARE_MSG, url: link }).catch(() => {})}
                     style={{
                       marginTop: 6, width: '100%', background: GOLD_BTN, border: 'none', borderRadius: 4,
                       padding: '9px 16px', cursor: 'pointer', color: '#2A1F00', fontWeight: 700, fontSize: 12.5,
