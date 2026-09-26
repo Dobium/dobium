@@ -69,12 +69,16 @@ function PhoneShot() {
 function shareTargets(url) {
   const msg = `I just joined the waitlist for Dobium — a prediction market exchange. Trade the probability of real-world outcomes.`;
   const u = encodeURIComponent(url);
-  const m = encodeURIComponent(msg);
   return [
-    { id: 'x', label: 'X', href: `https://twitter.com/intent/tweet?text=${m}&url=${u}` },
-    { id: 'sms', label: 'Message', href: `sms:?&body=${encodeURIComponent(`${msg} ${url}`)}` },
-    { id: 'wa', label: 'WhatsApp', href: `https://wa.me/?text=${encodeURIComponent(`${msg} ${url}`)}` },
+    { id: 'x', label: 'X', href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(msg)}&url=${u}` },
+    // Instagram has no share-by-link URL: nothing can pre-fill a post or a
+    // story from the web. So this copies the link and opens Instagram, and the
+    // card says so, rather than a button that silently does nothing useful.
+    { id: 'ig', label: 'Instagram', href: 'https://www.instagram.com/', copyFirst: true },
     { id: 'mail', label: 'Email', href: `mailto:?subject=${encodeURIComponent('Dobium — early access')}&body=${encodeURIComponent(`${msg}\n\n${url}`)}` },
+    // LinkedIn's share endpoint takes the URL only; the preview card comes from
+    // the Open Graph tags on the page.
+    { id: 'li', label: 'LinkedIn', href: `https://www.linkedin.com/sharing/share-offsite/?url=${u}` },
   ];
 }
 
@@ -115,6 +119,8 @@ export default function WaitlistPage() {
   const [share, setShare] = useState(null);   // { code, referrals, boost }
   const [copied, setCopied] = useState(false);
   const [total, setTotal] = useState(null);
+  const [reservedFor, setReservedFor] = useState('');
+  const [igCopied, setIgCopied] = useState(false);
 
   // "412 already in line" does more work than any amount of copy. Silent on
   // failure — a missing number should never block the form.
@@ -138,6 +144,7 @@ export default function WaitlistPage() {
     setMessage('');
     try {
       const result = await api.joinWaitlist(clean, ref);
+      setReservedFor(clean);
       if (typeof result?.position === 'number') setPosition(result.position);
       if (result?.referral_code) {
         setShare({
@@ -208,12 +215,31 @@ export default function WaitlistPage() {
 
       {joined ? (
         <div style={{ marginTop: 26, width: '100%', maxWidth: 400 }}>
-          <div style={{ color: '#4BE176', fontSize: 13.5, fontWeight: 600 }}>
-            {status === 'already' ? "You're already on the list." : "You're on the list."}
+          <div style={{ color: '#FFFFFF', fontSize: 15, fontWeight: 600, lineHeight: 1.5 }}>
+            {status === 'already'
+              ? 'Welcome back. Your email is already in the signup queue.'
+              : 'Thank you. We have added your email address to the signup queue.'}
           </div>
-          {position != null && (
-            <div style={{ marginTop: 8, fontFamily: 'var(--mono)', fontSize: 26, color: GOLD }}>
-              #{position.toLocaleString('en-US')}
+
+          {position != null && (() => {
+            const ahead = Math.max(0, position - 1);
+            return ahead === 0 ? (
+              <div style={{ marginTop: 14, fontFamily: 'var(--mono)', fontSize: 26, color: GOLD }}>You're first in line</div>
+            ) : (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 34, color: GOLD, lineHeight: 1.1 }}>
+                  {ahead.toLocaleString('en-US')}
+                </div>
+                <div style={{ marginTop: 4, fontSize: 13, color: BODY }}>
+                  {ahead === 1 ? 'person ahead of you' : 'people ahead of you'}
+                </div>
+              </div>
+            );
+          })()}
+
+          {reservedFor && (
+            <div style={{ marginTop: 12, fontSize: 12.5, color: '#7C8CA6' }}>
+              This reservation is held for <span style={{ color: '#FFFFFF' }}>{reservedFor}</span>
             </div>
           )}
 
@@ -243,6 +269,14 @@ export default function WaitlistPage() {
                       href={t.href}
                       target="_blank"
                       rel="noreferrer"
+                      onClick={() => {
+                        if (t.copyFirst) {
+                          navigator.clipboard?.writeText(link).then(() => {
+                            setIgCopied(true);
+                            setTimeout(() => setIgCopied(false), 4000);
+                          }).catch(() => {});
+                        }
+                      }}
                       style={{
                         display: 'block', textAlign: 'center', textDecoration: 'none',
                         background: '#0D1A31', border: `1px solid ${FIELD_LINE}`, borderRadius: 4,
@@ -253,6 +287,12 @@ export default function WaitlistPage() {
                     </a>
                   ))}
                 </div>
+
+                {igCopied && (
+                  <div style={{ marginTop: 8, fontSize: 11.5, color: GOLD }}>
+                    Link copied — paste it into your story or bio.
+                  </div>
+                )}
 
                 {/* On a phone this is the one that matters — it opens the OS
                     share sheet, so their own most-used app is one tap away. */}
