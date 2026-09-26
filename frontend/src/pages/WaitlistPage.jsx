@@ -77,9 +77,9 @@ function shareTargets(url) {
     // story from the web. Copy the link, open Instagram, and say so.
     {
       id: 'ig', label: 'Instagram', href: 'https://www.instagram.com/',
-      copy: url, note: 'Link copied — paste it into your story or bio.',
+      copy: full, note: 'Message copied — paste it into your story or post.',
     },
-    { id: 'mail', label: 'Email', href: `mailto:?subject=${encodeURIComponent('Dobium — early access')}&body=${encodeURIComponent(full)}` },
+    { id: 'mail', label: 'Email', href: `mailto:?subject=${encodeURIComponent("Dobium — The world's $0-commission prediction exchange")}&body=${encodeURIComponent(full)}` },
     // LinkedIn's documented share endpoint (share-offsite) accepts a URL only
     // and discards any text, so the message never appeared. The feed composer
     // takes pre-filled text. It isn't officially documented, so the message is
@@ -328,7 +328,7 @@ export default function WaitlistPage() {
                 <button
                   onClick={() => {
                     navigator.clipboard
-                      ?.writeText(link)
+                      ?.writeText(`${SHARE_MSG} ${link}`)
                       .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
                       .catch(() => {});
                   }}
@@ -338,7 +338,7 @@ export default function WaitlistPage() {
                     fontWeight: 600, fontSize: 12.5,
                   }}
                 >
-                  {copied ? 'Copied' : 'Copy link'}
+                  {copied ? 'Copied' : 'Copy message & link'}
                 </button>
               </div>
             );
