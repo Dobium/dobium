@@ -15,50 +15,49 @@ const FIELD = '#16233C';
 const FIELD_LINE = '#26374F';
 
 function PhoneShot() {
-  // Device mock is drawn rather than shipped as an asset — the repo carries no
-  // product capture and this environment can't generate one.
+  // A phone lying flat, drawn in local coordinates (300 x 560, speaker at the
+  // top) and projected onto an isometric plane with one matrix, so the screen
+  // content tilts with the device. Outline strokes don't scale with the
+  // projection (vector-effect), which keeps the line weight even all round.
+  const LINE = '#E6EDF7';
+  const iso = 'matrix(0.866 0.5 -0.866 0.5 500 18)';
+  const ns = { vectorEffect: 'non-scaling-stroke' };
   return (
-    <svg viewBox="0 0 420 300" style={{ width: '100%', maxWidth: 430, height: 'auto', display: 'block' }}>
-      <defs>
-        <linearGradient id="wlScreen" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#0B1B33" />
-          <stop offset="100%" stopColor="#071427" />
-        </linearGradient>
-        <filter id="wlShadow" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="14" stdDeviation="16" floodColor="#000000" floodOpacity="0.45" />
-        </filter>
-      </defs>
-
-      <g transform="translate(210 150) rotate(-24) translate(-95 -95)" filter="url(#wlShadow)">
+    <svg viewBox="0 0 780 470" style={{ width: '100%', maxWidth: 680, height: 'auto', display: 'block' }} aria-hidden="true">
+      <g transform={iso}>
+        {/* body edge, offset to give the slab some depth */}
+        <rect x="-10" y="10" width="300" height="560" rx="46" fill="none" stroke={LINE} strokeWidth="2.5" style={ns} opacity="0.55" />
         {/* body */}
-        <rect x="0" y="0" width="190" height="190" rx="22" fill="#F4F6FA" />
-        <rect x="7" y="7" width="176" height="176" rx="17" fill="url(#wlScreen)" />
+        <rect x="0" y="0" width="300" height="560" rx="46" fill="#0A1A33" stroke={LINE} strokeWidth="2.5" style={ns} />
+        {/* speaker + camera */}
+        <rect x="118" y="32" width="64" height="9" rx="4.5" fill="none" stroke={LINE} strokeWidth="2" style={ns} />
+        <circle cx="96" cy="36" r="5" fill="none" stroke={LINE} strokeWidth="2" style={ns} />
+        {/* home button */}
+        <circle cx="150" cy="522" r="20" fill="none" stroke={LINE} strokeWidth="2" style={ns} />
 
-        {/* status strip */}
-        <rect x="20" y="20" width="26" height="4" rx="2" fill="#31465F" />
-        <rect x="150" y="20" width="14" height="4" rx="2" fill="#31465F" />
+        {/* screen */}
+        <rect x="22" y="66" width="256" height="424" rx="6" fill="#0F2547" stroke={LINE} strokeWidth="1.5" style={ns} />
 
-        {/* quote — a contract price, the way the market page shows it. This used
-            to be a green "$888.88 ▲ 12.4%", which reads as winnings. */}
-        <text x="20" y="40" fill="#62778F" fontFamily="var(--mono), monospace" fontSize="7" letterSpacing="1">YES PRICE</text>
-        <text x="20" y="62" fill="#FFFFFF" fontFamily="var(--mono), monospace" fontSize="21" fontWeight="700">62¢</text>
-        <text x="64" y="62" fill="#7E91A8" fontFamily="var(--mono), monospace" fontSize="7.5">Bid 61¢ · Ask 62¢</text>
+        {/* Screen content runs along the phone's length, so text reads up and
+            to the right and a rising chart actually looks like it's rising.
+            Content frame is 424 x 256, origin at the screen's bottom-left. */}
+        <g transform="translate(22 490) rotate(-90)">
+          <text x="26" y="40" fill="#7E91A8" fontFamily="var(--mono), monospace" fontSize="12" letterSpacing="1.5">YES PRICE</text>
+          <text x="24" y="92" fill="#FFFFFF" fontFamily="var(--mono), monospace" fontSize="48" fontWeight="700">62¢</text>
+          <text x="26" y="118" fill="#7E91A8" fontFamily="var(--mono), monospace" fontSize="13">Bid 61¢ · Ask 62¢</text>
 
-        {/* chart */}
-        <path
-          d="M18,132 L36,124 L52,128 L68,112 L84,118 L100,96 L116,104 L132,84 L148,90 L166,68"
-          fill="none"
-          stroke={GOLD}
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <circle cx="166" cy="68" r="3.2" fill={GOLD} />
+          {[140, 162, 184].map((y) => (
+            <line key={y} x1="26" x2="398" y1={y} y2={y} stroke="#1E3A63" strokeWidth="1" style={ns} />
+          ))}
+          <polyline
+            points="26,186 66,180 98,183 134,170 168,173 204,160 240,164 276,150 316,154 356,142 398,134"
+            fill="none" stroke={GOLD} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" style={ns}
+          />
+          <circle cx="398" cy="134" r="5" fill={GOLD} />
 
-        {/* One gold order button, matching the live ticket, instead of a green
-            BUY beside a grey SELL. */}
-        <rect x="18" y="150" width="154" height="22" rx="5" fill={GOLD} />
-        <text x="95" y="165" fill="#00132D" fontFamily="var(--mono), monospace" fontSize="8.5" fontWeight="700" textAnchor="middle">Confirm Order</text>
+          <rect x="26" y="204" width="372" height="34" rx="7" fill={GOLD} />
+          <text x="212" y="226" fill="#00132D" fontFamily="var(--mono), monospace" fontSize="14" fontWeight="700" textAnchor="middle">Confirm Order</text>
+        </g>
       </g>
     </svg>
   );
@@ -177,11 +176,14 @@ export default function WaitlistPage() {
       }}
     >
       <style>{`
-        .wl-form { display: flex; gap: 10px; justify-content: center; }
-        .wl-input { width: 210px; }
+        .wl-form { display: flex; justify-content: center; width: 100%; max-width: 560px; }
+        .wl-headline { text-wrap: balance; }
+        .wl-input { flex: 1; min-width: 0; border-radius: 6px 0 0 6px !important; border-right: none !important; }
+        .wl-btn { border-radius: 0 6px 6px 0 !important; }
         @media (max-width: 560px) {
-          .wl-form { flex-direction: column; align-items: stretch; width: 100%; max-width: 300px; }
-          .wl-input { width: 100%; }
+          .wl-form { flex-direction: column; gap: 10px; max-width: 340px; }
+          .wl-input { flex: none; border-radius: 6px !important; border-right: 1px solid #26374F !important; }
+          .wl-btn { border-radius: 6px !important; }
         }
       `}</style>
 
@@ -194,8 +196,8 @@ export default function WaitlistPage() {
           cursor: 'pointer',
           fontFamily: 'var(--wordmark)',
           fontWeight: 600,
-          fontSize: 40,
-          letterSpacing: '0.01em',
+          fontSize: 'clamp(48px, 8vw, 78px)',
+          letterSpacing: '0.005em',
           color: GOLD,
           lineHeight: 1.1,
         }}
@@ -203,20 +205,25 @@ export default function WaitlistPage() {
         Dobium
       </button>
 
-      <p
+      <h1
+        className="wl-headline"
         style={{
-          margin: '16px 0 0',
-          maxWidth: 360,
-          fontSize: 13.5,
-          lineHeight: 1.55,
-          color: BODY,
+          margin: '22px 0 0',
+          maxWidth: 820,
+          fontSize: 'clamp(20px, 3vw, 30px)',
+          fontWeight: 500,
+          lineHeight: 1.35,
+          color: '#E6EDF7',
+          letterSpacing: '-0.01em',
         }}
       >
-        The world's $0-commission prediction exchange. Trade predictions. Pay $0 in commissions.
-      </p>
+        The world's $0-commission prediction exchange.
+        <br />
+        Trade predictions. Pay $0 in commissions.
+      </h1>
 
       {joined ? (
-        <div style={{ marginTop: 26, width: '100%', maxWidth: 400 }}>
+        <div style={{ marginTop: 30, width: '100%', maxWidth: 480 }}>
           <div style={{ color: '#FFFFFF', fontSize: 15, fontWeight: 600, lineHeight: 1.5 }}>
             {status === 'already'
               ? 'Welcome back. Your email is already in the signup queue.'
@@ -341,7 +348,7 @@ export default function WaitlistPage() {
           </p>
         </div>
       ) : (
-        <form className="wl-form" onSubmit={submit} style={{ marginTop: 26 }}>
+        <form className="wl-form" onSubmit={submit} style={{ marginTop: 34 }}>
           <input
             ref={emailRef}
             className="wl-input"
@@ -353,25 +360,28 @@ export default function WaitlistPage() {
             style={{
               background: FIELD,
               border: `1px solid ${FIELD_LINE}`,
-              borderRadius: 4,
-              padding: '9px 12px',
+              borderRadius: 6,
+              padding: '0 18px',
+              height: 54,
               color: '#FFFFFF',
-              fontSize: 12.5,
+              fontSize: 15.5,
               outline: 'none',
             }}
           />
           <button
             type="submit"
+            className="wl-btn"
             disabled={status === 'saving'}
             style={{
               background: GOLD_BTN,
               border: 'none',
-              borderRadius: 4,
-              padding: '9px 16px',
+              borderRadius: 6,
+              padding: '0 26px',
+              height: 54,
               cursor: status === 'saving' ? 'default' : 'pointer',
               color: '#2A1F00',
               fontWeight: 700,
-              fontSize: 12.5,
+              fontSize: 15.5,
               whiteSpace: 'nowrap',
               opacity: status === 'saving' ? 0.7 : 1,
             }}
@@ -387,14 +397,14 @@ export default function WaitlistPage() {
 
       {/* Say what the queue does before they hand over an email, not after. */}
       {!joined && (
-        <p style={{ margin: '14px auto 0', maxWidth: 330, fontSize: 11.5, lineHeight: 1.6, color: '#7C8CA6' }}>
+        <p style={{ margin: '16px auto 0', maxWidth: 480, fontSize: 13.5, lineHeight: 1.6, color: '#7C8CA6' }}>
           You'll get your place in line and a link to share — every friend who joins with it moves you up 25 places.
           {ref ? ' You were invited, so you already have a head start.' : ''}
         </p>
       )}
 
 
-      <div style={{ marginTop: 48, width: '100%', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ marginTop: 40, width: '100%', display: 'flex', justifyContent: 'center' }}>
         <PhoneShot />
       </div>
     </div>
