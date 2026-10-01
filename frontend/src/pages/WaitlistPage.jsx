@@ -78,7 +78,7 @@ function shareTargets(url) {
       id: 'ig', label: 'Instagram', href: 'https://www.instagram.com/',
       copy: full, note: 'Message copied — paste it into your story or post.',
     },
-    { id: 'mail', label: 'Email', href: `mailto:?subject=${encodeURIComponent("Dobium — The world's $0-commission prediction exchange")}&body=${encodeURIComponent(full)}` },
+    { id: 'reddit', label: 'Reddit', href: `https://www.reddit.com/submit?url=${u}&title=${encodeURIComponent(SHARE_MSG)}` },
     // LinkedIn's documented share endpoint (share-offsite) accepts a URL only
     // and discards any text, so the message never appeared. The feed composer
     // takes pre-filled text. It isn't officially documented, so the message is
@@ -265,9 +265,12 @@ export default function WaitlistPage() {
 
                 {goal && (
                   <div style={{ marginTop: 8, fontSize: 12.5, color: GOLD, lineHeight: 1.55 }}>
-                    {goal.needed === 1
-                      ? `One more invite puts you in the top ${goal.tier.toLocaleString('en-US')}.`
-                      : `${goal.needed} invites puts you in the top ${goal.tier.toLocaleString('en-US')}.`}
+                    {(() => {
+                      const where = goal.tier === 1 ? 'at #1' : `in the top ${goal.tier.toLocaleString('en-US')}`;
+                      return goal.needed === 1
+                        ? `One more invite puts you ${where}.`
+                        : `${goal.needed} invites put you ${where}.`;
+                    })()}
                   </div>
                 )}
 
