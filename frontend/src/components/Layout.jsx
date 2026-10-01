@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import TopNav from './TopNav';
 import { ExploreStatBand } from '../pages/ExplorePage';
@@ -19,7 +20,7 @@ export default function Layout() {
   if (pathname === '/waitlist') {
     return (
       <>
-        <Outlet />
+        <Suspense fallback={<div style={{ minHeight: '70vh' }} />}><Outlet /></Suspense>
         <AuthModal />
         <ResolutionModal />
       </>
@@ -33,7 +34,7 @@ export default function Layout() {
         {pathname === '/explore' && <ExploreStatBand />}
         {!isTerminalPath(pathname) && <TopNav />}
         <div style={{ flex: 1 }}>
-          <Outlet />
+          <Suspense fallback={<div style={{ minHeight: '70vh' }} />}><Outlet /></Suspense>
         </div>
         <Footer />
       </div>

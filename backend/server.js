@@ -1420,9 +1420,31 @@ app.get('/api/markets/suggestions', async (req, res) => {
 // ============================================================================
 
 // GET all markets
+// Keep the first and last point and an even spread between, so a card's
+// sparkline keeps its shape without shipping every snapshot ever recorded.
+function downsampleHistory(history, max = 40) {
+  if (!Array.isArray(history) || history.length <= max) return history;
+  const out = [];
+  const step = (history.length - 1) / (max - 1);
+  for (let i = 0; i < max; i += 1) out.push(history[Math.round(i * step)]);
+  return out;
+}
+
 app.get('/api/markets', async (req, res) => {
+  // Every homepage visit called this, and it loads every market with all of
+  // its outcomes and its entire price history. Uncached, each visitor woke the
+  // serverless function and ran that against the database. Vercel's edge now
+  // serves a copy up to 30s old and refreshes it in the background, so the
+  // function runs at most twice a minute instead of once per visitor. Trading
+  // is unaffected: the market page reads /api/markets/:id, which isn't cached.
+  res.set('Cache-Control', 'public, max-age=0, s-maxage=30, stale-while-revalidate=300');
   try {
-    const markets = await getAllMarketsFormatted();
+    const markets = (await getAllMarketsFormatted()).map((m) => ({
+      ...m,
+      // Cards only draw a thumbnail sparkline from this. The market page gets
+      // the full series from its own request.
+      price_history: downsampleHistory(m.price_history),
+    }));
     res.json(markets);
   } catch (error) {
     console.error('Get markets error:', error);
@@ -2706,7 +2728,11 @@ app.get('/api/activity/latest', async (req, res) => {
 });
 
 app.get('/api/pulse', async (req, res) => {
-  res.set('Cache-Control', 'no-store');
+  // Polled every 20s by every open tab, five database queries a hit. A 15s
+  // edge cache sits inside that poll interval, so the stats bar is as fresh as
+  // before while the function runs a few times a minute instead of once per
+  // tab per poll.
+  res.set('Cache-Control', 'public, max-age=0, s-maxage=15, stale-while-revalidate=60');
   try {
     const [userCount, waitlistCount, markets, txCount, volumeRow] = await Promise.all([
       User.count(),

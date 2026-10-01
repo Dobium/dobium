@@ -929,11 +929,14 @@ export default function LandingPage() {
   const { markets } = useMarkets();
   const navigate = useNavigate();
   const [pulse, setPulse] = useState(null);
-  const [activeSector, setActiveSector] = useState('attention');
+  // Nothing selected or expanded on arrival. This used to start on
+  // 'attention' with attentionOpen true, so Global Attention was highlighted
+  // and unfolded on every single load.
+  const [activeSector, setActiveSector] = useState(null);
   const [cultureSub, setCultureSub] = useState('All Culture');
   // Which sector row in the rail is expanded to its subcategories.
   const [openSector, setOpenSector] = useState(null);
-  const [attentionOpen, setAttentionOpen] = useState(true);
+  const [attentionOpen, setAttentionOpen] = useState(false);
   const [attentionSub, setAttentionSub] = useState('Trending');
   const [musicOpen, setMusicOpen] = useState(false);
   const [musicGenre, setMusicGenre] = useState('All Music');
