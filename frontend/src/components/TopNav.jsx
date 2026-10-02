@@ -131,7 +131,6 @@ export default function TopNav() {
   const loggedInMenu = [
     { header: displayName, sub: email && email !== displayName ? email : null },
     { label: 'Portfolio', onClick: () => navigate('/portfolio') },
-    { label: 'Settings', onClick: () => navigate('/settings') },
     { divider: true },
     { label: 'Sign Out', onClick: () => { logout(); navigate('/'); } },
   ];

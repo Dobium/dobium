@@ -25,7 +25,6 @@ const TrendsTerminalPage = lazy(() => import('./pages/TrendsTerminalPage'));
 const TrendsExplorerPage = lazy(() => import('./pages/TrendsExplorerPage'));
 const TerminalPage = lazy(() => import('./pages/TerminalPage'));
 const MarketDetailPage = lazy(() => import('./pages/MarketDetailPage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const WaitlistAdminPage = lazy(() => import('./pages/WaitlistAdminPage'));
 const LeaguesPage = lazy(() => import('./pages/LeaguesPage'));
@@ -81,7 +80,8 @@ function AppRoutes() {
           <Route path="/leagues/:id" element={<LeagueDetailPage />} />
           <Route path="/profile/:id" element={<UserProfilePage />} />
           <Route path="/waitlist" element={<WaitlistPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          {/* Settings was removed; old links land on the homepage. */}
+          <Route path="/settings" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
