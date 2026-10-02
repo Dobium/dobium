@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMarkets } from '../hooks/useMarkets';
+import { points } from '../lib/points';
 import {
   T_PAGE, T_RAIL, T_BAR, T_PANEL, T_TILE, T_TILE_ON, T_ROW_ON, T_LINE, T_ASK, T_BID,
   T_ANALYSIS, T_MAP, GREEN, SALMON, GOLD, MUTED, WHITE, tmono, PIPELINE,
@@ -110,7 +111,7 @@ function radarLabel(extra = {}) {
 
 function RadarStatBand({ markets }) {
   const liveVol = markets.reduce((sum, m) => sum + (m.total_volume || 0), 0);
-  const volLabel = liveVol >= 1e9 ? `$${(liveVol / 1e9).toFixed(2)}B` : liveVol >= 1e6 ? `$${(liveVol / 1e6).toFixed(1)}M` : `$${Math.round(liveVol).toLocaleString('en-US')}`;
+  const volLabel = points(liveVol, { compact: true });
   const top = [...markets].filter((m) => m.status === 'active').sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))[0];
   const trendingTitle = (top?.title || 'GTA VI Release Date Prediction').replace(/\?+\s*$/, '');
   return (
@@ -271,10 +272,7 @@ function symbolFor(title, i = 0) {
   return base + SYMBOL_SUFFIX[i % SYMBOL_SUFFIX.length];
 }
 function compactMoney(v) {
-  if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
-  if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
-  if (v >= 1e3) return `$${(v / 1e3).toFixed(1)}K`;
-  return `$${Math.round(v || 0)}`;
+  return points(v, { compact: true });
 }
 
 // ── Under-nav quote tape ───────────────────────────────────────────────────
@@ -467,7 +465,7 @@ function MarketIndexHero({ markets }) {
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
           <div style={{ ...tmono({ fontSize: 'clamp(20px,2.3vw,28px)', letterSpacing: '0.01em' }), color: GREEN }}>
-            ${level.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {level.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div style={{ ...tmono({ fontSize: 10, color: GREEN }), marginTop: 5 }}>+{vol.toFixed(1)}% VOLATILITY</div>
         </div>

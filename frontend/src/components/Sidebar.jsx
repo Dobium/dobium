@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useWallet } from '../hooks/useWallet';
+import { points } from '../lib/points';
 
 export default function Sidebar() {
   const { session, logout } = useAuth();
@@ -30,7 +31,7 @@ export default function Sidebar() {
             </div>
             <div style={{ textAlign: 'center', lineHeight: 1.2, opacity: 0, transition: 'opacity 0.3s' }} className="sidebar-balance-chip">
               <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--gold)', fontSize: 13 }}>
-                ${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {points(balance)}
               </span>
               <span style={{ display: 'block', fontFamily: 'inherit', fontWeight: 500, color: 'var(--muted)', fontSize: 10 }}>
                 Paper portfolio

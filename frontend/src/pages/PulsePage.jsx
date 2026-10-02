@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
+import { points } from '../lib/points';
 
 const CATEGORY_LABEL = { music: 'Music', sports: 'Sports', entertainment: 'Movies & TV', awards: 'Awards' };
 
@@ -53,7 +54,7 @@ export default function PulsePage() {
       {data && (
         <>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
-            <StatCard label="Paper volume traded" value={`$${data.paper_volume_traded.toLocaleString('en-US', { maximumFractionDigits: 0 })}`} accent="var(--gold)" />
+            <StatCard label="Paper volume traded" value={points(data.paper_volume_traded)} accent="var(--gold)" />
             <StatCard label="On the real-money waitlist" value={data.waitlist.toLocaleString()} accent="var(--yes)" />
             <StatCard label="Total users" value={data.users.toLocaleString()} />
             <StatCard label="Trades placed" value={data.transactions.toLocaleString()} />

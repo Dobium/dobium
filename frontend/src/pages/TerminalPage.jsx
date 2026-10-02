@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMarkets } from '../hooks/useMarkets';
+import { points } from '../lib/points';
 
 // ── DOBIUM Terminal (/terminal) — matched to the reference mock ────────────
 // Own chrome (ticker + DOBIUM Terminal nav; the site TopNav is suppressed by
@@ -60,7 +61,7 @@ function TerminalTicker({ markets }) {
         delta: deltaFor(m, target),
       };
     });
-  const volItem = { vol: `$${liveVol.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (24H)` };
+  const volItem = { vol: `${points(liveVol)} (24H)` };
   const loop = [volItem, ...items, volItem, ...items];
 
   return (
@@ -210,8 +211,8 @@ function TradeShowcase() {
       <div style={{ maxWidth: 860, margin: '32px auto 0', background: '#0C203A', border: '1px solid #1D3350', borderRadius: 8, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '8px 12px', borderBottom: '1px solid #1D3350', ...mono({ fontSize: 8, letterSpacing: '0.06em', color: '#8E9AB0' }) }}>
           <span style={{ background: '#132844', borderRadius: 3, padding: '2px 6px', color: '#F2F6FF' }}>DOB</span>
-          <span style={{ color: '#F2F6FF' }}>$18,245.50</span>
-          <span style={{ color: GREEN }}>▲ $142.30 (1.45%)</span>
+          <span style={{ color: '#F2F6FF' }}>18,246 points</span>
+          <span style={{ color: GREEN }}>▲ 142 points (1.45%)</span>
           <span>O 18,103.20</span><span>H 18,258.00</span>
           <span style={{ color: SALMON }}>L 18,034.10</span><span>C 18,245.50</span>
           <span style={{ marginLeft: 'auto', display: 'flex', gap: 7 }}>

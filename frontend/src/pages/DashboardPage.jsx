@@ -269,7 +269,7 @@ function EquityChart({ equityPoints, startingBalance, currentValue }) {
           style={{ left: `${Math.min(Math.max(tooltip.pct * 100, 5), 72)}%`, background: 'rgba(8,28,54,.95)', border: '1px solid #22314A', borderRadius: 4 }}
         >
           <p className="text-white font-semibold">
-            ${tooltip.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {points(tooltip.value)}
           </p>
           <p className="text-slate-400">
             {new Date(tooltip.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -716,7 +716,7 @@ export default function DashboardPage() {
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 'clamp(30px,3.4vw,42px)', fontWeight: 800, color: WHITE, lineHeight: 1, letterSpacing: '-0.01em' }}>
-                  ${portfolioValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {points(portfolioValue)}
                 </span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: todayChange >= 0 ? GREEN_TEXT : RED }}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -876,7 +876,7 @@ export default function DashboardPage() {
                         <span style={{ flex: 1.2, textAlign: 'right', color: '#E6EDF9' }}>{r.avgEntry.toFixed(1)}¢</span>
                         <span style={{ flex: 1.4, textAlign: 'right', color: '#E6EDF9' }}>{points(r.mtmValue)}</span>
                         <span style={{ flex: 1.2, textAlign: 'right', color: r.pnl >= 0 ? GREEN_TEXT : RED }}>
-                          {r.pnl >= 0 ? '+' : '-'}${Math.abs(r.pnl).toFixed(2)}
+                          {points(r.pnl, { signed: true })}
                         </span>
                       </div>
                     ))}

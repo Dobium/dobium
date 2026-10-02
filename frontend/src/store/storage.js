@@ -18,8 +18,11 @@ export const storage = {
   },
 };
 
-export const formatCurrency = (value) =>
-  `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// Kept under its old name because several screens import it, but paper
+// balances are points, not money, so it formats through the same helper as
+// everything else.
+import { points } from '../lib/points';
+export const formatCurrency = (value) => points(value);
 
 export const formatPercentage = (value) => `${Math.round(value)}%`;
 
