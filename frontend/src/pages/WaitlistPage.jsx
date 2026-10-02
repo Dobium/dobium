@@ -71,7 +71,7 @@ function shareTargets(url) {
   const full = `${SHARE_MSG} ${url}`;
   const u = encodeURIComponent(url);
   return [
-    { id: 'x', label: 'X', href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_MSG)}&url=${u}` },
+    { id: 'x', label: 'Post on X', href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_MSG)}&url=${u}` },
     // Instagram has no share-by-link URL: nothing can pre-fill a post or a
     // story from the web. Copy the link, open Instagram, and say so.
     {
@@ -178,6 +178,19 @@ export default function WaitlistPage() {
       <style>{`
         .wl-form { display: flex; justify-content: center; width: 100%; max-width: 560px; }
         .wl-headline { text-wrap: balance; }
+        .wl-ticket {
+          margin-top: 30px; padding: 40px 44px 34px;
+          background: #16294A;
+          -webkit-mask: radial-gradient(circle 20px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+                        radial-gradient(circle 20px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+                  mask: radial-gradient(circle 20px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+                        radial-gradient(circle 20px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+        }
+        .wl-share { margin-top: 24px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        @media (max-width: 560px) {
+          .wl-ticket { padding: 32px 30px 28px; }
+          .wl-share { grid-template-columns: repeat(2, 1fr); }
+        }
         .wl-input { flex: 1; min-width: 0; border-radius: 6px 0 0 6px !important; border-right: none !important; }
         .wl-btn { border-radius: 0 6px 6px 0 !important; }
         @media (max-width: 560px) {
@@ -223,58 +236,67 @@ export default function WaitlistPage() {
       </h1>
 
       {joined ? (
-        <div style={{ marginTop: 30, width: '100%', maxWidth: 480 }}>
-          <div style={{ color: '#FFFFFF', fontSize: 15, fontWeight: 600, lineHeight: 1.5 }}>
+        <div style={{ marginTop: 34, width: '100%', maxWidth: 620 }}>
+          <div style={{ color: '#FFFFFF', fontSize: 22, fontWeight: 700 }}>
+            {status === 'already' ? 'Welcome back!' : 'Thank you!'}
+          </div>
+          <div style={{ color: '#C9D4E3', fontSize: 18, lineHeight: 1.5, marginTop: 6 }}>
             {status === 'already'
-              ? 'Welcome back. Your email is already in the signup queue.'
-              : 'Thank you. We have added your email address to the signup queue.'}
+              ? 'Your email address is already in the signup queue.'
+              : 'We have added your email address to the signup queue.'}
           </div>
 
-          {position != null && (() => {
-            const ahead = Math.max(0, position - 1);
-            return ahead === 0 ? (
-              <div style={{ marginTop: 14, fontFamily: 'var(--mono)', fontSize: 26, color: GOLD }}>You're first in line</div>
-            ) : (
-              <div style={{ marginTop: 14 }}>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 34, color: GOLD, lineHeight: 1.1 }}>
-                  {ahead.toLocaleString('en-US')}
-                </div>
-                <div style={{ marginTop: 4, fontSize: 13, color: BODY }}>
-                  {ahead === 1 ? 'person ahead of you' : 'people ahead of you'}
-                </div>
+          {/* The reservation, drawn as a ticket. The side notches are real
+              cut-outs (a mask), not circles painted in the page colour, so they
+              stay correct over the background gradient. */}
+          <div className="wl-ticket">
+            {position != null && (
+              <div style={{ color: '#FFFFFF', fontSize: 'clamp(26px, 5vw, 40px)', fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+                {position <= 1
+                  ? "You're first in line"
+                  : `${(position - 1).toLocaleString('en-US')} ${position - 1 === 1 ? 'Person' : 'People'} ahead of you`}
               </div>
-            );
-          })()}
-
-          {reservedFor && (
-            <div style={{ marginTop: 12, fontSize: 12.5, color: '#7C8CA6' }}>
-              This reservation is held for <span style={{ color: '#FFFFFF' }}>{reservedFor}</span>
-            </div>
-          )}
+            )}
+            {reservedFor && (
+              <div style={{ marginTop: 18, fontSize: 14, color: '#9FB0C6', lineHeight: 1.5 }}>
+                This reservation is held for <span style={{ color: '#FFFFFF' }}>{reservedFor}</span>. Is this{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Back to an empty form so they can reserve under the right
+                    // address. Nothing is deleted server-side.
+                    setStatus('idle');
+                    setEmail('');
+                    setReservedFor('');
+                    setPosition(null);
+                    setShare(null);
+                    setTimeout(() => emailRef.current?.focus(), 0);
+                  }}
+                  style={{ background: 'none', border: 'none', padding: 0, color: GOLD, cursor: 'pointer', font: 'inherit' }}
+                >
+                  not you?
+                </button>
+              </div>
+            )}
+          </div>
 
           {share && (() => {
             const link = `${window.location.origin}/waitlist?ref=${share.code}`;
-            const goal = position != null ? nextTarget(position, share.boost) : null;
             return (
-              <div style={{ marginTop: 18, background: FIELD, border: `1px solid ${FIELD_LINE}`, borderRadius: 6, padding: '14px 14px 16px' }}>
-                <div style={{ fontSize: 12.5, color: BODY, lineHeight: 1.55 }}>
-                  {share.referrals > 0
-                    ? `${share.referrals} ${share.referrals === 1 ? 'person has' : 'people have'} joined with your link — that's ${(share.referrals * share.boost).toLocaleString('en-US')} places closer.`
-                    : `Every friend who joins with your link moves you up ${share.boost} places.`}
+              <>
+                <div style={{ marginTop: 34, color: '#FFFFFF', fontSize: 20, fontWeight: 700 }}>
+                  Interested in priority access?
+                </div>
+                <div style={{ marginTop: 6, color: '#C9D4E3', fontSize: 17, lineHeight: 1.55 }}>
+                  Get early access by referring your friends. The more friends that join, the sooner you'll get access.
+                  {share.referrals > 0 && (
+                    <span style={{ display: 'block', marginTop: 6, color: GOLD, fontSize: 15 }}>
+                      {share.referrals} {share.referrals === 1 ? 'friend has' : 'friends have'} joined with your link so far.
+                    </span>
+                  )}
                 </div>
 
-                {goal && (
-                  <div style={{ marginTop: 8, fontSize: 12.5, color: GOLD, lineHeight: 1.55 }}>
-                    {(() => {
-                      const where = goal.tier === 1 ? 'at #1' : `in the top ${goal.tier.toLocaleString('en-US')}`;
-                      return goal.needed === 1
-                        ? `One more invite puts you ${where}.`
-                        : `${goal.needed} invites put you ${where}.`;
-                    })()}
-                  </div>
-                )}
-
-                <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                <div className="wl-share">
                   {shareTargets(link).map((t) => (
                     <a
                       key={t.id}
@@ -291,64 +313,38 @@ export default function WaitlistPage() {
                       }}
                       style={{
                         display: 'block', textAlign: 'center', textDecoration: 'none',
-                        background: '#0D1A31', border: `1px solid ${FIELD_LINE}`, borderRadius: 4,
-                        padding: '9px 4px', color: '#FFFFFF', fontSize: 11.5, fontWeight: 600,
+                        background: GOLD_BTN, borderRadius: 6, padding: '13px 8px',
+                        color: '#2A1F00', fontSize: 15, fontWeight: 700,
                       }}
                     >
                       {t.label}
                     </a>
                   ))}
                 </div>
+                {shareNote && <div style={{ marginTop: 10, fontSize: 13, color: GOLD }}>{shareNote}</div>}
 
-                {shareNote && (
-                  <div style={{ marginTop: 8, fontSize: 11.5, color: GOLD }}>{shareNote}</div>
-                )}
-
-                {/* On a phone this is the one that matters — it opens the OS
-                    share sheet, so their own most-used app is one tap away. */}
-                {typeof navigator !== 'undefined' && navigator.share && (
-                  <button
-                    onClick={() => navigator.share({ title: 'Dobium', text: SHARE_MSG, url: link }).catch(() => {})}
-                    style={{
-                      marginTop: 6, width: '100%', background: GOLD_BTN, border: 'none', borderRadius: 4,
-                      padding: '9px 16px', cursor: 'pointer', color: '#2A1F00', fontWeight: 700, fontSize: 12.5,
-                    }}
-                  >
-                    Share your link
-                  </button>
-                )}
-
-                <div
-                  style={{
-                    marginTop: 10, fontFamily: 'var(--mono)', fontSize: 11, color: '#FFFFFF',
-                    background: '#0D1A31', border: `1px solid ${FIELD_LINE}`, borderRadius: 4,
-                    padding: '8px 10px', wordBreak: 'break-all', textAlign: 'left',
-                  }}
-                >
-                  {link}
-                </div>
+                <div style={{ marginTop: 26, color: '#C9D4E3', fontSize: 17 }}>Or share this unique link:</div>
                 <button
+                  type="button"
                   onClick={() => {
-                    navigator.clipboard
-                      ?.writeText(`${SHARE_MSG} ${link}`)
+                    navigator.clipboard?.writeText(link)
                       .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
                       .catch(() => {});
                   }}
+                  title="Copy link"
                   style={{
-                    marginTop: 8, width: '100%', background: 'none', border: `1px solid ${FIELD_LINE}`,
-                    borderRadius: 4, padding: '9px 16px', cursor: 'pointer', color: BODY,
-                    fontWeight: 600, fontSize: 12.5,
+                    marginTop: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                    fontFamily: 'var(--mono)', fontSize: 14, color: '#FFFFFF', wordBreak: 'break-all',
                   }}
                 >
-                  {copied ? 'Copied' : 'Copy message & link'}
+                  {link}
                 </button>
-              </div>
+                <div style={{ marginTop: 4, fontSize: 12, color: copied ? GOLD : '#7C8CA6' }}>
+                  {copied ? 'Copied' : 'Tap the link to copy it'}
+                </div>
+              </>
             );
           })()}
-
-          <p style={{ margin: '16px auto 0', maxWidth: 330, fontSize: 11.5, lineHeight: 1.6, color: '#7C8CA6' }}>
-            We'll email you when early access opens. Nothing to pay, and no trading until we're ready.
-          </p>
         </div>
       ) : (
         <form className="wl-form" onSubmit={submit} style={{ marginTop: 34 }}>
