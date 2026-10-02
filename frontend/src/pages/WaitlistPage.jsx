@@ -219,7 +219,7 @@ export default function WaitlistPage() {
       >
         The world's $0-commission prediction exchange.
         <br />
-        Trade predictions. Pay $0 in commissions.
+        Start paying $0 for every trade.
       </h1>
 
       {joined ? (
