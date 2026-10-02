@@ -50,7 +50,9 @@ function PortfolioBlock({ balance, buttonAction, menuItems }) {
           PORTFOLIO
         </span>
         <span style={{ display: 'block', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 14.5, color: '#F2F5FF', marginTop: 2 }}>
-          ${Number(balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {/* Paper balance, shown as points rather than dollars: it isn't money,
+              and a dollar sign on it reads as if it were. Whole numbers only. */}
+          {Math.round(Number(balance || 0)).toLocaleString('en-US')} Points
         </span>
       </div>
       <button
