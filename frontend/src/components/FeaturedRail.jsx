@@ -14,6 +14,48 @@ const GOLD = '#FFDF9B';
 const GREEN = '#4BE176';
 const SALMON = '#FFB4AB';
 
+// Three-line explainer under the sentiment list. Icons are simple shapes in
+// the site gold rather than anyone's logo.
+const ICONS = {
+  play: <path d="M8 5.5v13l11-6.5z" fill={GOLD} />,
+  bars: (
+    <g fill={GOLD}>
+      <rect x="4" y="13" width="3.6" height="7" rx="1" />
+      <rect x="10.2" y="9" width="3.6" height="11" rx="1" />
+      <rect x="16.4" y="4.5" width="3.6" height="15.5" rx="1" />
+    </g>
+  ),
+  mail: (
+    <g fill="none" stroke={GOLD} strokeWidth="2" strokeLinejoin="round">
+      <rect x="3.5" y="6" width="17" height="12.5" rx="2" />
+      <path d="M4 7l8 6.2L20 7" />
+    </g>
+  ),
+};
+
+function InfoRow({ icon, title, body, onClick, first }) {
+  return (
+    <div
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 16, padding: '14px 0',
+        borderTop: first ? 'none' : '1px solid rgba(34,49,74,.7)',
+        cursor: onClick ? 'pointer' : 'default',
+      }}
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" style={{ flexShrink: 0 }} aria-hidden="true">{ICONS[icon]}</svg>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontFamily: 'var(--wordmark)', fontWeight: 800, fontSize: 15, color: '#FFFFFF' }}>{title}</span>
+        <span style={{ display: 'block', marginTop: 3, fontSize: 12.5, lineHeight: 1.45, color: '#AEB9CC' }}>{body}</span>
+      </span>
+      {onClick && <span style={{ color: GOLD, fontSize: 18, flexShrink: 0 }}>›</span>}
+    </div>
+  );
+}
+
 function leaderOf(m) {
   return [...(m.outcomes || [])].sort((a, b) => (b.probability || 0) - (a.probability || 0))[0] || null;
 }
@@ -140,6 +182,12 @@ export default function FeaturedRail({ markets = [] }) {
             </div>
           );
         })}
+      </div>
+
+      <div style={{ background: '#0A2342', border: '1px solid #0A2342', borderRadius: 8, padding: '6px 22px' }}>
+        <InfoRow first icon="play" title="Free to Play" body="Jump in with free credits, no real money traded or exchanged." />
+        <InfoRow icon="bars" title="Live Odds" body="Prices move in real time as everyone trades." />
+        <InfoRow icon="mail" title="Join the Waitlist" body="For more updates." onClick={() => navigate('/waitlist')} />
       </div>
     </div>
   );
