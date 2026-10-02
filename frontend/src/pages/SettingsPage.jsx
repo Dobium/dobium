@@ -31,7 +31,7 @@ export default function SettingsPage() {
 
   const handleResetWallet = async () => {
     if (!session?.user?.id) return;
-    if (!window.confirm("Are you sure you want to delete all manual deposits and withdrawals? This will reset your Buying Power to strictly track your $10,000 starting balance and trading P&L.")) return;
+    if (!window.confirm("Are you sure you want to remove all manual point adjustments? Your points will go back to the 100,000 starting balance plus your trading results.")) return;
 
     setResetLoading(true);
     try {
@@ -171,8 +171,8 @@ export default function SettingsPage() {
             </div>
             <div className="flex justify-between items-center py-3">
               <div>
-                <div className="text-sm font-semibold text-white">Reset Wallet Deposits</div>
-                <div className="text-xs text-slate-500 mt-0.5">Clears manual funding to sync with chart</div>
+                <div className="text-sm font-semibold text-white">Reset Point Adjustments</div>
+                <div className="text-xs text-slate-500 mt-0.5">Removes manual point adjustments</div>
               </div>
               <button
                 onClick={handleResetWallet}

@@ -7,14 +7,13 @@ import { api } from '../api/client';
 import { SECTORS, classifySector } from '../lib/sectors';
 import { subcategoriesFor, matchesSubcategory } from '../lib/subcategories';
 import { EXPLORE_FLASH, MARKET_INTEL } from '../lib/demoContent';
+import { points } from '../lib/points';
 
 // ── Above-nav stat band (mock): ACTIVE MARKETS · LEADERBOARD TOP · LIVE
 // VOLUME on a near-black strip. Rendered by Layout on the /explore route.
 function compactPoints(n) {
   const v = Number(n || 0);
-  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
-  if (v >= 1_000) return `$${Math.round(v / 1_000)}k`;
-  return `$${Math.round(v)}`;
+  return points(v, { compact: true });
 }
 
 export function ExploreStatBand() {
@@ -58,7 +57,7 @@ export function ExploreStatBand() {
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 6, height: 6, borderRadius: 999, background: '#4BE176', flexShrink: 0 }} />
           <span style={label}>LIVE VOLUME:</span>
-          <span style={value}>${Math.round(liveVol).toLocaleString('en-US')}</span>
+          <span style={value}>{points(liveVol)}</span>
         </span>
       </div>
     </div>

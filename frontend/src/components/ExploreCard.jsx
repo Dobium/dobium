@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { categoryBucket, bucketLabel, bucketIcon } from '../lib/categories';
+import { points } from '../lib/points';
 
 // Explore-grid market card — matched to the reference mock.
 //
@@ -56,9 +57,7 @@ function trim(x) {
 }
 function volLabel(n) {
   const v = Number(n || 0);
-  if (v >= 1e6) return `$${trim(v / 1e6)}M`;
-  if (v >= 1e3) return `$${trim(v / 1e3)}K`;
-  return `$${v.toFixed(0)}`;
+  return points(v, { compact: true });
 }
 
 // Auto-scaled curve: the y-domain fits the series (with padding) instead of

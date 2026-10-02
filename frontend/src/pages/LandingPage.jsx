@@ -6,6 +6,7 @@ import { SECTORS as SHARED_SECTORS, classifySector } from '../lib/sectors';
 import { subcategoriesFor, matchesSubcategory, SUBCATEGORIES } from '../lib/subcategories';
 import FeaturedCarousel from '../components/FeaturedCarousel';
 import FeaturedRail from '../components/FeaturedRail';
+import { points } from '../lib/points';
 
 // ── Homepage rebuilt as a sector-based market dashboard, matched to Neel's
 // reference mocks (palette sampled from the screenshots): #00132D page,
@@ -43,9 +44,7 @@ function shortTitle(t) {
   return (t || '').replace(/^will\s+/i, '').replace(/\?+\s*$/, '');
 }
 function compactVol(v) {
-  if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
-  if (v >= 1e3) return `$${(v / 1e3).toFixed(1).replace(/\.0$/, '')}K`;
-  return `$${Math.round(v || 0)}`;
+  return points(v, { compact: true });
 }
 
 // ── Sector classification ────────────────────────────────────────────────
@@ -1347,7 +1346,7 @@ export default function LandingPage() {
             <div>
               <div style={{ ...mono({ fontSize: 9, letterSpacing: '0.1em', color: WARM }) }}>GLOBAL VOLUME</div>
               <div style={{ ...mono({ fontSize: 19, color: '#FFFFFF', letterSpacing: '0.01em' }), marginTop: 6 }}>
-                ${globalVol.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {points(globalVol)}
               </div>
             </div>
             <div>

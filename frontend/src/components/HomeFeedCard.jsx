@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { points } from '../lib/points';
 
 // Per-category chip colors from the reference mock (FESTIVALS green,
 // AWARDS gold); everything else stays in the same palette family.
@@ -36,7 +37,7 @@ export default function HomeFeedCard({ market }) {
 
   const vol = Number(market.total_volume || 0);
   const trim = (x) => { const v = x.toFixed(1); return v.endsWith('.0') ? v.slice(0, -2) : v; };
-  const volLabel = vol >= 1e6 ? `$${trim(vol / 1e6)}M` : vol >= 1e3 ? `$${trim(vol / 1e3)}K` : `$${vol.toFixed(0)}`;
+  const volLabel = points(vol, { compact: true });
 
   const go = () => navigate(market.demo ? '/explore' : `/markets/${market.id}`);
 

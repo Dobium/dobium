@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import { useNavigate } from 'react-router-dom';
 import { bucketLabel } from '../lib/categories';
+import { points } from '../lib/points';
 
 // Featured trending carousel — the homepage centerpiece.
 // Rotates through the hottest markets (is_trending flag first, then volume):
@@ -222,7 +223,7 @@ export default function FeaturedCarousel({ markets }) {
           <span style={{ width: 7, height: 7, borderRadius: 999, background: '#FF8A8A' }} />LIVE
         </span>
         <span style={{ color: '#C3CBDE' }}>{rows.length + hidden} outcome{rows.length + hidden === 1 ? '' : 's'}</span>
-        <span style={{ color: '#C3CBDE' }}>${(market.total_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} vol</span>
+        <span style={{ color: '#C3CBDE' }}>{points(market.total_volume, { compact: true })} vol</span>
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18 }}>

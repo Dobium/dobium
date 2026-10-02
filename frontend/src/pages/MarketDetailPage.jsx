@@ -4,6 +4,7 @@ import { useMarket } from '../hooks/useMarkets';
 import { useAuth } from '../hooks/useAuth';
 import { useWallet } from '../hooks/useWallet';
 import { api } from '../api/client';
+import { points } from '../lib/points';
 
 // ── Market detail page ─────────────────────────────────────────────────────
 //
@@ -46,9 +47,7 @@ const outcomeLabel = (o) => String(o?.name || o?.title || '').trim() || 'YES';
 
 function formatVolume(v) {
   const n = Number(v) || 0;
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
-  return `$${n.toLocaleString('en-US')}`;
+  return points(n, { compact: true });
 }
 
 function fmtDate(d) {
@@ -288,7 +287,7 @@ export default function MarketDetailPage() {
     }
     if (!market || !selected || shareCount <= 0 || submitting) return;
     if (!canAfford) {
-      setMsg(`Not enough buying power. This order costs $${cost.toFixed(2)}.`);
+      setMsg(`Not enough points. This order costs ${points(cost)}.`);
       return;
     }
     setSubmitting(true);
@@ -542,12 +541,12 @@ export default function MarketDetailPage() {
               <span style={{ fontFamily: MONO, fontSize: 14, color: WHITE }}>{price}¢</span>
             </Row>
 
-            <Row label="Est. cost" sub="$0.00 commissions & fees">
-              <span style={{ fontFamily: MONO, fontSize: 14, color: WHITE }}>${cost.toFixed(2)}</span>
+            <Row label="Est. cost" sub="No commissions or fees">
+              <span style={{ fontFamily: MONO, fontSize: 14, color: WHITE }}>{points(cost)}</span>
             </Row>
 
             <Row label={`Payout if ${selected ? outcomeLabel(selected) : 'this'} is correct`} last>
-              <span style={{ fontFamily: MONO, fontSize: 15, color: WHITE, fontWeight: 600 }}>${payout.toFixed(2)}</span>
+              <span style={{ fontFamily: MONO, fontSize: 15, color: WHITE, fontWeight: 600 }}>{points(payout)}</span>
             </Row>
 
             <div style={{ padding: '4px 18px 18px' }}>

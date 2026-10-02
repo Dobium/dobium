@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { points } from '../lib/points';
 
 // "MAJOR MARKET" hero — matched to the reference mock: ONE card, split by an
 // internal vertical divider. Left: badge row, big question, probability +
@@ -69,7 +70,7 @@ export default function MajorMarket({ markets }) {
     ? new Date(market.close_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()
     : null;
   const vol = Number(market.total_volume || 0);
-  const volLabel = `$${vol.toLocaleString('en-US')}`;
+  const volLabel = points(vol);
   const chanceName = isBinary ? 'YES' : (leader?.title || '').replace(/\s*\((Yes|No)\)\s*$/i, '').slice(0, 12).toUpperCase();
 
   return (

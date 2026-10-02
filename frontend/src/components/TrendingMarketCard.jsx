@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import MarketIcon from './MarketIcon';
 import { bucketLabel } from '../lib/categories';
+import { points } from '../lib/points';
 
 // Trending market card — used ONLY on the landing page.
 // Pixel-matched to the approved mockup: mono category chip + thumbnail on top,
@@ -9,9 +10,7 @@ import { bucketLabel } from '../lib/categories';
 
 
 function compactMoney(n) {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
-  return `$${(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  return points(n, { compact: true });
 }
 
 function yesNoPrices(market) {

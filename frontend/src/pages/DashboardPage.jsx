@@ -7,6 +7,7 @@ import { useWallet } from '../hooks/useWallet';
 import { formatCurrency } from '../store/storage';
 import ActivityHistory from '../components/ActivityHistory';
 import MarketTicker from '../components/MarketTicker';
+import { points } from '../lib/points';
 
 // ── Terminal-mock palette (sampled from the portfolio reference shots) ─────
 const PAGE_BG = '#00132D';
@@ -391,15 +392,15 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 relative overflow-hidden rounded-md p-6" style={PANEL}>
             <span style={guestLabel}>Total Portfolio Value</span>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 34, fontWeight: 800, color: WHITE, lineHeight: 1 }}>$100,000.00</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 34, fontWeight: 800, color: WHITE, lineHeight: 1 }}>100,000 points</span>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: MUTED }}>starting paper balance</span>
             </div>
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 46, background: 'linear-gradient(180deg, transparent, rgba(11,18,41,.65))', pointerEvents: 'none' }} />
           </div>
           <div className="flex flex-col gap-4">
             <div className="rounded-md p-5 flex-1" style={PANEL}>
-              <span style={guestLabel}>Available Cash</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 800, color: WHITE }}>$100,000.00</span>
+              <span style={guestLabel}>Available Points</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 19, fontWeight: 800, color: WHITE }}>100,000 points</span>
             </div>
             <div className="rounded-md p-5 flex-1" style={PANEL}>
               <span style={guestLabel}>Win Rate</span>
@@ -425,7 +426,7 @@ export default function DashboardPage() {
         <div className="rounded-md p-8 mb-8 text-center" style={PANEL}>
           <h2 className="text-base font-bold mb-2" style={{ color: WHITE }}>Active Positions</h2>
           <p style={{ color: MUTED, fontSize: 13, marginBottom: 18 }}>
-            Sign in to track your paper trading balance, performance history, and open positions — every new account starts with $100,000 in paper money.
+            Sign in to track your paper trading balance, performance history, and open positions — every new account starts with 100,000 points. Points aren't money and can't be withdrawn.
           </p>
           <button
             onClick={() => openAuthModal('login')}
@@ -489,7 +490,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="h-8 w-32 bg-slate-800/80 rounded animate-pulse"></div>
               </div>
-              <p className="text-xs text-slate-500 mt-2">This buying power is virtual money for practice. No real funds are involved.</p>
+              <p className="text-xs text-slate-500 mt-2">These are practice points. They aren't money and can't be withdrawn.</p>
             </div>
 
             {/* Forecasting Stats Skeleton */}
@@ -721,17 +722,17 @@ export default function DashboardPage() {
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                     {todayChange >= 0 ? <path d="M3 17l6-6 4 4 8-8M15 7h6v6" /> : <path d="M3 7l6 6 4-4 8 8M15 17h6v-6" />}
                   </svg>
-                  {todayChange >= 0 ? '+$' : '-$'}{Math.abs(todayChange).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({todayChange >= 0 ? '' : '-'}{Math.abs(todayChangePercent).toFixed(1)}%)
+                  {points(todayChange, { signed: true })} ({todayChange >= 0 ? '' : '-'}{Math.abs(todayChangePercent).toFixed(1)}%)
                 </span>
               </div>
             </div>
             <div className="flex flex-col gap-4">
               <div className="p-5 flex-1" style={PANEL}>
                 <span style={{ ...warmLabel, display: 'block', marginBottom: 12 }}>
-                  Available Cash
+                  Available Points
                 </span>
                 <span style={{ fontSize: 23, fontWeight: 800, color: WHITE }}>
-                  {walletLoading ? '…' : `$${availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  {walletLoading ? '…' : points(availableBalance)}
                 </span>
               </div>
               <div className="p-5 flex-1" style={PANEL}>
@@ -871,9 +872,9 @@ export default function DashboardPage() {
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
                         </span>
                         <span style={{ flex: 1 }}>{sidePill(r.side)}</span>
-                        <span style={{ flex: 1.2, textAlign: 'right', color: '#E6EDF9' }}>${r.amount.toFixed(2)}</span>
+                        <span style={{ flex: 1.2, textAlign: 'right', color: '#E6EDF9' }}>{points(r.amount)}</span>
                         <span style={{ flex: 1.2, textAlign: 'right', color: '#E6EDF9' }}>{r.avgEntry.toFixed(1)}¢</span>
-                        <span style={{ flex: 1.4, textAlign: 'right', color: '#E6EDF9' }}>${r.mtmValue.toFixed(2)}</span>
+                        <span style={{ flex: 1.4, textAlign: 'right', color: '#E6EDF9' }}>{points(r.mtmValue)}</span>
                         <span style={{ flex: 1.2, textAlign: 'right', color: r.pnl >= 0 ? GREEN_TEXT : RED }}>
                           {r.pnl >= 0 ? '+' : '-'}${Math.abs(r.pnl).toFixed(2)}
                         </span>
@@ -899,11 +900,11 @@ export default function DashboardPage() {
               </span>
               <div style={{ minWidth: 0 }}>
                 <div style={{ color: GOLD_NUM, fontWeight: 700, fontSize: 13.5 }}>Paper Trading Balance</div>
-                <p style={{ color: MUTED, fontSize: 11, margin: '3px 0 0' }}>This buying power is virtual money for practice. No real funds are involved.</p>
+                <p style={{ color: MUTED, fontSize: 11, margin: '3px 0 0' }}>These are practice points. They aren't money and can't be withdrawn.</p>
               </div>
             </div>
             <span style={{ color: GOLD_NUM, fontWeight: 800, fontSize: 23, flexShrink: 0 }}>
-              {walletLoading ? '…' : `$${availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              {walletLoading ? '…' : points(availableBalance)}
             </span>
           </div>
 

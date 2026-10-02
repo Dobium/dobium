@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { points } from '../lib/points';
 
 // Terminal-mock palette (shared with the restyled pages)
 const BAND_BG = '#000E24';
@@ -34,7 +35,7 @@ export default function MarketTicker({ markets }) {
         delta,
       };
     });
-    return [{ label: 'LIVE VOL', value: `$${Math.round(liveVol).toLocaleString()}`, delta: null, dot: true }, ...entries];
+    return [{ label: 'LIVE VOL', value: points(liveVol), delta: null, dot: true }, ...entries];
   }, [markets]);
 
   if (items.length <= 1) return null;

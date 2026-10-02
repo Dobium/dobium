@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { bucketLabel, bucketIcon } from '../lib/categories';
+import { points } from '../lib/points';
 
 function CategoryIcon({ name, size = 16 }) {
   return <span className="material-symbols-outlined" style={{ fontSize: size, lineHeight: 1 }}>{name}</span>;
@@ -84,8 +85,8 @@ export default function MarketCard({ market }) {
   const isBinary = !isMultiType;
 
   const volLabel = (market.total_volume || 0) >= 1000
-    ? `$${(market.total_volume / 1000).toFixed(market.total_volume >= 100000 ? 0 : 1)}K`
-    : `$${(market.total_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+    ? points(market.total_volume, { compact: true })
+    : points(market.total_volume || 0);
 
   let body;
   if (isBinary) {
