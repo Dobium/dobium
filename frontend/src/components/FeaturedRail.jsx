@@ -185,8 +185,8 @@ export default function FeaturedRail({ markets = [] }) {
       </div>
 
       <div style={{ background: '#0A2342', border: '1px solid #0A2342', borderRadius: 8, padding: '6px 22px' }}>
-        <InfoRow first icon="play" title="Free to Play" body="Jump in with free credits, no real money traded or exchanged." />
-        <InfoRow icon="bars" title="Live Odds" body="Prices move in real time as everyone trades." />
+        <InfoRow first icon="play" title="Free to Play" body="Jump in with free points, no real money traded or exchanged." />
+        <InfoRow icon="bars" title="Live Prices" body="Prices move in real time as everyone trades." />
         <InfoRow icon="mail" title="Join the Waitlist" body="For more updates." onClick={() => navigate('/waitlist')} />
       </div>
     </div>
